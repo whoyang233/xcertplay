@@ -24,7 +24,8 @@ internal fun <T> startHotspotWithRecovery(
         start()
     } catch (first: IOException) {
         if (!enabled || generateSequence<Throwable>(first) { it.cause }.any {
-            it is SecurityException || it is InterruptedIOException || it is InterruptedException
+            it is SecurityException || it is InterruptedIOException || it is InterruptedException ||
+                it is WifiChannelRejectedException
         }) throw first
         checkActive()
         try {

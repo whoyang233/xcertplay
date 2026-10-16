@@ -45,6 +45,18 @@ internal fun mfiCertificateWifiP2pCredentials(certificate: ByteArray): WifiP2pCr
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.Q)
+internal fun wifiP2pGroupConfig(credentials: WifiP2pCredentials, requestedChannel: Int): WifiP2pConfig {
+    require(requestedChannel == 0 || requestedChannel in WifiChannelPolicy.fixedChannels)
+    val builder = WifiP2pConfig.Builder()
+        .setNetworkName(credentials.ssid)
+        .setPassphrase(credentials.passphrase)
+    // Band and exact frequency are mutually exclusive in WifiP2pConfig.Builder.
+    if (requestedChannel == 0) builder.setGroupOperatingBand(WifiP2pConfig.GROUP_OWNER_BAND_5GHZ)
+    else builder.setGroupOperatingFrequency(5000 + requestedChannel * 5)
+    return builder.build()
+}
+
 /**
  * Creates a temporary 5 GHz Wi-Fi Direct group owner that can also be joined as a legacy AP.
  *
@@ -54,7 +66,9 @@ class WifiP2pGroupManager(
     context: Context,
     private val networkName: String,
     private val passphrase: String,
+    private val requestedChannel: Int = 0,
 ) : WirelessHotspotManager {
+    init { require(requestedChannel == 0 || requestedChannel in WifiChannelPolicy.fixedChannels) }
     private val appContext = context.applicationContext
     private val p2pManager = appContext.getSystemService(WifiP2pManager::class.java)
         ?: throw IllegalStateException("WifiP2pManager is unavailable")
@@ -102,11 +116,7 @@ class WifiP2pGroupManager(
                 callbackThread = thread
             }
 
-            val config = WifiP2pConfig.Builder()
-                .setNetworkName(credentials.ssid)
-                .setPassphrase(credentials.passphrase)
-                .setGroupOperatingBand(WifiP2pConfig.GROUP_OWNER_BAND_5GHZ)
-                .build()
+            val config = wifiP2pGroupConfig(credentials, requestedChannel)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 config.groupOwnerIntent = WifiP2pConfig.GROUP_OWNER_INTENT_MAX
             }
@@ -190,7 +200,9 @@ class WifiP2pGroupManager(
         override fun onFailure(reason: Int) {
             failAttempt(
                 attempt,
-                IOException("Wi-Fi P2P createGroup failed: ${failureReason(reason)}"),
+                if (requestedChannel != 0 && reason != WifiP2pManager.BUSY) {
+                    WifiChannelRejectedException("Wi-Fi P2P channel $requestedChannel rejected: ${failureReason(reason)}")
+                } else IOException("Wi-Fi P2P createGroup failed: ${failureReason(reason)}"),
             )
         }
     }

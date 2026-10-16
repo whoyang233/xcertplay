@@ -49,6 +49,8 @@ import com.shilapi.xcertplay.network.WifiP2pGroupManager
 import com.shilapi.xcertplay.network.AndroidWifiRadio
 import com.shilapi.xcertplay.network.WifiRadioRecovery
 import com.shilapi.xcertplay.network.startHotspotWithRecovery
+import com.shilapi.xcertplay.network.WifiScanPause
+import com.shilapi.xcertplay.network.startWithWifiChannelFallback
 import com.shilapi.xcertplay.network.WirelessHotspotInfo
 import com.shilapi.xcertplay.network.WirelessHotspotManager
 import com.shilapi.xcertplay.network.WirelessPerformanceLock
@@ -161,6 +163,7 @@ class CarPlayController(
         require(!config.locationReportingEnabled || locationProvider != null) {
             "A location provider is required when location reporting is enabled"
         }
+        WifiScanPause.restoreIfNeeded(context)
     }
 
     private enum class Phase { IDLE, MFI, WIRELESS, IPHONE, REENUMERATION, DATAPATHS, CONTROL }
@@ -186,6 +189,8 @@ class CarPlayController(
     private val systemBuid = UUID.randomUUID().toString().uppercase(Locale.US)
     private val lifecycleLock = Any()
     private val performanceLockLifecycle = Any()
+    private val scanPauseLifecycle = Any()
+    private var wifiScanPause: WifiScanPause? = null
     private val wirelessPerformanceLock = WirelessPerformanceLock(appContext) { debugLog(it) }
     @Volatile private var uiListener: AirPlaySessionListener? = listener
     @Volatile private var uiStatusReporter: ((CarPlayStatus) -> Unit)? = reportStatus
@@ -494,6 +499,10 @@ class CarPlayController(
         }
         synchronized(performanceLockLifecycle) {
             wirelessPerformanceLock.close()
+        }
+        synchronized(scanPauseLifecycle) {
+            wifiScanPause?.close()
+            wifiScanPause = null
         }
         closeReceivers()
         stopFileTransferReceivers()
@@ -932,6 +941,12 @@ class CarPlayController(
             if (isStaleWirelessRun(generation)) {
                 closeWirelessStack()
                 return
+            }
+            synchronized(scanPauseLifecycle) {
+                if (!closed && config.wifiDirectScanPauseEnabled && WifiScanPause.eligible(hotspotInfo.backend)) {
+                    val pause = wifiScanPause ?: WifiScanPause(appContext, { debugLog(it) }).also { wifiScanPause = it }
+                    pause.pause()
+                }
             }
             val hostAddress = hotspotInfo.hostAddress
                 ?: throw IOException(
@@ -1560,7 +1575,7 @@ class CarPlayController(
         } else {
             config.wirelessHotspotMode
         }
-        fun startOnce(): WirelessHotspotInfo {
+        fun startOnce(requestedChannel: Int): WirelessHotspotInfo {
             if (isStaleWirelessRun(generation)) throw IOException("Wireless startup cancelled")
             val manager: WirelessHotspotManager = when (hotspotMode) {
                 WirelessHotspotMode.WIFI_P2P ->
@@ -1569,6 +1584,7 @@ class CarPlayController(
                             context = appContext,
                             networkName = credentials.ssid,
                             passphrase = credentials.passphrase,
+                            requestedChannel = requestedChannel,
                         )
                     }
                 WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> LocalOnlyHotspotManager(appContext)
@@ -1589,7 +1605,12 @@ class CarPlayController(
                 HOTSPOT_START_TIMEOUT_MILLIS
             }
             return try {
-                manager.start(timeoutMillis)
+                manager.start(timeoutMillis).also { actual ->
+                    debugLog("Wi-Fi channel request=$requestedChannel actual=${actual.channel} backend=${actual.backend}")
+                    if (requestedChannel != 0 && actual.channel != requestedChannel) {
+                        debugLog("Wi-Fi firmware did not honor requested channel; using observed channel ${actual.channel}")
+                    }
+                }
             } catch (failure: Exception) {
                 if (hotspot === manager) hotspot = null
                 closeBestEffort(hotspotMode.name) { manager.close() }
@@ -1614,7 +1635,17 @@ class CarPlayController(
                     waitMillis = { Thread.sleep(it) },
                 ).recover()
             },
-            start = ::startOnce,
+            start = {
+                startWithWifiChannelFallback(
+                    requestedChannel = if (hotspotMode == WirelessHotspotMode.WIFI_P2P) {
+                        config.wifiChannelPolicy.requestedChannel(config.wifiFixedChannel)
+                    } else 0,
+                    fallbackEnabled = config.wifiChannelFallbackEnabled,
+                    isCancelled = { isStaleWirelessRun(generation) },
+                    report = ::debugLog,
+                    start = ::startOnce,
+                )
+            },
         )
     }
 

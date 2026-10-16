@@ -93,6 +93,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.shilapi.xcertplay.adb.AdbKeys
+import com.shilapi.xcertplay.adb.LocalAdb
+import com.shilapi.xcertplay.network.WifiScanProtection
+import com.shilapi.xcertplay.network.WifiChannelPolicy
 import com.shilapi.xcertplay.airplay.AirPlayConfig
 import com.shilapi.xcertplay.airplay.AirPlayDisplaySettings
 import com.shilapi.xcertplay.airplay.AirPlayPhysicalSizeBasis
@@ -227,6 +231,10 @@ class CarPlayHostActivity : ComponentActivity() {
         wirelessHotspotMode = wirelessHotspotMode,
         wifiHighPerformanceEnabled = wifiHighPerformanceEnabled,
         wifiStartupRecoveryEnabled = wifiStartupRecoveryEnabled,
+        wifiDirectScanPauseEnabled = wifiDirectScanPauseEnabled,
+        wifiChannelPolicy = wifiChannelPolicy,
+        wifiFixedChannel = wifiFixedChannel,
+        wifiChannelFallbackEnabled = wifiChannelFallbackEnabled,
         manualHotspotSsid = manualHotspotSsid,
         manualHotspotPassphrase = manualHotspotPassphrase,
         manualHotspotBand = manualHotspotBand,
@@ -517,6 +525,16 @@ class CarPlayHostActivity : ComponentActivity() {
     private var wirelessEnabled by mutableStateOf(false)
     private var wifiHighPerformanceEnabled by mutableStateOf(true)
     private var wifiStartupRecoveryEnabled by mutableStateOf(true)
+    private var wifiDirectScanPauseEnabled by mutableStateOf(false)
+    private var wifiChannelPolicy by mutableStateOf(WifiChannelPolicy.SYSTEM_5_GHZ)
+    private var wifiFixedChannel by mutableIntStateOf(36)
+    private var wifiChannelFallbackEnabled by mutableStateOf(true)
+    private var lastObservedHotspot by mutableStateOf<HotspotStatus?>(null)
+    private var scanAdbBusy by mutableStateOf(false)
+    private var scanAdbStatus by mutableStateOf<String?>(null)
+    private val scanAdbLock = Any()
+    private val scanAdbCancelled = AtomicBoolean(false)
+    private var scanAdbClient: LocalAdb? = null
     private var mfiTarget by mutableStateOf(MfiTarget.USB_CH341)
     private var mfiI2cPath by mutableStateOf(AirPlayPersistence.DEFAULT_MFI_I2C_PATH)
     private var remoteMfiServer by mutableStateOf("")
@@ -630,6 +648,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WifiScanProtection.restoreIfNeeded(applicationContext)
         initializeSessionLog()
         I18n.init(this)
         darkMode = isDarkMode(resources.configuration.uiMode)
@@ -720,6 +739,10 @@ class CarPlayHostActivity : ComponentActivity() {
         wirelessEnabled = AirPlayPersistence.loadWirelessEnabled(this)
         wifiHighPerformanceEnabled = AirPlayPersistence.loadWifiHighPerformanceEnabled(this)
         wifiStartupRecoveryEnabled = AirPlayPersistence.loadWifiStartupRecoveryEnabled(this)
+        wifiDirectScanPauseEnabled = AirPlayPersistence.loadWifiDirectScanPauseEnabled(this)
+        wifiChannelPolicy = AirPlayPersistence.loadWifiChannelPolicy(this)
+        wifiFixedChannel = AirPlayPersistence.loadWifiFixedChannel(this)
+        wifiChannelFallbackEnabled = AirPlayPersistence.loadWifiChannelFallbackEnabled(this)
         mfiTarget = AirPlayPersistence.loadMfiTarget(this)
         mfiI2cPath = AirPlayPersistence.loadMfiI2cPath(this)
         remoteMfiServer = AirPlayPersistence.loadRemoteMfiServer(this)
@@ -880,6 +903,11 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        synchronized(scanAdbLock) {
+            scanAdbCancelled.set(true)
+            scanAdbClient?.cancelPendingOperations()
+            scanAdbClient = null
+        }
         stopVehicleDiagnostics()
         CarPlayBackgroundSession.audioFocus(this).release(this)
         stopMicrophoneGainTest()
@@ -1200,6 +1228,8 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveWirelessEnabled(this, wirelessEnabled)
         AirPlayPersistence.saveWifiHighPerformanceEnabled(this, wifiHighPerformanceEnabled)
         AirPlayPersistence.saveWifiStartupRecoveryEnabled(this, wifiStartupRecoveryEnabled)
+        AirPlayPersistence.saveWifiDirectScanPauseEnabled(this, wifiDirectScanPauseEnabled)
+        AirPlayPersistence.saveWifiChannelSettings(this, wifiChannelPolicy, wifiFixedChannel, wifiChannelFallbackEnabled)
         AirPlayPersistence.saveMfiTarget(this, mfiTarget)
         AirPlayPersistence.saveMfiI2cPath(this, mfiI2cPath)
         AirPlayPersistence.saveRemoteMfiServer(this, remoteMfiServer)
@@ -1617,6 +1647,7 @@ class CarPlayHostActivity : ComponentActivity() {
             is CarPlayStatus.Failed -> hotspotStatus.copy(state = "Error")
             else -> return
         }
+        if (status is CarPlayStatus.HotspotReady) lastObservedHotspot = hotspotStatus
         updateHotspotStatusBlock()
     }
 
@@ -2478,6 +2509,47 @@ class CarPlayHostActivity : ComponentActivity() {
         }
     }
 
+    /** Only this explicit foreground action may offer the app's key to the car's local adbd. */
+    private fun authorizeScanAdb() {
+        if (scanAdbBusy || scanAdbCancelled.get()) return
+        scanAdbBusy = true
+        scanAdbStatus = "settings.scan_pause.waiting"
+        val app = applicationContext
+        Thread({
+            var client: LocalAdb? = null
+            val result = runCatching {
+                val created = LocalAdb(AdbKeys.load(app))
+                client = created
+                synchronized(scanAdbLock) {
+                    if (scanAdbCancelled.get()) created.cancelPendingOperations()
+                    else scanAdbClient = created
+                }
+                val deadline = java.util.Timer("xcertplay-adb-approval-deadline", true)
+                try {
+                    deadline.schedule(object : java.util.TimerTask() {
+                        override fun run() = created.cancelPendingOperations()
+                    }, 75_000L)
+                    created.connect(mayAsk = true)
+                } finally {
+                    deadline.cancel()
+                }
+            }.getOrNull()
+            client?.close()
+            synchronized(scanAdbLock) { if (scanAdbClient === client) scanAdbClient = null }
+            mainHandler.post {
+                if (!scanAdbCancelled.get() && !isFinishing) {
+                    scanAdbBusy = false
+                    scanAdbStatus = when (result) {
+                        LocalAdb.Access.READY -> "settings.scan_pause.ready"
+                        LocalAdb.Access.NOT_APPROVED -> "settings.scan_pause.not_approved"
+                        LocalAdb.Access.UNSUPPORTED -> "settings.scan_pause.pairing_only"
+                        else -> "settings.scan_pause.unavailable"
+                    }
+                }
+            }
+        }, "xcertplay-adb-approval").apply { isDaemon = true; start() }
+    }
+
     private fun saveSettingsAndReconnect() {
         if (!menuOpen) return
         if (!validateMfiSettings()) return
@@ -3246,6 +3318,76 @@ class CarPlayHostActivity : ComponentActivity() {
                     selected = wirelessHotspotMode,
                     onSelected = ::onHotspotModeSelected,
                 )
+            }
+        }
+
+        SectionHeader(tr("settings.channel.section"))
+        SettingsGroup {
+            if (wirelessEnabled && wirelessHotspotMode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT >= 29) {
+                row {
+                    SelectRow(
+                        title = tr("settings.channel.policy"),
+                        options = listOf(
+                            WifiChannelPolicy.SYSTEM_5_GHZ to tr("settings.channel.auto"),
+                            WifiChannelPolicy.PREFER_LOW_5_GHZ to tr("settings.channel.low"),
+                            WifiChannelPolicy.PREFER_HIGH_5_GHZ to tr("settings.channel.high"),
+                            WifiChannelPolicy.FIXED_5_GHZ to tr("settings.channel.fixed"),
+                        ),
+                        selected = wifiChannelPolicy,
+                        onSelected = { wifiChannelPolicy = it },
+                    )
+                }
+                if (wifiChannelPolicy == WifiChannelPolicy.FIXED_5_GHZ) {
+                    row {
+                        SelectRow(
+                            title = tr("settings.channel.number"),
+                            options = WifiChannelPolicy.fixedChannels.map { it to "$it · ${5000 + 5 * it} MHz" },
+                            selected = wifiFixedChannel,
+                            onSelected = { wifiFixedChannel = it },
+                        )
+                    }
+                }
+                if (wifiChannelPolicy != WifiChannelPolicy.SYSTEM_5_GHZ) {
+                    row {
+                        SwitchRow(
+                            title = tr("settings.channel.fallback"),
+                            support = tr("settings.channel.fallback.support"),
+                            checked = wifiChannelFallbackEnabled,
+                            onCheckedChange = { wifiChannelFallbackEnabled = it },
+                        )
+                    }
+                }
+                row { HelpText(tr("settings.channel.help")) }
+            } else {
+                row { HelpText(tr("settings.channel.other_mode")) }
+            }
+            row {
+                val last = lastObservedHotspot
+                HelpText(if (last == null || last.channel == null || last.channel == 0) tr("settings.channel.unknown")
+                    else tr("settings.channel.observed", "channel" to last.channel.toString(), "band" to last.band.orEmpty()))
+            }
+        }
+
+        if (wirelessEnabled && wirelessHotspotMode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT >= 29) {
+            SectionHeader(tr("settings.scan_pause.section"))
+            SettingsGroup {
+                row {
+                    SwitchRow(
+                        title = tr("settings.scan_pause"),
+                        support = tr("settings.scan_pause.support"),
+                        checked = wifiDirectScanPauseEnabled,
+                        onCheckedChange = { wifiDirectScanPauseEnabled = it },
+                    )
+                }
+                row { HelpText(tr("settings.scan_pause.help")) }
+                row {
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.s2)) {
+                        FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
+                            Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
+                        }
+                        scanAdbStatus?.let { HelpText(tr(it)) }
+                    }
+                }
             }
         }
 

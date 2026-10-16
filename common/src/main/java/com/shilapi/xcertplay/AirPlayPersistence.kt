@@ -9,6 +9,7 @@ import com.shilapi.xcertplay.airplay.AirPlayIdentity
 import com.shilapi.xcertplay.airplay.PairingStore
 import com.shilapi.xcertplay.airplay.SafeAreaCodec
 import com.shilapi.xcertplay.airplay.SafeAreaRect
+import com.shilapi.xcertplay.network.WifiChannelPolicy
 import com.shilapi.xcertplay.media.MainMediaAudioBuffer
 import com.shilapi.xcertplay.media.MicrophoneGain
 import com.shilapi.xcertplay.orchestration.ManualHotspotBand
@@ -44,6 +45,7 @@ object AirPlayPersistence {
     private const val KEY_WIRELESS_ENABLED = "wireless_enabled"
     private const val KEY_WIFI_HIGH_PERFORMANCE_ENABLED = "wifi_high_performance_enabled"
     private const val KEY_WIFI_STARTUP_RECOVERY_ENABLED = "wifi_startup_recovery_enabled"
+    private const val KEY_WIFI_DIRECT_SCAN_PAUSE_ENABLED = "wifi_direct_scan_pause_enabled"
     private const val KEY_WIRELESS_HOTSPOT_MODE = "wireless_hotspot_mode"
     private const val KEY_MANUAL_HOTSPOT_SSID = "manual_hotspot_ssid"
     private const val KEY_MANUAL_HOTSPOT_PASSPHRASE = "manual_hotspot_passphrase"
@@ -205,6 +207,34 @@ object AirPlayPersistence {
     fun loadWifiStartupRecoveryEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_WIFI_STARTUP_RECOVERY_ENABLED, true)
+
+    fun loadWifiChannelPolicy(context: Context): WifiChannelPolicy = runCatching {
+        WifiChannelPolicy.valueOf(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("wifi_channel_policy", WifiChannelPolicy.SYSTEM_5_GHZ.name)!!)
+    }.getOrDefault(WifiChannelPolicy.SYSTEM_5_GHZ)
+
+    fun loadWifiFixedChannel(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt("wifi_fixed_channel", 36)
+            .takeIf { it in WifiChannelPolicy.fixedChannels } ?: 36
+
+    fun loadWifiChannelFallbackEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("wifi_channel_fallback", true)
+
+    fun saveWifiChannelSettings(context: Context, policy: WifiChannelPolicy, channel: Int, fallback: Boolean) {
+        require(channel in WifiChannelPolicy.fixedChannels)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("wifi_channel_policy", policy.name).putInt("wifi_fixed_channel", channel)
+            .putBoolean("wifi_channel_fallback", fallback).apply()
+    }
+
+    fun loadWifiDirectScanPauseEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_WIFI_DIRECT_SCAN_PAUSE_ENABLED, false)
+
+    fun saveWifiDirectScanPauseEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_WIFI_DIRECT_SCAN_PAUSE_ENABLED, enabled).apply()
+    }
 
     fun saveWifiStartupRecoveryEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()

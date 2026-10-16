@@ -2,6 +2,7 @@ package com.shilapi.xcertplay.orchestration
 
 import com.shilapi.xcertplay.transport.Iap2IdentificationConfig
 import com.shilapi.xcertplay.transport.UsbDeviceId
+import com.shilapi.xcertplay.network.WifiChannelPolicy
 import java.net.Inet6Address
 import java.net.InetAddress
 
@@ -66,8 +67,14 @@ class CarPlayRuntimeConfig(
     val locationReportingEnabled: Boolean = false,
     val wifiHighPerformanceEnabled: Boolean = true,
     val wifiStartupRecoveryEnabled: Boolean = true,
+    /** Opt-in: requires an already approved local ADB shell and supported firmware. */
+    val wifiDirectScanPauseEnabled: Boolean = false,
+    val wifiChannelPolicy: WifiChannelPolicy = WifiChannelPolicy.SYSTEM_5_GHZ,
+    val wifiFixedChannel: Int = 36,
+    val wifiChannelFallbackEnabled: Boolean = true,
 ) {
     init {
+        require(wifiFixedChannel in WifiChannelPolicy.fixedChannels) { "Invalid fixed 5 GHz Wi-Fi channel" }
         require(iphoneDevices.all { it.vendorId == APPLE_VENDOR_ID }) {
             "iPhone USB identities must use Apple vendor ID 0x${APPLE_VENDOR_ID.toString(16)}"
         }
