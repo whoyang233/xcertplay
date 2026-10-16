@@ -70,6 +70,7 @@ internal fun SettingsScaffold(
             val selected = destinations.firstOrNull { it.id == selectedId }
                 ?: if (twoPane) destinations.first() else null
             val sidebarWidth = if (maxWidth < 1100.dp) 208.dp else 224.dp
+            val overviewColumns = if (maxWidth >= 600.dp) 2 else 1
             SideEffect { onLayout(twoPane) }
             Column(Modifier.fillMaxSize()) {
                 SettingsActions(
@@ -115,7 +116,7 @@ internal fun SettingsScaffold(
                     ) {
                         HelpText(tr("settings.apply_help"))
                         // Two columns on wider single-pane windows; every card remains reachable.
-                        destinations.chunked(if (maxWidth >= 600.dp) 2 else 1).forEach { row ->
+                        destinations.chunked(overviewColumns).forEach { row ->
                             Row(Modifier.fillMaxWidth()) {
                                 row.forEach { destination ->
                                     ListRow(
@@ -128,7 +129,7 @@ internal fun SettingsScaffold(
                                         trailing = { TrailingValue(null) },
                                     )
                                 }
-                                if (row.size == 1 && maxWidth >= 600.dp) Spacer(Modifier.weight(1f))
+                                if (row.size == 1 && overviewColumns == 2) Spacer(Modifier.weight(1f))
                             }
                         }
                         Spacer(Modifier.height(16.dp))

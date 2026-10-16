@@ -43,6 +43,7 @@ The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **
 | --- | --- |
 | App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
 | Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
+| Full-HD settings layout | Dedicated compact density and typography, adaptive navigation width, independently scrollable panes, and scrolling for long channel-choice dialogs. |
 | Applying edits | Restart CarPlay validates, saves, and applies settings; closing settings discards unsaved edits. |
 | About | Shows the installed app version, Android version, and API level. |
 | Wi-Fi startup recovery | Releases the first failed automatic hotspot, attempts a Wi-Fi off/on cycle, then retries once with a fresh manager. If switching is denied, only rebuilds the hotspot. Manual hotspots are excluded. |
