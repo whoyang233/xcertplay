@@ -1,6 +1,8 @@
 package com.shilapi.xcertplay.ui.settings
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
@@ -13,13 +15,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -47,12 +47,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-@OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SettingsLayoutTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private var settingsDensity = 0f
     private var settingsFontScale = 0f
     private var bodyFontSize = 0f
@@ -191,8 +190,18 @@ class SettingsLayoutTest {
     }
 
     private fun snapshot(name: String) {
-        val image = compose.onNodeWithTag("settings-root").captureToImage().asAndroidBitmap()
-        val directory = File("build/reports/settings-layout").apply { mkdirs() }
-        File(directory, "$name.png").outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        // PixelCopy's forced hardware-frame callback does not run in this Robolectric version.
+        // Draw the same measured Android view with the native software canvas instead.
+        compose.runOnIdle {
+            val view = compose.activity.findViewById<android.view.View>(android.R.id.content)
+            assertTrue(view.width > 0 && view.height > 0)
+            val image = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(image))
+            val directory = File("build/reports/settings-layout").apply { mkdirs() }
+            File(directory, "$name.png").outputStream().use {
+                assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+            }
+            image.recycle()
+        }
     }
 }
