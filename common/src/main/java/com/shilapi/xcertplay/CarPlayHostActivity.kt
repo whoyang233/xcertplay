@@ -145,6 +145,9 @@ import com.shilapi.xcertplay.ui.theme.LavenderLight
 import com.shilapi.xcertplay.ui.theme.Radius
 import com.shilapi.xcertplay.ui.theme.Space
 import com.shilapi.xcertplay.ui.theme.XcertplayTheme
+import com.shilapi.xcertplay.ui.theme.ProvideSettingsUi
+import com.shilapi.xcertplay.ui.settings.SettingsDestination
+import com.shilapi.xcertplay.ui.settings.SettingsScaffold
 import com.shilapi.xcertplay.vehicle.VehicleDataConfig
 import com.shilapi.xcertplay.vehicle.VehicleDataFeature
 import com.shilapi.xcertplay.vehicle.VehicleLocationProvider
@@ -3063,115 +3066,21 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun SettingsScreen() {
-        val scheme = MaterialTheme.colorScheme
-        M3Surface(Modifier.fillMaxSize(), color = scheme.surface, contentColor = scheme.onSurface) {
-            BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                val twoPane = maxWidth >= TWO_PANE_MIN_WIDTH
-                val compactActions = maxWidth < 520.dp
-                SideEffect { settingsTwoPane = twoPane }
-                val current = settingsCategory
-                Column(Modifier.fillMaxSize()) {
-                    // Outside every scrolling container: both actions stay in the top-right corner.
-                    SettingsToolbar(
-                        title = if (twoPane || current == null) tr("settings.title") else current.title,
-                        compact = compactActions,
-                        backToCategories = !twoPane && current != null,
-                    )
-                    HelpText(tr("settings.apply_help"))
-                    if (twoPane) {
-                        val selected = current ?: SettingsCategory.CONNECTION
-                        Row(Modifier.weight(1f).fillMaxWidth()) {
-                            Column(
-                                Modifier.width(CATEGORY_PANE_WIDTH).fillMaxHeight()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = Space.s3),
-                                verticalArrangement = Arrangement.spacedBy(Space.s1),
-                            ) {
-                                SettingsCategory.entries.forEach { category ->
-                                    ListRow(
-                                        headline = category.title,
-                                        support = category.summary,
-                                        leadingIcon = category.icon,
-                                        selected = category == selected,
-                                        onClick = { settingsCategory = category },
-                                    )
-                                }
-                            }
-                            M3Surface(
-                                modifier = Modifier.weight(1f).fillMaxHeight()
-                                    .padding(top = Space.s3, end = Space.s3, bottom = Space.s3),
-                                shape = RoundedCornerShape(Radius.xl),
-                                color = scheme.surfaceContainerLow,
-                            ) {
-                                ProvideGroupColor(scheme.surfaceContainerHigh) {
-                                    Column(Modifier.fillMaxSize()) {
-                                        SmallTopBar(title = selected.title)
-                                        CategoryContent(selected, Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                        }
-                    } else if (current == null) {
-                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                            SettingsCategory.entries.forEach { category ->
-                                ListRow(
-                                    headline = category.title,
-                                    support = category.summary,
-                                    leadingIcon = category.icon,
-                                    leadingBox = true,
-                                    onClick = { settingsCategory = category },
-                                    trailing = { TrailingValue(null) },
-                                )
-                            }
-                            Spacer(Modifier.height(Space.s4))
-                        }
-                    } else {
-                        CategoryContent(current, Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun SettingsToolbar(title: String, compact: Boolean, backToCategories: Boolean) {
-        val scheme = MaterialTheme.colorScheme
-        M3Surface(color = scheme.surfaceContainer) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = Space.s2, vertical = Space.s2),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Space.s2),
-            ) {
-                LvIconButton(
-                    if (backToCategories) R.drawable.ic_ms_arrow_back else R.drawable.ic_ms_close,
-                    if (backToCategories) tr("common.back") else tr("settings.discard"),
-                    { if (backToCategories) settingsCategory = null else cancelSettingsEdits() },
-                )
-                Text(
-                    title,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Button(
-                    onClick = { saveSettingsAndReconnect() },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) {
-                    LvIcon(R.drawable.ic_ms_refresh, size = 18.dp)
-                    Spacer(Modifier.width(Space.s1))
-                    Text(tr(if (compact) "settings.restart_short" else "settings.restart"), maxLines = 1)
-                }
-                TextButton(
-                    onClick = { exitApplication() },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = scheme.error),
-                ) {
-                    LvIcon(R.drawable.ic_ms_power_settings_new, size = 18.dp)
-                    if (!compact) Spacer(Modifier.width(Space.s1))
-                    Text(tr(if (compact) "settings.exit_short" else "settings.exit"), maxLines = 1)
-                }
-            }
+        ProvideSettingsUi {
+            SettingsScaffold(
+                destinations = SettingsCategory.entries.map {
+                    SettingsDestination(it.name, it.title, it.summary, it.icon)
+                },
+                selectedId = settingsCategory?.name,
+                onSelect = { settingsCategory = SettingsCategory.valueOf(it) },
+                onBack = {
+                    if (!settingsTwoPane && settingsCategory != null) settingsCategory = null
+                    else cancelSettingsEdits()
+                },
+                onSave = ::saveSettingsAndReconnect,
+                onExit = ::exitApplication,
+                onLayout = { settingsTwoPane = it },
+            ) { id -> CategoryContent(SettingsCategory.valueOf(id), Modifier.fillMaxWidth()) }
         }
     }
 
@@ -3181,8 +3090,7 @@ class CarPlayHostActivity : ComponentActivity() {
             Column(
                 modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = Space.s6),
+                    .padding(bottom = Space.s2),
             ) {
                 when (category) {
                     SettingsCategory.CONNECTION -> ConnectionSettings()
@@ -4365,8 +4273,6 @@ class CarPlayHostActivity : ComponentActivity() {
         const val THREE_FINGER_SWIPE_DISTANCE_DP = 72
         const val THREE_FINGER_SWIPE_DIRECTION_RATIO = 1.15f
         const val TIMELINE_RENDER_INTERVAL_MILLIS = 120L
-        val TWO_PANE_MIN_WIDTH = 720.dp
-        val CATEGORY_PANE_WIDTH = 320.dp
         val NO_VIDEO_BACKGROUND = Color.BLACK
     }
 

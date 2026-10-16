@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -80,6 +82,7 @@ import com.shilapi.xcertplay.ui.theme.Lavender
 import com.shilapi.xcertplay.ui.theme.LavenderCode
 import com.shilapi.xcertplay.ui.theme.Radius
 import com.shilapi.xcertplay.ui.theme.Space
+import com.shilapi.xcertplay.ui.theme.LocalCompactSettings
 
 // ---------------------------------------------------------------------------------------------
 // Icons
@@ -295,13 +298,14 @@ val LocalGroupColor = staticCompositionLocalOf<Color?> { null }
 /** `lv-subheader`: `title-small` in `primary`. */
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+    val compact = LocalCompactSettings.current
     Text(
         text = text,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = Space.s4 + Space.s4, end = Space.s4, top = Space.s6, bottom = Space.s2),
+            .padding(start = if (compact) 24.dp else 32.dp, end = 12.dp, top = if (compact) 16.dp else 24.dp, bottom = 6.dp),
     )
 }
 
@@ -317,13 +321,14 @@ class GroupScope internal constructor() {
 /** `lv-group`: rounded group card (`radius-lg`) on `surface-container`. */
 @Composable
 fun SettingsGroup(modifier: Modifier = Modifier, content: GroupScope.() -> Unit) {
+    val compact = LocalCompactSettings.current
     val scope = GroupScope().apply(content)
     if (scope.rows.isEmpty()) return
     val color = LocalGroupColor.current ?: MaterialTheme.colorScheme.surfaceContainer
     Column(
         modifier
             .fillMaxWidth()
-            .padding(horizontal = Space.s4)
+            .padding(horizontal = if (compact) 12.dp else Space.s4)
             .clip(RoundedCornerShape(Radius.lg))
             .background(color),
     ) {
@@ -347,6 +352,7 @@ fun ListRow(
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val compact = LocalCompactSettings.current
     val scheme = MaterialTheme.colorScheme
     val content = if (selected) scheme.onSecondaryContainer else scheme.onSurface
     val supportColor = if (selected) scheme.onSecondaryContainer else scheme.onSurfaceVariant
@@ -359,19 +365,19 @@ fun ListRow(
         modifier = base
             .fillMaxWidth()
             .let { if (onClick != null) it.clickable(enabled = enabled, onClick = onClick) else it }
-            .heightIn(min = if (support == null) 56.dp else 72.dp)
-            .padding(horizontal = Space.s4, vertical = Space.s2),
+            .heightIn(min = if (compact) { if (support == null) 48.dp else 64.dp } else { if (support == null) 56.dp else 72.dp })
+            .padding(horizontal = if (compact) 12.dp else Space.s4, vertical = if (compact) 6.dp else Space.s2),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Space.s4),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else Space.s4),
     ) {
         if (leadingIcon != null) {
             if (leadingBox) {
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(scheme.primaryContainer),
+                    Modifier.size(if (compact) 32.dp else 40.dp).clip(CircleShape).background(scheme.primaryContainer),
                     contentAlignment = Alignment.Center,
-                ) { LvIcon(leadingIcon, tint = scheme.onPrimaryContainer) }
+                ) { LvIcon(leadingIcon, tint = scheme.onPrimaryContainer, size = if (compact) 20.dp else 24.dp) }
             } else {
-                LvIcon(leadingIcon, tint = supportColor)
+                LvIcon(leadingIcon, tint = supportColor, size = if (compact) 20.dp else 24.dp)
             }
         }
         Column(Modifier.weight(1f)) {
@@ -419,15 +425,16 @@ fun SwitchRow(
     support: String? = null,
     enabled: Boolean = true,
 ) {
+    val compact = LocalCompactSettings.current
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .heightIn(min = if (support == null) 56.dp else 72.dp)
-            .padding(horizontal = Space.s4, vertical = Space.s2),
+            .heightIn(min = if (compact) { if (support == null) 48.dp else 64.dp } else { if (support == null) 56.dp else 72.dp })
+            .padding(horizontal = if (compact) 12.dp else Space.s4, vertical = if (compact) 6.dp else Space.s2),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Space.s4),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else Space.s4),
     ) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = scheme.onSurface.dim(enabled))
@@ -502,7 +509,7 @@ fun <T> ChoiceDialog(
         shape = RoundedCornerShape(Radius.xl),
         title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
         text = {
-            Column {
+            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
                 options.forEach { (value, label) ->
                     Row(
                         modifier = Modifier
@@ -540,8 +547,9 @@ fun <T> SegmentedRow(
     onSelected: (T) -> Unit,
     support: String? = null,
 ) {
+    val compact = LocalCompactSettings.current
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(horizontal = Space.s4, vertical = Space.s3)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = if (compact) 12.dp else Space.s4, vertical = if (compact) 8.dp else Space.s3)) {
         Text(title, style = MaterialTheme.typography.bodyLarge, color = scheme.onSurface)
         if (support != null) {
             Text(support, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
@@ -582,8 +590,9 @@ fun SliderRow(
     startLabel: String? = null,
     endLabel: String? = null,
 ) {
+    val compact = LocalCompactSettings.current
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(horizontal = Space.s4, vertical = Space.s3)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = if (compact) 12.dp else Space.s4, vertical = if (compact) 8.dp else Space.s3)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.bodyLarge, color = scheme.onSurface)
@@ -635,8 +644,9 @@ fun FieldRow(
     monospace: Boolean = false,
     enabled: Boolean = true,
 ) {
+    val compact = LocalCompactSettings.current
     val scheme = MaterialTheme.colorScheme
-    Column(modifier.fillMaxWidth().padding(horizontal = Space.s4, vertical = Space.s2)) {
+    Column(modifier.fillMaxWidth().padding(horizontal = if (compact) 12.dp else Space.s4, vertical = if (compact) 6.dp else Space.s2)) {
         TextField(
             value = value,
             onValueChange = onValueChange,
@@ -681,11 +691,12 @@ fun FieldRow(
 /** Short explanation inside a group (`body-small`, `on-surface-variant`). */
 @Composable
 fun HelpText(text: String, modifier: Modifier = Modifier) {
+    val compact = LocalCompactSettings.current
     Text(
         text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.fillMaxWidth().padding(horizontal = Space.s4, vertical = Space.s3),
+        modifier = modifier.fillMaxWidth().padding(horizontal = if (compact) 12.dp else Space.s4, vertical = if (compact) 8.dp else Space.s3),
     )
 }
 

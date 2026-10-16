@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -49,6 +50,10 @@ const val BASE_SHORTEST_WIDTH_DP = 375f
 const val MIN_UI_SCALE = 0.85f
 const val MAX_UI_SCALE = 2.2f
 
+/** The actual window density, before the home screen's proportional enlargement. */
+private val LocalWindowDensity = staticCompositionLocalOf<Density?> { null }
+val LocalCompactSettings = staticCompositionLocalOf { false }
+
 /**
  * Proportional UI scaling: the larger the screen, the larger text, spacing and padding.
  * The font scale is locked to 1 and follows the same factor, so head units with unusual
@@ -63,7 +68,22 @@ fun ProvideScaledDensity(content: @Composable () -> Unit) {
     val scaled = remember(current.density, scaleFactor) {
         Density(density = current.density * scaleFactor, fontScale = 1f)
     }
-    CompositionLocalProvider(LocalDensity provides scaled, content = content)
+    CompositionLocalProvider(LocalWindowDensity provides current, LocalDensity provides scaled, content = content)
+}
+
+/** Settings use the window's space rather than the home screen's 375dp reference size. */
+@Composable
+fun ProvideSettingsUi(content: @Composable () -> Unit) {
+    val configuration = LocalConfiguration.current
+    val window = LocalWindowDensity.current ?: LocalDensity.current
+    val shortEdge = minOf(configuration.screenWidthDp, configuration.screenHeightDp).toFloat()
+    val scale = (shortEdge / 720f).coerceIn(1f, 1.2f)
+    val density = remember(window.density, window.fontScale, scale) {
+        Density(window.density * scale, window.fontScale)
+    }
+    CompositionLocalProvider(LocalDensity provides density, LocalCompactSettings provides true) {
+        MaterialTheme(typography = SettingsTypography, content = content)
+    }
 }
 
 /**

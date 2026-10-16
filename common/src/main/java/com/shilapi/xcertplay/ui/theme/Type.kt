@@ -57,6 +57,19 @@ val Typography = Typography(
     labelSmall = style(11, 16, Semi, 0.4.sp),
 )
 
+/** Compact settings text; system font preferences are respected by the settings density. */
+val SettingsTypography = Typography.copy(
+    headlineSmall = style(18, 24, Semi, 0.sp),
+    titleLarge = style(18, 24, Semi, 0.sp),
+    titleMedium = style(14, 20, Semi, 0.sp),
+    titleSmall = style(13, 18, Semi, 0.sp),
+    bodyLarge = style(14, 20, Regular, 0.sp),
+    bodyMedium = style(12, 18, Regular, 0.sp),
+    bodySmall = style(11, 16, Regular, 0.sp),
+    labelLarge = style(13, 18, Semi, 0.sp),
+    labelMedium = style(11, 16, Semi, 0.sp),
+)
+
 /** `code-medium` and `code-large`: log lines and copyable fields. */
 object LavenderCode {
     val medium = style(12, 18, Regular, 0.sp, LavenderMono)
