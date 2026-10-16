@@ -48,7 +48,7 @@ class AudioRoutingSettingsTest {
         compose.onNodeWithText("音乐声道绑定").performScrollTo().performClick()
         compose.onNode(hasText("导航声道") and hasAnyAncestor(isDialog())).performClick()
         compose.runOnIdle { assertEquals(AudioOutputChannel.NAVIGATION, settings.musicOutput) }
-        val slider = compose.onNode(hasSetProgressAction())
+        val slider = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress))
         slider.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
         compose.onNodeWithText("0%").assertIsDisplayed()
         slider.performSemanticsAction(SemanticsActions.SetProgress) { it(10f) }
