@@ -9,7 +9,7 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38844830521/artifacts/12022628039)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38844830521) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38913343485/artifacts/12052070489)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38913343485) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
 
@@ -123,7 +123,7 @@ Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstr
 | Artifact | Contents |
 | --- | --- |
 | `personal-apks-<commit>` | Both signed APKs and package/signature verification metadata. |
-| `validation-reports-<commit>` | Unit test and lint reports. |
+| `validation-reports-<commit>` | Unit test, lint, and settings-layout screenshot reports. |
 | `unsigned-apks-<commit>` | Unsigned inputs for explicit bootstrap or PR validation without a key; not installable. |
 
 ### Local builds
@@ -159,7 +159,7 @@ Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce u
 
 ## Verification and feedback
 
-The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38844830521), commit `473e398af98ce39bf9dc4a5e9fe6496cd2895660`, passed **278 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. Both APKs were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. On-device installation and the connection stability/RF changes have not yet been verified.
+The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38913343485), commit `5ebe9cda802ba0faa2de9888981df6ce639a51f4`, passed **283 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. Both APKs were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/38913343485/artifacts/12051531915) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
 
 Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
 
