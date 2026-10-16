@@ -9,7 +9,7 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38913343485/artifacts/12052070489)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38913343485) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
 
@@ -168,7 +168,7 @@ Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce u
 
 ## Verification and feedback
 
-The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38913343485), commit `5ebe9cda802ba0faa2de9888981df6ce639a51f4`, passed **283 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. Both APKs were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/38913343485/artifacts/12051531915) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
+The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38916851294), commit `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`, passed **295 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. Both APKs were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Audio tests cover music/navigation bindings, software gain, decoded forwarding, preference recovery, and unchanged call/Siri audio. The Full-HD audio settings controls and screenshot were also verified. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
 
 Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
 

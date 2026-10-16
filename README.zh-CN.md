@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.0B 安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38913343485/artifacts/12052070489)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/38913343485) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载已验证的 1.4.0B 安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
@@ -166,7 +166,7 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
-2026-10-16 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/38913343485)来自提交 `5ebe9cda802ba0faa2de9888981df6ce639a51f4`：**283 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告。** 两种 APK 的包名、桌面名称、固定签名、Provider 和自定义权限标识已核对。设置布局测试覆盖 1920×1080 的 160/240/320 DPI、150% 字体的窄窗口，以及矮窗口长信道列表滚动；[验证报告产物](https://github.com/whoyang233/xcertplay/actions/runs/38913343485/artifacts/12051531915) 中的 `common/build/reports/settings-layout/` 包含测试页面截图。安装、设置布局及连接稳定性、抗干扰效果仍需实车验收。
+2026-10-16 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/38916851294)来自提交 `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`：**295 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告。** 两种 APK 的包名、桌面名称、固定签名、Provider 和自定义权限标识已核对。音频测试覆盖音乐/导航绑定、软件增益、解码转发、配置恢复，以及通话/Siri 音频不受影响；已检查 1080P 音频设置操作和截图。设置布局测试覆盖 1920×1080 的 160/240/320 DPI、150% 字体的窄窗口，以及矮窗口长信道列表滚动；[验证报告产物](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) 中的 `common/build/reports/settings-layout/` 包含测试页面截图。安装、设置布局及连接稳定性、抗干扰效果仍需实车验收。
 
 实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
 
