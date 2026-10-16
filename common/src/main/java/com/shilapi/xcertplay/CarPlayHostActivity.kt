@@ -2958,6 +2958,7 @@ class CarPlayHostActivity : ComponentActivity() {
         IDENTITY("identity", R.drawable.ic_ms_badge),
         WINDOW("window", R.drawable.ic_ms_fullscreen),
         DIAGNOSTICS("diagnostics", R.drawable.ic_ms_bug_report),
+        ABOUT("about", R.drawable.ic_ms_info_fill),
         ;
 
         val title: String get() = tr("settings.category.$key")
@@ -3120,6 +3121,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     SettingsCategory.IDENTITY -> IdentitySettings()
                     SettingsCategory.WINDOW -> WindowSettings()
                     SettingsCategory.DIAGNOSTICS -> DiagnosticsSettings()
+                    SettingsCategory.ABOUT -> AboutSettings()
                 }
             }
         }
@@ -4000,9 +4002,6 @@ class CarPlayHostActivity : ComponentActivity() {
         SectionHeader(tr("settings.diagnostics.system"))
         SettingsGroup {
             row {
-                ListRow(headline = tr("settings.app_version"), support = appVersionName)
-            }
-            row {
                 ListRow(
                     headline = tr("settings.diagnostics.bluetooth"),
                     support = tr("settings.diagnostics.bluetooth.support"),
@@ -4021,6 +4020,22 @@ class CarPlayHostActivity : ComponentActivity() {
                 tr("settings.compat.title"),
                 body = tr("settings.compat.p2p") + "\n" + tr("settings.compat.hevc"),
             )
+        }
+    }
+
+    @Composable
+    private fun AboutSettings() {
+        SectionHeader(tr("settings.category.about"))
+        SettingsGroup {
+            row {
+                ListRow(headline = tr("settings.app_version"), support = appVersionName)
+            }
+            row {
+                ListRow(
+                    headline = tr("settings.android_version"),
+                    support = "Android ${Build.VERSION.RELEASE} · API ${Build.VERSION.SDK_INT}",
+                )
+            }
         }
     }
 

@@ -340,5 +340,8 @@
   "settings.vehicle.target.wipeWait": "Wipe wait",
   "settings.vehicle.target.wheelSpeed": "Wheel speed",
   "settings.vehicle.target.gear": "Gear",
-  "settings.app_version": "App version"
+  "settings.app_version": "App version",
+  "settings.category.about": "About",
+  "settings.category.about.summary": "Android and app versions",
+  "settings.android_version": "Android version"
 }

@@ -341,5 +341,8 @@
   "settings.vehicle.target.wipeWait": "雨刷等待时间",
   "settings.vehicle.target.wheelSpeed": "车轮速度",
   "settings.vehicle.target.gear": "档位",
-  "settings.app_version": "应用版本"
+  "settings.app_version": "应用版本",
+  "settings.category.about": "关于",
+  "settings.category.about.summary": "查看 Android 与应用版本",
+  "settings.android_version": "Android 版本"
 }
