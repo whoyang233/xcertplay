@@ -45,6 +45,7 @@ The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **
 | Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
 | Full-HD settings layout | Dedicated compact density and typography, adaptive navigation width, independently scrollable panes, and scrolling for long channel-choice dialogs. |
 | Applying edits | Restart CarPlay validates, saves, and applies settings; closing settings discards unsaved edits. |
+| Music and navigation | Separate Media/Navigation output bindings and 0%–200% software navigation gain, without changing system volume or music/call/Siri gain. |
 | About | Shows the installed app version, Android version, and API level. |
 | Wi-Fi startup recovery | Releases the first failed automatic hotspot, attempts a Wi-Fi off/on cycle, then retries once with a fresh manager. If switching is denied, only rebuilds the hotspot. Manual hotspots are excluded. |
 | Channel strategy | Wi-Fi Direct supports automatic 5 GHz, channel 36 or 149 preferences, and specific non-DFS channel requests, with optional fallback on explicit rejection. |
@@ -62,6 +63,14 @@ Startup recovery is enabled by default. On cancellation or exit, it attempts to 
 5. Provide the hardware, files, or service required by your selected authentication method and wait for CarPlay to connect.
 
 The personal build prefers Simplified Chinese independently of the head unit's system language.
+
+## Music, navigation, and in-app volume
+
+Under Settings → Audio → Music and navigation channels, music defaults to Media and navigation to Navigation. If guidance is silent on a particular head unit, try binding navigation to Media. These settings request Android audio usages; firmware decides the physical buses, speakers, and system volume groups.
+
+Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before either local playback or web forwarding, without calling system volume APIs. Rebinding navigation to Media still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
+
+Generic high-quality music (102) and alternate guidance (101) streams are classified as music and navigation respectively; explicit roles, calls, and Siri take precedence. The existing AAOS Advanced channel mapping option still determines how ordinary default/compatibility streams are classified. Guidance already mixed into music by the phone cannot be separated. Vehicle checks should play music alongside guidance at 0%, 50%, and 100%, also after rebinding guidance to Media, while checking calls and Siri remain unaffected.
 
 ## Wi-Fi scan suppression and channels
 

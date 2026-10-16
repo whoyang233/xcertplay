@@ -148,11 +148,13 @@ import com.shilapi.xcertplay.ui.theme.XcertplayTheme
 import com.shilapi.xcertplay.ui.theme.ProvideSettingsUi
 import com.shilapi.xcertplay.ui.settings.SettingsDestination
 import com.shilapi.xcertplay.ui.settings.SettingsScaffold
+import com.shilapi.xcertplay.ui.settings.AudioRoutingSettings
 import com.shilapi.xcertplay.vehicle.VehicleDataConfig
 import com.shilapi.xcertplay.vehicle.VehicleDataFeature
 import com.shilapi.xcertplay.vehicle.VehicleLocationProvider
 import com.shilapi.xcertplay.location.AndroidCarPlayLocationProvider
 import com.shilapi.xcertplay.media.AndroidMediaSink
+import com.shilapi.xcertplay.media.AudioPlaybackSettings
 import com.shilapi.xcertplay.media.CarPlayTouchMapper
 import com.shilapi.xcertplay.media.MainMediaAudioBuffer
 import com.shilapi.xcertplay.media.MediaMetricsMonitor
@@ -420,6 +422,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var hevcSoftwareDecoderEnabled by mutableStateOf(false)
     private var advancedAudioChannelMappingSupported = false
     private var advancedAudioChannelMapping by mutableStateOf(false)
+    private var audioPlaybackSettings by mutableStateOf(AudioPlaybackSettings())
     private var audioFocusEnabled by mutableStateOf(true)
     private var mainMediaAudioBufferDurationMs by mutableIntStateOf(MainMediaAudioBuffer.DEFAULT_DURATION_MS)
     // Snapshot state is safe to read from the media and log threads.
@@ -711,6 +714,7 @@ class CarPlayHostActivity : ComponentActivity() {
             advancedAudioChannelMappingSupported &&
                 AirPlayPersistence.loadAdvancedAudioChannelMapping(this)
         audioFocusEnabled = AirPlayPersistence.loadAudioFocusEnabled(this)
+        audioPlaybackSettings = AirPlayPersistence.loadAudioPlaybackSettings(this)
         mainMediaAudioBufferDurationMs =
             AirPlayPersistence.loadMainMediaAudioBufferDurationMs(this)
         microphoneGainPercent = AirPlayPersistence.loadMicrophoneGainPercent(this)
@@ -1249,6 +1253,7 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveVehicleDataConfig(this, vehicleDataConfig)
         AirPlayPersistence.saveAutoStartOnBoot(this, autoStartOnBoot)
         AirPlayPersistence.saveAdvancedAudioChannelMapping(this, advancedAudioChannelMapping)
+        AirPlayPersistence.saveAudioPlaybackSettings(this, audioPlaybackSettings)
         AirPlayPersistence.saveAudioFocusEnabled(this, audioFocusEnabled)
         AirPlayPersistence.saveMainMediaAudioBufferDurationMs(
             this,
@@ -1962,6 +1967,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 },
                 preferSoftwareHevcDecoder = hevcSoftwareDecoderEnabled,
                 advancedAudioChannelMapping = advancedAudioChannelMapping,
+                audioPlaybackSettings = audioPlaybackSettings,
                 mainMediaAudioBufferDurationMs = mainMediaAudioBufferDurationMs,
                 microphoneGainPercent = microphoneGainPercent,
                 mediaMetricsMonitor = mediaMetricsMonitor,
@@ -3573,6 +3579,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun AudioSettings() {
+        AudioRoutingSettings(audioPlaybackSettings) { audioPlaybackSettings = it }
         SectionHeader(tr("settings.audio.playback"))
         val bufferValues = remember {
             (MainMediaAudioBuffer.MIN_DURATION_MS..MainMediaAudioBuffer.MAX_DURATION_MS step

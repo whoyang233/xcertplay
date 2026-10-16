@@ -12,6 +12,9 @@ import com.shilapi.xcertplay.airplay.SafeAreaRect
 import com.shilapi.xcertplay.network.WifiChannelPolicy
 import com.shilapi.xcertplay.media.MainMediaAudioBuffer
 import com.shilapi.xcertplay.media.MicrophoneGain
+import com.shilapi.xcertplay.media.AudioOutputChannel
+import com.shilapi.xcertplay.media.AudioPlaybackSettings
+import com.shilapi.xcertplay.media.NavigationVolume
 import com.shilapi.xcertplay.orchestration.ManualHotspotBand
 import com.shilapi.xcertplay.orchestration.ManualHotspotSecurity
 import com.shilapi.xcertplay.orchestration.MfiTarget
@@ -39,6 +42,9 @@ object AirPlayPersistence {
     private const val KEY_HEVC_ENABLED = "hevc_enabled"
     private const val KEY_HEVC_SOFTWARE_DECODER = "hevc_software_decoder"
     private const val KEY_ADVANCED_AUDIO_CHANNEL_MAPPING = "advanced_audio_channel_mapping"
+    private const val KEY_MUSIC_OUTPUT = "music_output_channel"
+    private const val KEY_NAVIGATION_OUTPUT = "navigation_output_channel"
+    private const val KEY_NAVIGATION_VOLUME = "navigation_volume_percent"
     private const val KEY_AUDIO_FOCUS_ENABLED = "audio_focus_enabled"
     private const val KEY_MAIN_MEDIA_AUDIO_BUFFER_DURATION_MS = "main_media_audio_buffer_duration_ms"
     private const val KEY_MICROPHONE_GAIN_PERCENT = "microphone_gain_percent"
@@ -154,6 +160,28 @@ object AirPlayPersistence {
     fun loadAudioFocusEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_AUDIO_FOCUS_ENABLED, true)
+
+    fun loadAudioPlaybackSettings(context: Context): AudioPlaybackSettings {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        fun output(key: String, fallback: AudioOutputChannel): AudioOutputChannel = runCatching {
+            AudioOutputChannel.valueOf(prefs.getString(key, fallback.name)!!)
+        }.getOrDefault(fallback)
+        return AudioPlaybackSettings(
+            musicOutput = output(KEY_MUSIC_OUTPUT, AudioOutputChannel.MEDIA),
+            navigationOutput = output(KEY_NAVIGATION_OUTPUT, AudioOutputChannel.NAVIGATION),
+            navigationVolumePercent = NavigationVolume.sanitize(runCatching {
+                prefs.getInt(KEY_NAVIGATION_VOLUME, NavigationVolume.DEFAULT_PERCENT)
+            }.getOrDefault(NavigationVolume.DEFAULT_PERCENT)),
+        )
+    }
+
+    fun saveAudioPlaybackSettings(context: Context, settings: AudioPlaybackSettings) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_MUSIC_OUTPUT, settings.musicOutput.name)
+            .putString(KEY_NAVIGATION_OUTPUT, settings.navigationOutput.name)
+            .putInt(KEY_NAVIGATION_VOLUME, NavigationVolume.sanitize(settings.navigationVolumePercent))
+            .apply()
+    }
 
     fun saveAudioFocusEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()

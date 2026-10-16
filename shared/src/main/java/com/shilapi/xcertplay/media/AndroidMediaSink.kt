@@ -50,6 +50,7 @@ class AndroidMediaSink(
     private val mediaTap: MediaTap? = null,
     private val onClosed: () -> Unit = {},
     private val audioFocus: AudioFocusSession? = null,
+    private val audioPlaybackSettings: AudioPlaybackSettings = AudioPlaybackSettings(),
 ) : MediaSink {
     private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val defaultSurface = surface
@@ -218,6 +219,7 @@ class AndroidMediaSink(
             mainMediaAudioBufferDurationMs,
             mediaMetricsMonitor,
             mediaTap,
+            audioPlaybackSettings,
         ).also {
             audioRenderers[type] = it
         }
@@ -716,8 +718,17 @@ private class AudioRenderer(
     private val mainMediaAudioBufferDurationMs: Int,
     mediaMetricsMonitor: MediaMetricsMonitor?,
     private val mediaTap: MediaTap?,
+    private val playbackSettings: AudioPlaybackSettings,
 ) : Closeable {
     private data class AudioPacket(val rtp: ByteArray, val sample: Int)
+
+    private val mappingMode = if (advancedAudioChannelMapping) {
+        AudioChannelMappingMode.AUTOMOTIVE_BUS
+    } else {
+        AudioChannelMappingMode.MOBILE_COMPATIBLE
+    }
+    private val selection = AudioChannelMapper.map(format.audioType, format.payloadType, mappingMode)
+    private val outputChannel = AudioChannelMapper.outputChannel(selection, playbackSettings)
 
     private val queue = LinkedBlockingQueue<AudioPacket>(MAX_QUEUED_PACKETS)
     @Volatile private var running = true
@@ -894,17 +905,7 @@ private class AudioRenderer(
     }
 
     private fun audioAttributes(): AudioAttributes {
-        val mode = if (advancedAudioChannelMapping) {
-            AudioChannelMappingMode.AUTOMOTIVE_BUS
-        } else {
-            AudioChannelMappingMode.MOBILE_COMPATIBLE
-        }
-        val selection = AudioChannelMapper.map(
-            audioType = format.audioType,
-            payloadType = format.payloadType,
-            mode = mode,
-        )
-        val usage = usageFor(selection.channel)
+        val usage = usageFor(outputChannel)
         val contentType = contentTypeFor(selection.contentType)
         return AudioAttributes.Builder()
             .setUsage(usage)
@@ -914,7 +915,8 @@ private class AudioRenderer(
                 Log.i(
                     TAG,
                     "audio route type=${format.payloadType} audioType=${format.audioType} " +
-                        "mode=$mode channel=${selection.channel} " +
+                        "mode=$mappingMode role=${selection.channel} output=$outputChannel " +
+                        "navigationVolume=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% " +
                         "usage=$usage contentType=$contentType",
                 )
             }
@@ -1076,6 +1078,9 @@ private class AudioRenderer(
     }
 
     private fun writePcm(data: ByteArray, offset: Int = 0, length: Int = data.size) {
+        NavigationVolume.applyPcm16InPlace(
+            data, offset, length, selection, playbackSettings.navigationVolumePercent,
+        )
         if (mediaTap?.takesAudio() == true) {
             forwardPcm(data, offset, length)
             return
