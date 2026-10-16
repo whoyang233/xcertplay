@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.shilapi.xcertplay"
+        applicationId = "com.whoyang233.xcertplay"
         minSdk = 28
         targetSdk = 37
         versionCode = 1400
@@ -33,9 +33,10 @@ android {
     buildTypes {
         debug {
             versionNameSuffix = "B"
-            if (providers.environmentVariable("ANDROID_KEYSTORE_PATH").isPresent) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            // Never use the per-runner Android debug key. An explicit bootstrap can be unsigned.
+            signingConfig = if (providers.environmentVariable("ANDROID_KEYSTORE_PATH").isPresent) {
+                signingConfigs.getByName("release")
+            } else null
         }
         release {
             optimization {
@@ -67,4 +68,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+// Pin all packaged personal APKs to the same private key, including local builds.
+tasks.matching { it.name == "packageDebug" || it.name == "packageRelease" }.configureEach {
+    dependsOn(rootProject.tasks.named("verifyPersonalSigning"))
 }

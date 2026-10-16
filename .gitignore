@@ -30,3 +30,15 @@ mobile/debug/
 Thumbs.db
 *.log
 /.idea
+
+# Private Android signing material (keep the certificate fingerprint only)
+*.jks
+*.keystore
+*.p12
+*.pfx
+signing-private.json
+github-secret.txt
+
+# Python CI helper bytecode
+__pycache__/
+*.pyc

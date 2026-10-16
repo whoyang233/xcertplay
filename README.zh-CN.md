@@ -5,6 +5,16 @@
   <p>xcertplay 是面向 Android 车机的 CarPlay 接收端项目。支持通过 CH341 I2C 桥接到 MFi 芯片，亦可通过板载 I2C 控制器直连，支持 CarPlay 有线和无线连接。</p>
 </div>
 
+## 个人版安装标识与固定签名
+
+个人分支的 mobile / automotive 都使用独立应用 ID **`com.whoyang233.xcertplay`**，桌面名称为 **xcertplay 个人版**。可与上游 `com.shilapi.xcertplay` 同时安装，应用数据、授权和配对记录相互独立；首次安装个人版需重新设置、授权和配对。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占同一 Wi-Fi/USB/VPN 资源。mobile 与 automotive 是同一应用的两种安装变体，按车机系统选用。
+
+从此版本开始，个人版 debug 和 release 均使用同一把专用 RSA 私钥。公开证书 SHA-256 固定在 `signing/personal-certificate.sha256`，Gradle 打包前与 CI 上传前均验证该指纹。**缺少签名或证书不匹配时，正常构建直接失败，不会生成临时私钥或退回 Android 随机 debug 签名。** `1.4.0B` 对应上游 `1.4.0`；后续保持同包名、同私钥即可覆盖更新并保留个人版数据。
+
+GitHub Actions 只需一个仓库 Secret：`PERSONAL_ANDROID_SIGNING`，值为随离线签名备份提供的 `github-secret.txt` 全文（JSON，内含 PKCS#12 的 Base64、密码与别名）。在仓库 Settings → Secrets and variables → Actions 中保存一次，后续构建复用同一份。不要重新生成私钥或把私钥文件提交到 Git。密钥及配置备份仅交付给仓库持有人；仓库仅记录公开指纹和读取逻辑。
+
+本地构建设置 `ANDROID_KEYSTORE_PATH`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，均指向备份的同一私钥；路径为绝对路径。仅在首次接入 Secrets 前或无私钥的 PR 验证时，显式 `-Pxcertplay.allowUnsigned=true` 可生成未签名 debug 输入；CI 的手动 `bootstrap_unsigned` 选项也是这一用途，产物明确标记 `unsigned-apks`，不能直接安装。正常自动构建和 release 始终要求固定私钥；最终交付的安装包必须与固定指纹匹配。
+
 ## 个人测试版：扫描抑制与信道策略
 
 在「设置 → 连接」中新增以下选项，保存并重启 CarPlay 后应用；版本仍对应上游 1.4.0，应用显示 1.4.0B。

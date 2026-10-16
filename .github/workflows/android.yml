@@ -8,6 +8,11 @@ on:
       - "**"
   pull_request:
   workflow_dispatch:
+    inputs:
+      bootstrap_unsigned:
+        description: "Build unsigned inputs for first-time offline signing (not installable APKs)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -40,39 +45,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Prepare signing key
+      - name: Prepare fixed personal signing key
         id: signing
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
-          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
+          PERSONAL_ANDROID_SIGNING: ${{ secrets.PERSONAL_ANDROID_SIGNING }}
+          ALLOW_UNSIGNED_BOOTSTRAP: ${{ (github.event_name == 'workflow_dispatch' && inputs.bootstrap_unsigned) || github.event_name == 'pull_request' }}
+        run: python3 ci/prepare-personal-signing.py
 
-          for name in RELEASE_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "Release signing is not configured; using the standard debug signing key."
-              echo "available=false" >> "${GITHUB_OUTPUT}"
-              exit 0
-            fi
-          done
-
-          keystore_path="${RUNNER_TEMP}/xcertplay-release.jks"
-          printf '%s' "${RELEASE_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
-          keytool -list \
-            -keystore "${keystore_path}" \
-            -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
-            -alias "${ANDROID_KEY_ALIAS}" >/dev/null
-          echo "ANDROID_KEYSTORE_PATH=${keystore_path}" >> "${GITHUB_ENV}"
-          echo "available=true" >> "${GITHUB_OUTPUT}"
-
-      - name: Test, lint, and build dev APKs
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+      - name: Test, lint, and build personal APKs
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
@@ -82,36 +62,20 @@ jobs:
           :automotive:lintDebug
           :mobile:assembleDebug
           :automotive:assembleDebug
+          $UNSIGNED_BUILD_ARGUMENT
           --stacktrace
 
-      - name: Verify signed debug APKs
-        if: steps.signing.outputs.available == 'true'
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-        run: |
-          set -euo pipefail
+      - name: Verify personal package and signing identity
+        run: python3 ci/verify-personal-apks.py
 
-          apksigner="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
-          expected_cert="$(keytool -exportcert \
-            -keystore "${ANDROID_KEYSTORE_PATH}" \
-            -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
-            -alias "${ANDROID_KEY_ALIAS}" | sha256sum | cut -d ' ' -f 1)"
-
-          for apk in mobile/build/outputs/apk/debug/mobile-debug.apk automotive/build/outputs/apk/debug/automotive-debug.apk; do
-            signer_info="$("${apksigner}" verify --verbose --print-certs "${apk}")"
-            echo "${signer_info}"
-            actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "${signer_info}")"
-            test "${actual_cert,,}" = "${expected_cert,,}"
-          done
-
-      - name: Upload debug APKs
+      - name: Upload personal APKs
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apks-${{ github.sha }}
+          name: ${{ steps.signing.outputs.artifact_prefix }}-${{ github.sha }}
           path: |
-            mobile/build/outputs/apk/debug/mobile-debug.apk
-            automotive/build/outputs/apk/debug/automotive-debug.apk
+            mobile/build/outputs/apk/debug/*.apk
+            automotive/build/outputs/apk/debug/*.apk
+            personal-apk-verification.json
           if-no-files-found: error
 
       - name: Upload test and lint reports
@@ -157,35 +121,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Prepare signing key
+      - name: Prepare fixed personal signing key
         env:
-          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-
-          for name in RELEASE_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "Missing required GitHub Actions secret for ${name}" >&2
-              exit 1
-            fi
-          done
-
-          keystore_path="${RUNNER_TEMP}/xcertplay-release.jks"
-          printf '%s' "${RELEASE_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
-          keytool -list \
-            -keystore "${keystore_path}" \
-            -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
-            -alias "${ANDROID_KEY_ALIAS}" >/dev/null
-          echo "ANDROID_KEYSTORE_PATH=${keystore_path}" >> "${GITHUB_ENV}"
+          PERSONAL_ANDROID_SIGNING: ${{ secrets.PERSONAL_ANDROID_SIGNING }}
+        run: python3 ci/prepare-personal-signing.py
 
       - name: Test, lint, and build signed release APKs
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
@@ -208,8 +149,12 @@ jobs:
           test -n "${automotive_apk}"
 
           apksigner="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
-          "${apksigner}" verify --verbose --print-certs "${mobile_apk}"
-          "${apksigner}" verify --verbose --print-certs "${automotive_apk}"
+          expected_cert="$(tr -d '\r\n' < signing/personal-certificate.sha256)"
+          for apk in "${mobile_apk}" "${automotive_apk}"; do
+            signer_info="$("${apksigner}" verify --verbose --print-certs "${apk}")"
+            actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "${signer_info}")"
+            test "${actual_cert,,}" = "${expected_cert,,}"
+          done
 
           cp "${mobile_apk}" "release/xcertplay-mobile-${safe_tag}.apk"
           cp "${automotive_apk}" "release/xcertplay-automotive-${safe_tag}.apk"

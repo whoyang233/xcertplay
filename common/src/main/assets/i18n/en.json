@@ -1,6 +1,6 @@
 {
   "_comment": "Base UI strings (English). Translations are optional overlays with the same keys, e.g. assets/i18n/zh-CN.json or <external files>/i18n/zh-CN.json; missing keys fall back to this file. {name} marks a placeholder.",
-  "app.name": "xcertplay",
+  "app.name": "xcertplay Personal",
   "common.back": "Back",
   "common.cancel": "Cancel",
   "common.choose": "Choose",
