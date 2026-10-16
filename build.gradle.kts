@@ -23,7 +23,7 @@ tasks.register("verifyPersonalSigning") {
             check(unsignedProvider.orNull == "true") {
                 "Fixed personal signing key is required. Configure PERSONAL_ANDROID_SIGNING in GitHub Secrets."
             }
-            it.logger.lifecycle("Explicit bootstrap: producing unsigned APKs; these are not installable releases.")
+            println("Explicit bootstrap: producing unsigned APKs; these are not installable releases.")
         } else {
             val password = passwordProvider.get().toCharArray()
             val alias = aliasProvider.get()
@@ -35,7 +35,7 @@ tasks.register("verifyPersonalSigning") {
                 .joinToString("") { "%02x".format(it.toInt() and 0xff) }
             val expected = fingerprintFile.asFile.readText().trim()
             check(actual == expected) { "Signing certificate differs from the pinned personal certificate" }
-            it.logger.lifecycle("Personal signing certificate verified: $actual")
+            println("Personal signing certificate verified: $actual")
         }
     }
 }
