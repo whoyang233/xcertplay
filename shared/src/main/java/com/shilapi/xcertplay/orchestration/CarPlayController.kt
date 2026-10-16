@@ -500,10 +500,7 @@ class CarPlayController(
         synchronized(performanceLockLifecycle) {
             wirelessPerformanceLock.close()
         }
-        synchronized(scanPauseLifecycle) {
-            wifiScanPause?.close()
-            wifiScanPause = null
-        }
+        releaseWifiScanPause()
         closeReceivers()
         stopFileTransferReceivers()
         availabilityPollGeneration.incrementAndGet()
@@ -2013,6 +2010,9 @@ class CarPlayController(
 
     private fun onStatus(status: CarPlayStatus) {
         if (closed) return
+        // A failed controller may remain on screen after the UI exhausts its retry budget.
+        // Restore autojoin even if that controller is not immediately closed/replaced.
+        if (status is CarPlayStatus.Failed) releaseWifiScanPause()
         mainHandler.post {
             if (!closed && status != lastReportedStatus) {
                 lastReportedStatus = status
@@ -2020,6 +2020,11 @@ class CarPlayController(
                 uiStatusReporter?.invoke(status)
             }
         }
+    }
+
+    private fun releaseWifiScanPause() = synchronized(scanPauseLifecycle) {
+        wifiScanPause?.close()
+        wifiScanPause = null
     }
 
     private fun CarPlayStatus.debugLogMessage(): String = when (this) {
