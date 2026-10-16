@@ -1,103 +1,184 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/shilapi/xcertplay/refs/heads/master/asset/xcertplay_small.png" width="180" height="180" alt="xcertplay icon" />
-<h1><strong><font size="6">xcertplay</font></strong></h1>
+  <h1>xcertplay 个人版</h1>
   <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a>
-  <p>xcertplay 是面向 Android 车机的 CarPlay 接收端项目。支持通过 CH341 I2C 桥接到 MFi 芯片，亦可通过板载 I2C 控制器直连，支持 CarPlay 有线和无线连接。</p>
+  <p>面向 Android 车机的 CarPlay 接收端，支持有线与无线连接。</p>
 </div>
 
-## 个人版安装标识与固定签名
+本分支是 [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 的个人开发版本，维护于 [`personal-dev`](https://github.com/whoyang233/xcertplay/tree/personal-dev)。包含中文设置、切换应用时的尺寸处理优化、Wi-Fi 启动恢复、扫描抑制和可调信道策略。
 
-个人分支的 mobile / automotive 都使用独立应用 ID **`com.whoyang233.xcertplay`**，桌面名称为 **xcertplay 个人版**。可与上游 `com.shilapi.xcertplay` 同时安装，应用数据、授权和配对记录相互独立；首次安装个人版需重新设置、授权和配对。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占同一 Wi-Fi/USB/VPN 资源。mobile 与 automotive 是同一应用的两种安装变体，按车机系统选用。
+## 下载与安装
 
-从此版本开始，个人版 debug 和 release 均使用同一把专用 RSA 私钥。公开证书 SHA-256 固定在 `signing/personal-certificate.sha256`，Gradle 打包前与 CI 上传前均验证该指纹。**缺少签名或证书不匹配时，正常构建直接失败，不会生成临时私钥或退回 Android 随机 debug 签名。** `1.4.0B` 对应上游 `1.4.0`；后续保持同包名、同私钥即可覆盖更新并保留个人版数据。
+**[下载已验证的 1.4.0B 安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38844830521/artifacts/12022628039)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/38844830521) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-GitHub Actions 只需一个仓库 Secret：`PERSONAL_ANDROID_SIGNING`，值为随离线签名备份提供的 `github-secret.txt` 全文（JSON，内含 PKCS#12 的 Base64、密码与别名）。在仓库 Settings → Secrets and variables → Actions 中保存一次，后续构建复用同一份。不要重新生成私钥或把私钥文件提交到 Git。密钥及配置备份仅交付给仓库持有人；仓库仅记录公开指纹和读取逻辑。
+下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
-本地构建设置 `ANDROID_KEYSTORE_PATH`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，均指向备份的同一私钥；路径为绝对路径。仅在首次接入 Secrets 前或无私钥的 PR 验证时，显式 `-Pxcertplay.allowUnsigned=true` 可生成未签名 debug 输入；CI 的手动 `bootstrap_unsigned` 选项也是这一用途，产物明确标记 `unsigned-apks`，不能直接安装。正常自动构建和 release 始终要求固定私钥；最终交付的安装包必须与固定指纹匹配。
+| 安装包 | 适用设备 |
+| --- | --- |
+| `mobile-debug.apk` | 一般 Android 车机，通常选择这个版本。 |
+| `automotive-debug.apk` | 原生 Android Automotive OS 设备。 |
 
-## 个人测试版：扫描抑制与信道策略
+最低要求为 **Android 9（API 28）**。MFi 认证需配置 CH341、原生 I2C、本地证书文件或远程服务中的一种。
 
-在「设置 → 连接」中新增以下选项，保存并重启 CarPlay 后应用；版本仍对应上游 1.4.0，应用显示 1.4.0B。
+| 项目 | 个人版 |
+| --- | --- |
+| 桌面名称 | xcertplay 个人版 |
+| 应用包名 | `com.whoyang233.xcertplay` |
+| 当前上游基础版本 / versionCode | `1.4.0` / `1400` |
+| 当前测试版显示版本 | `1.4.0B` |
 
-- **连接期间暂停系统自动搜网**：默认关闭，仅 Wi-Fi Direct 使用。借鉴 [DiPlay 的实现](https://github.com/shihabal3amri/DiPlay/blob/1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70/shared/src/main/java/com/shilapi/xcertplay/network/WifiScanPause.kt)，通过已授权的本机 ADB 调用系统 Wi-Fi 自动加入开关，针对部分单射频车机后台搜网导致的丢包。不会关闭 Wi-Fi，也不能阻止所有扫描或消除外部射频干扰。可能影响车机自动连接其他热点。
-- **本机 ADB 授权检查**：先停车，在车机系统中开启传统网络 ADB（127.0.0.1:5555），点击授权并允许系统调试确认框。仅支持 TLS 配对码的无线调试暂不支持。后台连接和恢复只使用已授权密钥，不主动弹授权框；ADB 已授权不代表固件一定支持暂停扫描。
-- **恢复机制**：更改前先持久记录恢复标记；最后一个控制器关闭后恢复，失败每 30 秒重试，下次打开应用也会恢复。应用被强制停止时无法运行恢复代码；可再次打开应用恢复。若 ADB 被关闭导致恢复失败，可恢复 ADB 后再次打开应用，或重启车机。Android 13+ 能查询原状态时，不恢复其他工具已关闭的自动加入；较老固件不能查询原值，因此此选项应在原本允许自动加入的情况下使用。
-- **信道策略**：系统自动 5 GHz（默认）、低信道优先（36）、高信道优先（149）、指定非 DFS 5 GHz 信道（36/40/44/48/149/153/157/161/165）。通过 Android 公开的组工作频率接口请求，无需 ADB。是否允许由固件和地区法规决定，系统可能覆盖请求，以最近一次热点实际信道和日志为准。选择这些信道不保证比自动更快或更稳定，也不改变信道宽度。
-- **回退自动**：默认开启，仅在指定信道被平台明确拒绝时重建一次自动 5 GHz 分组。忙碌、超时、权限拒绝和取消不会触发该信道回退；明确的信道拒绝也不会触发原有 Wi-Fi 关开恢复。已有连接不会主动换信道，需重启 CarPlay 应用策略。
-- **模式限制**：自动热点仍由系统选信道；手动热点要在车机系统热点设置中改信道。原手动信道输入不是射频控制命令。
+个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。mobile 与 automotive 是同一应用的两种变体，按设备选一个。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
 
-建议先只改信道策略进行同一路线的 A/B 测试，再单独启用扫描抑制。记录实际信道、车机/Android 版本、断联时间和连接日志，区分系统搜网、外部拥塞、DFS/共存限制和供电问题。云端单元测试不能代替实车抗干扰测试。
+## 主要功能
 
-本次移植的网络扫描、ADB 协议及相关测试来自 DiPlay 上述提交，按 GPL-3.0 保留来源；未引入其仪表控制功能或 AGPL 界面代码。本仓库的 GPL-3.0 许可证继续适用。
+- Android 与 Android Automotive OS 上的有线/无线 CarPlay 接收端，支持 CH341、原生 I2C、本地 MFi 文件及远程认证。
+- 语音、导航、音乐多通道音频，以及媒体缓冲和麦克风增益设置。
+- 动态分辨率、HEVC、安全区域，以及主屏和仪表的独立网页输出。
+- 可选的车机位置与车辆数据回传，实际可用数据取决于车机接口、权限和配置。
+- 保留上游实验性 CarPlay Ultra 触发能力；相关协议栈尚未完成，不能视作完整 Ultra 支持。
 
-## Features
+## 个人版改动
 
-- 面向 Android 和 Android Automotive OS 的 CarPlay 主机应用。
-- 支持 CH341 桥接 MFI 芯片、原生 `/dev/i2c-N` 设备连接的 MFI 芯片、本地证书/私钥文件和 Remote MFI 认证（API 见下）。
-- 支持 CarPlay 有线或无线连接。
-- 支持触发 CarPlay Ultra （未测试/未完成的协议栈，但是确实可以在 iPhone 上触发 CarPlay Ultra 的提示）。
-- 支持语音、导航、音乐多通道音频输出并 mapping 至 Android 的对应通道。
-- 支持动态 Activity resize ，并自动重新握手至新的分辨率。
-- 支持主屏和仪表的独立网页输出（浏览器直接解码 H.264/H.265，主屏支持触控和音频）。
-- 支持车机位置回传。
-- 支持 Android 9 (API 28) 。
+| 功能 | 当前行为 |
+| --- | --- |
+| 切换应用时的连接稳定性 | 非全屏按设置预留系统栏空间，忽略后台、失焦期间的临时尺寸变化，减少切出后立刻返回导致的分辨率重连；真实分屏和旋转仍按实际尺寸处理。 |
+| 中文设置 | 默认简体中文，按类别显示配置；右上角固定“重启 CarPlay”和“退出应用”，窄窗口显示“重启”“退出”。 |
+| 设置应用方式 | 点击右上角“重启 CarPlay”校验、保存并应用修改；关闭设置放弃未保存的编辑。 |
+| 关于 | 显示当前应用版本、Android 版本及 API 等级。 |
+| Wi-Fi 启动恢复 | 自动热点首次启动失败后释放资源，尝试关闭再开启 Wi-Fi，并用新实例重试一次；系统拒绝开关 Wi-Fi 时仅重建热点，手动热点不自动重置。 |
+| 信道策略 | Wi-Fi Direct 可选择系统自动、36 优先、149 优先或指定非 DFS 5 GHz 信道，可在请求被拒绝时回退自动。 |
+| 扫描抑制 | 借鉴 DiPlay，提供默认关闭的连接期间暂停系统自动搜网选项，需本机 ADB 授权。 |
+| 安装与升级 | 独立包名与固定 APK 签名，支持与原版共存及后续个人版覆盖升级。 |
+
+Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复由自己关闭的 Wi-Fi，后续热点启动等待该恢复结束。能否直接开关 Wi-Fi 取决于 Android 版本和车机固件权限。上述连接稳定性与抗干扰改动仍需实车验收。
 
 ## 使用方法
 
-### 个人开发分支 `personal-dev`
+1. 无线连接先通过蓝牙将 iPhone 与车机配对。
+2. 视频流启动前，点击右下角设置按钮；也可用三指向下滑动打开设置。
+3. 在「连接」配置 MFi 认证目标及有线/无线模式，按需调整音频、显示、窗口等分类。额外的单指边缘手势可在「启动与窗口」中开启。
+4. 点击设置右上角 **重启 CarPlay** 保存并应用；无需滚动到底部。关闭设置会放弃未保存修改。
+5. 使用所选认证方式所需的硬件、文件或服务，等待 CarPlay 建立连接。
 
-测试包沿用上游基础版本号和 versionCode，在 debug 的版本名后增加 `B`，当前为 `1.4.0B`。首页和“关于”显示实际安装版本；“关于”同时显示当前 Android 版本和 API 等级。
+## Wi-Fi 扫描抑制与信道策略
 
-- 界面默认使用简体中文。设置页按分类显示，右上角固定“重启 CarPlay”和“退出应用”；窄窗口使用“重启”“退出”的短标签。点击重启会校验、保存并应用当前设置，关闭设置则放弃未保存的修改。
-- 非全屏显示时，按设置预留顶部和底部系统栏空间，避免切换应用时的临时系统栏变化触发分辨率重连；后台或失焦期间不会应用排队中的尺寸变化。真正的分屏、旋转和设置变更仍按实际尺寸处理。
-- “连接 → 启动失败时重置 Wi-Fi”默认开启，仅对自动热点生效。首次热点启动失败后释放旧资源，尝试关闭再开启 Wi-Fi，并用新的热点实例重试一次。系统拒绝切换 Wi-Fi 时仅重建热点；手动热点模式不会被自动重置。
-- 取消启动或退出时，已由应用关闭的 Wi-Fi 会先尝试恢复，下一次热点启动等待该恢复结束。此功能能否直接切换 Wi-Fi 取决于 Android 版本和车机固件权限。
-- GitHub Actions 的分支调试构建无需配置上游的发布签名密钥；缺少密钥时使用标准 debug 签名。构建产物位于对应运行的 `debug-apks-<commit>`，测试和 lint 报告单独上传。标签发布仍要求发布签名密钥。
+以下选项位于「设置 → 连接」，保存并重启 CarPlay 后应用。**信道请求和扫描抑制仅用于 Android 10 及以上的 Wi-Fi Direct**；Android 9 使用 LocalOnlyHotspot。
 
-实机验收建议：显示顶部和底部系统栏，连续快速切出/返回应用并观察是否保持原会话；再验证分屏、旋转、设置页滚动和取消编辑，以及热点首次失败后的恢复。云端单元测试不能替代 iPhone 和车机测试。
+### 信道策略
 
-1. 通过蓝牙将 iPhone 与车机配对。
-2. CarPlay 视频流尚未启动时，点击右下角的设置按钮；也可以用三指向下滑动打开设置页面。
-3. 确认所有设置均已按需配置。
-   如需启用另一种手势，打开 `More gestures to Settings page`：单指从屏幕左侧 1/8 区域的上 1/4 开始，沿左侧下滑，在下 1/4 区域抬起。
-4. 滑动到底部，选择 `Save & Reconnect`。
-5. 按照你选择的方式连接 MFi 芯片。
-6. 等待连接完成，然后开始使用。
+| 策略 | 首次请求 |
+| --- | --- |
+| 系统自动（默认） | 系统选择 5 GHz 信道。 |
+| 低信道优先 | 36。 |
+| 高信道优先 | 149。 |
+| 指定信道 | 36、40、44、48、149、153、157、161 或 165。 |
+
+信道请求通过 Android 公开接口完成，**无需 ADB**。是否接受由固件、地区法规和 Wi-Fi 共存限制决定；系统也可能覆盖请求，以设置中“最近一次热点实际信道”和连接日志为准。策略不改变信道宽度，已有连接不会主动换信道。
+
+“请求被拒绝时回退自动”默认开启，仅在系统明确拒绝创建指定信道分组时再尝试一次自动 5 GHz。忙碌、超时、权限拒绝和取消不会触发此信道回退；明确的信道拒绝也不会触发 Wi-Fi 关开恢复。自动热点仍由系统选信道；手动热点需要在车机系统热点设置中改信道，应用内填写信道不会替系统切换。
+
+### 扫描抑制
+
+“连接期间暂停系统自动搜网”**默认关闭**。它借鉴 [DiPlay 的实现](https://github.com/shihabal3amri/DiPlay/blob/1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70/shared/src/main/java/com/shilapi/xcertplay/network/WifiScanPause.kt)，通过已授权的本机 ADB 调用系统 Wi-Fi 自动加入开关，针对部分单射频车机后台搜网导致的丢包。
+
+先停车，在系统中开启传统网络 ADB（本机 `127.0.0.1:5555`），点击“授权 / 检查本机 ADB”，允许系统调试确认框，再启用该选项。仅支持 TLS 配对码的无线调试暂不适用；后台连接和恢复不主动弹授权框。ADB 已授权仍不代表固件一定支持此开关。
+
+应用会在更改前持久记录恢复标记，最后一个控制器关闭或报告连接失败后尝试恢复自动搜网；恢复失败每 30 秒重试，下次打开应用也会恢复。强制停止后不能立即运行恢复；若 ADB 已关闭，可重新开启 ADB 后打开应用，或重启车机。Android 13+ 能查询原状态时，会保留其他工具已关闭的自动加入；较老固件无法查询原值，应在原本允许自动加入的情况下使用。
+
+暂停自动搜网可能影响车机自动连接手机热点，不能阻止其他应用的主动扫描，也不能消除外部射频干扰。建议先对比自动、36 和 149，再单独测试扫描抑制，记录实际信道及断联时间，判断哪项对本车有效。
 
 ## 网页显示
 
-1. 在设置的 `Web displays` 中开启 `Main display` 和/或 `Instrument display`，填写分辨率，点击 `Save & Reconnect`。
-2. 浏览器设备与 Android 接入同一局域网，打开设置里显示的地址（`https://<IP>:8080/main` 或 `/cluster`，可复制）。打开的页面在 CarPlay 重连期间保持连接。
-3. 证书为自签名，每个浏览器首次打开会提示不安全，选择继续访问即可。
-4. 主屏网页：支持双指以内触控；打开后手机音频转到网页播放，点一下屏幕即可出声（浏览器限制）。麦克风仍使用 Android。
-5. 仪表网页仅显示，需要 iPhone 提供第二屏视频流。
+1. 在「网页显示」中开启「主屏」和/或「仪表屏」的浏览器显示，填写分辨率，再点击右上角“重启 CarPlay”。
+2. 浏览器设备与 Android 接入同一局域网，打开设置中的地址（`https://<IP>:8080/main` 或 `/cluster`）。页面在 CarPlay 重连期间保持连接并自动恢复画面。
+3. 证书为自签名，每个浏览器首次打开会提示，选择继续访问即可。
+4. 主屏网页支持双指以内触控；手机音频转到网页播放，首次需点击页面启用声音，麦克风仍使用 Android。仪表网页仅显示，需要 iPhone 提供第二屏视频流。
 
-建议使用较新的 Chrome / Edge / Safari；浏览器不支持 H.265 时，在设置中关闭 `HEVC (H.265)`。
+建议使用较新的 Chrome、Edge 或 Safari；浏览器不支持 H.265 时，在设置中关闭 `HEVC (H.265)`。
 
-## 当前进度
+## 固定 APK 签名
 
-他运转👍，已在车机/手机平台测试，如果出现部分车机不适配的情况欢迎 issue （并附上你的 log ，位于 `/sdcard/Android/data/com.shilapi.xcertplay/files/logs/xcertplay.log`）
+个人版 debug 与 release 使用同一把专用 RSA 私钥，公开证书 SHA-256 固定在 [`signing/personal-certificate.sha256`](signing/personal-certificate.sha256)。Gradle 打包前和 CI 上传前验证签名身份。**缺少私钥或证书不匹配时，正常构建直接失败，不会生成临时密钥或退回默认 debug 签名。**
+
+GitHub Actions 使用仓库 Secret **`PERSONAL_ANDROID_SIGNING`**，值为离线签名备份中 `github-secret.txt` 的完整 JSON，包含 PKCS#12 的 Base64、密码和别名。在仓库 Settings → Secrets and variables → Actions 保存一次，后续复用同一份。私钥不在源码或公开下载产物中，备份应由维护者保管。
+
+APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
+
+## 构建
+
+### 环境要求
+
+- 推荐 JDK 25，与 CI 保持一致；启动 Gradle 至少需要 JDK 17，daemon 由 toolchain 使用 Java 25。
+- Gradle Wrapper 9.5.0、Android SDK Platform 37、Build Tools `36.0.0`、NDK `28.2.13676358`。
+- CI 签名与校验脚本需要 Python 3。
+- 实机验证需要 iPhone 和兼容车机；USB/CH341 或原生 I2C 认证还需要对应的 MFi 硬件。
+
+### GitHub Actions
+
+在 **Android Build → Run workflow** 选择 `personal-dev`，保持 `bootstrap_unsigned` 关闭。正常构建使用固定私钥，执行单元测试、Lint、打包与签名校验，上传：
+
+| 产物 | 内容 |
+| --- | --- |
+| `personal-apks-<commit>` | 两种已签名 APK 和包名/签名验证信息。 |
+| `validation-reports-<commit>` | 单元测试与 Lint 报告。 |
+| `unsigned-apks-<commit>` | 仅供显式初始化或无密钥 PR 验证的未签名输入，不能直接安装。 |
+
+### 本地构建
+
+先将以下环境变量指向离线备份中的同一把 PKCS#12 私钥，`ANDROID_KEYSTORE_PATH` 使用绝对路径：
+
+| 环境变量 | 内容 |
+| --- | --- |
+| `ANDROID_KEYSTORE_PATH` | `xcertplay-personal.p12` 的绝对路径。 |
+| `ANDROID_KEYSTORE_PASSWORD` | 密钥库密码。 |
+| `ANDROID_KEY_ALIAS` | 备份中的别名 `xcertplay-personal`。 |
+| `ANDROID_KEY_PASSWORD` | 私钥密码。 |
+
+macOS / Linux：
+
+```bash
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+```
+
+Windows PowerShell：
+
+```powershell
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+```
+
+签名 release 构建同样需要上述固定私钥：
+
+```bash
+./gradlew :mobile:assembleRelease :automotive:assembleRelease
+```
+
+无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名 debug 输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
+
+## 验证状态与问题反馈
+
+2026-10-16 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/38844830521)来自提交 `473e398af98ce39bf9dc4a5e9fe6496cd2895660`：**278 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告。** 两种 APK 的包名、桌面名称、固定签名、Provider 和自定义权限标识已核对。尚未实机验证安装及本轮连接稳定性、抗干扰效果。
+
+实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
+
+个人版通常的日志路径为：
+
+```text
+/sdcard/Android/data/com.whoyang233.xcertplay/files/logs/xcertplay.log
+```
+
+外部应用目录不可用时会回退到应用内部目录，以启动日志中的实际路径为准。Android 可能限制文件管理器读取此目录。请检查日志内容后，通过本仓库 [Issues](https://github.com/whoyang233/xcertplay/issues) 反馈。
 
 转接板：[CH341-to-MFI](https://github.com/shilapi/ch341-to-mfi-chip)
 
 ## 本地 MFI 文件
 
-在 `MFI certificate & signing target` 中选择 `Local files`，然后通过两个 `Choose`
+在 「连接 → 证书与签名目标」 中选择 「本地文件」，然后通过两个 「选择」
 按钮使用 Android 系统文件选择器选择证书和私钥。当前支持 DER PKCS#7 证书（`.p7b`）
 及与之匹配的、未加密 DER PKCS#8 私钥（`.pk8`）。应用会在开始连接手机前校验两者是否
 匹配，并在 MFI 重连时重新读取文件。
 
 建议把私钥放在受保护的位置。应用不会把证书或私钥复制到偏好设置，只会保存 Android
 授予的持久读取权限和文档 URI。
-
-## 工程结构
-
-| 路径 | 用途 |
-| --- | --- |
-| `common/` | 两个目标共用的 CarPlay 宿主界面、设置、持久化和应用资源。 |
-| `mobile/` | 使用共享 CarPlay 主机界面的 Android 应用。 |
-| `automotive/` | 使用共享主机界面并支持高级音频通道映射的 Android Automotive OS 应用。 |
-| `shared/` | Car App Library 代码，以及 CH341、I2C、MFi、iPhone、iAP2、NCM、VPN、AirPlay 和媒体实现。 |
 
 ## Remote MFI 功能
 
@@ -113,43 +194,23 @@ Remote MFi 客户端把远程服务当作一块 MFi 芯片远程调用，抑或�
 
 （可选）采用标准 Bearer Authentication 进行验证。
 
-**当前仅测试了 BAA Authentication**
+**上游记录仅测试了 BAA Authentication；个人版仍需按目标设备验证认证配置。**
 
-## 环境要求
+## 工程结构
 
-- 启动 Gradle 需要 JDK 17 或更高版本；daemon 通过 Gradle toolchain 解析 Java 25。
-- Android SDK Platform 37。
-- Android 9（API 28）或更高版本。
-  在 Android 9 上不可用 Wi-Fi P2P 5 GHz 模式，应用会改用 LocalOnlyHotspot。
-- Android NDK `28.2.13676358`。
-- 硬件验证需要支持 USB Host/OTG 的 Android 设备以及 MFi 硬件。
+| 路径 | 用途 |
+| --- | --- |
+| `common/` | 共用宿主界面、中文设置、持久化和应用资源。 |
+| `mobile/` | 一般 Android 车机目标。 |
+| `automotive/` | 原生 Android Automotive OS 目标。 |
+| `shared/` | CH341、I2C、MFi、iAP2、VPN、AirPlay、媒体及 Wi-Fi 实现。 |
+| `ci/` | 固定签名配置读取、APK 包名与证书验证脚本。 |
+| `signing/` | 公开证书指纹，不含私钥。 |
 
-## 构建
+## 致谢与许可证
 
-在 Windows PowerShell 中：
+本项目基于 [shilapi/xcertplay](https://github.com/shilapi/xcertplay)。感谢 [LIVI](https://github.com/f-io/LIVI) 提供参考、[showcase](https://github.com/amineross/showcase) 提供 BAA 认证参考。
 
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
-```
-
-在 macOS 或 Linux 中：
-
-```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
-```
-
-构建未签名 release APK：
-
-```powershell
-.\gradlew.bat :mobile:assembleRelease :automotive:assembleRelease
-```
-
-## 致谢
-
-感谢 [LIVI](https://github.com/f-io/LIVI) 项目为本项目提供了重要参考。
-感谢 [showcase](https://github.com/amineross/showcase) 项目为本项目的 BAA 认证提供重要参考。
-
-## 许可证
+扫描抑制、ADB 协议和相关测试借鉴 [DiPlay](https://github.com/shihabal3amri/DiPlay) 提交 `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`，保留 GPL-3.0 来源说明。本次移植未引入其仪表控制或 AGPL 界面代码。
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 许可。

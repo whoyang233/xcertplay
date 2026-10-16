@@ -1,61 +1,174 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/shilapi/xcertplay/refs/heads/master/asset/xcertplay_small.png" width="180" height="180" alt="xcertplay icon" />
-<h1><strong><font size="6">xcertplay</font></strong></h1>
+  <h1>xcertplay Personal</h1>
   <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a>
-  <p>An Android head-unit CarPlay receiver. It supports connecting to the MFi chip through a CH341 I2C bridge or directly through the board's I2C controller, and supports both wired and wireless CarPlay connections.</p>
+  <p>A CarPlay receiver for Android head units, supporting wired and wireless connections.</p>
 </div>
 
-## Features
+This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) is maintained on [`personal-dev`](https://github.com/whoyang233/xcertplay/tree/personal-dev). It adds Chinese settings, app-switch resizing safeguards, Wi-Fi startup recovery, optional scan suppression, and configurable channel requests.
 
-- CarPlay host applications for Android and Android Automotive OS.
-- Support for MFI chips connected through a CH341 bridge or native
-  `/dev/i2c-N` devices, local certificate/private-key files, and Remote MFI
-  authentication (see the API below).
-- Wired and wireless CarPlay connections.
-- CarPlay Ultra triggering (the protocol stack is untested/incomplete, but it
-  can trigger the CarPlay Ultra prompt on an iPhone).
-- Voice, navigation, and music multi-channel audio output mapped to the
-  corresponding Android channels.
-- Dynamic Activity resizing with automatic re-handshaking to the new
-  resolution.
-- Separate web pages for the main and instrument displays (the browser decodes
-  H.264/H.265 directly; the main display supports touch and audio).
-- Vehicle head-unit location reporting.
-- Android 9 (API 28) support.
+## Download and install
+
+**[Download the verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38844830521/artifacts/12022628039)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38844830521) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+
+Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
+
+| APK | Target |
+| --- | --- |
+| `mobile-debug.apk` | Standard Android head units; choose this for most devices. |
+| `automotive-debug.apk` | Native Android Automotive OS devices. |
+
+Requires **Android 9 (API 28)** or newer and a configured MFi authentication source: CH341, native I2C, local certificate files, or a remote service.
+
+| Identity | Personal build |
+| --- | --- |
+| Launcher name | xcertplay 个人版 |
+| Application ID | `com.whoyang233.xcertplay` |
+| Current upstream base version / versionCode | `1.4.0` / `1400` |
+| Current debug version name | `1.4.0B` |
+
+The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. The mobile and automotive APKs are alternative variants of the same app; install one for your device. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
+
+## Core features
+
+- Wired and wireless CarPlay receivers for Android and Android Automotive OS, with CH341, native I2C, local MFi files, and remote authentication.
+- Separate voice, navigation, and music audio channels, media buffering, and microphone gain settings.
+- Dynamic resolution, HEVC, safe areas, and independent main/instrument web displays.
+- Optional head-unit location and vehicle data reporting, subject to available interfaces, permissions, and configuration.
+- Upstream's experimental CarPlay Ultra trigger is retained; the protocol stack is incomplete and does not provide full Ultra support.
+
+## Personal changes
+
+| Area | Behavior |
+| --- | --- |
+| App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
+| Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
+| Applying edits | Restart CarPlay validates, saves, and applies settings; closing settings discards unsaved edits. |
+| About | Shows the installed app version, Android version, and API level. |
+| Wi-Fi startup recovery | Releases the first failed automatic hotspot, attempts a Wi-Fi off/on cycle, then retries once with a fresh manager. If switching is denied, only rebuilds the hotspot. Manual hotspots are excluded. |
+| Channel strategy | Wi-Fi Direct supports automatic 5 GHz, channel 36 or 149 preferences, and specific non-DFS channel requests, with optional fallback on explicit rejection. |
+| Scan suppression | Opt-in framework autojoin suppression adapted from DiPlay; requires approved local ADB. |
+| Installation and updates | Independent package and fixed APK signing identity for coexistence and subsequent personal updates. |
+
+Startup recovery is enabled by default. On cancellation or exit, it attempts to restore Wi-Fi that it disabled, and the next hotspot startup waits for restoration. Android and firmware permissions determine whether switching is allowed. Connection stability and RF behavior still require vehicle testing.
 
 ## Usage
 
-1. Pair your iPhone with the head unit via Bluetooth.
-2. Before a CarPlay video stream starts, tap the Settings button in the lower-right corner. You can also swipe down with three fingers to open Settings.
-3. Make sure all the settings are configured as desired.
-   To enable another entry gesture, turn on `More gestures to Settings page`. Start with one finger in the upper quarter of the left eighth of the screen, slide down along that strip, and lift in the lower quarter.
-4. Scroll to the bottom and select `Save & Reconnect`.
-5. Connect your MFi chip using the method you selected.
-6. Wait for the connection to complete, then enjoy.
+1. For wireless CarPlay, pair the iPhone and head unit over Bluetooth.
+2. Before video starts, tap the lower-right Settings button or swipe down with three fingers.
+3. Under Connection, configure the MFi target and wired/wireless mode, then adjust audio, display, and window settings. An additional edge gesture can be enabled under Startup & window.
+4. Tap **Restart CarPlay** at the top right to save and apply. There is no need to scroll to the bottom. Closing settings discards unsaved edits.
+5. Provide the hardware, files, or service required by your selected authentication method and wait for CarPlay to connect.
+
+The personal build prefers Simplified Chinese independently of the head unit's system language.
+
+## Wi-Fi scan suppression and channels
+
+These options are under Settings → Connection and apply after saving and restarting CarPlay. **Channel requests and scan suppression are limited to Wi-Fi Direct on Android 10+.** Android 9 uses LocalOnlyHotspot instead.
+
+### Channel strategy
+
+| Strategy | First request |
+| --- | --- |
+| System automatic (default) | System-selected 5 GHz channel. |
+| Prefer low channel | 36. |
+| Prefer high channel | 149. |
+| Specific channel | 36, 40, 44, 48, 149, 153, 157, 161, or 165. |
+
+Requests use the public Android API and **do not require ADB**. Firmware, regional rules, or Wi-Fi concurrency can reject or override a request. Trust the last observed hotspot channel shown in settings and the connection log. These options do not change channel width or intentionally retune an existing connection.
+
+Fallback to automatic is enabled by default. An explicit rejection of a requested-channel group allows one retry with system-selected 5 GHz. Busy errors, timeouts, permission failures, and cancellation do not trigger channel fallback; an explicit channel rejection also does not trigger a Wi-Fi power cycle. Automatic hotspots remain system-controlled. For manual hotspots, change channels in the head unit's system settings; entering a channel in this app does not retune them.
+
+### Scan suppression
+
+Pause automatic network search is **off by default**. Adapted from [DiPlay](https://github.com/shihabal3amri/DiPlay/blob/1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70/shared/src/main/java/com/shilapi/xcertplay/network/WifiScanPause.kt), it switches framework Wi-Fi autojoin through approved local ADB to reduce off-channel searches on some single-radio head units.
+
+Park first, enable legacy network ADB at `127.0.0.1:5555`, tap Authorize / check local ADB, approve the system debugging prompt, then enable the option. TLS pairing-code-only wireless debugging is unsupported. Background connections and restoration never offer a new key. ADB approval does not establish firmware support for this switch.
+
+A durable marker precedes changes. The last controller closing, or a reported connection failure, requests restoration; failures retry every 30 seconds and on the next app launch. A force-stopped app cannot restore immediately. If ADB is unavailable, restore ADB and reopen the app, or restart the head unit. Android 13+ can preserve autojoin already disabled by another tool when its state is queryable; older firmware cannot report the original value, so use this option only when autojoin was originally enabled.
+
+This can affect automatic joining of a phone hotspot. It cannot block all app-initiated scans or eliminate external RF interference. Compare automatic, channel 36, and channel 149 first, then test scan suppression separately while recording observed channels and disconnect times.
 
 ## Web displays
 
-1. In Settings, under `Web displays`, enable `Main display` and/or
-   `Instrument display`, set the resolution, then tap `Save & Reconnect`.
-2. Put the browser device on the same LAN as the Android device and open the
-   address shown in Settings (`https://<IP>:8080/main` or `/cluster`; it can be
-   copied). An open page stays connected while CarPlay reconnects and resumes
-   by itself.
-3. The certificate is self-signed: each browser warns once, choose to continue.
-4. Main display page: touch with up to two fingers; while it is open the
-   phone's audio plays in the page. Tap the screen once to turn on sound
-   (a browser requirement). The microphone stays on Android.
-5. The instrument display page is view-only and needs the iPhone to provide the
-   second display stream.
+1. Under Web displays, enable the browser display for Main and/or Instrument, set the resolution, then tap Restart CarPlay at the top right.
+2. Connect the browser device to the same LAN and open the address shown in settings (`https://<IP>:8080/main` or `/cluster`). Pages remain connected through CarPlay reconnects and resume automatically.
+3. The certificate is self-signed; accept the browser's first-visit prompt.
+4. Main display supports up to two touch points and plays the phone's audio after an initial tap to enable sound. The microphone remains on Android. The instrument page is view-only and requires the iPhone to provide its second display stream.
 
-Use a recent Chrome, Edge, or Safari. If the browser cannot play H.265, turn
-off `HEVC (H.265)` in Settings.
+Use a recent Chrome, Edge, or Safari. Disable `HEVC (H.265)` in settings if the browser cannot decode it.
 
-## Current progress
+## Fixed APK signing
 
-It works 👍. It has been tested on car head units and phones. If you encounter
-an incompatible car head unit, please open an issue and attach your log from
-`/sdcard/Android/data/com.shilapi.xcertplay/files/logs/xcertplay.log`.
+Personal debug and release APKs share one dedicated RSA key. Its public certificate SHA-256 is pinned in [`signing/personal-certificate.sha256`](signing/personal-certificate.sha256). Gradle checks before packaging, and CI verifies the resulting APK before upload. **Normal builds fail if the key is missing or mismatched; they never generate a temporary key or fall back to a default debug signer.**
+
+The repository Actions secret **`PERSONAL_ANDROID_SIGNING`** holds the complete JSON from the offline backup's `github-secret.txt`: PKCS#12 Base64, passwords, and alias. Save it once under Settings → Secrets and variables → Actions and reuse it. The private key is excluded from source and public artifacts; the maintainer keeps the offline backup.
+
+APK signing keys and MFi authentication keys serve different purposes and are not interchangeable.
+
+## Build
+
+### Requirements
+
+- JDK 25 is recommended to match CI; launching Gradle requires at least JDK 17, and the daemon toolchain uses Java 25.
+- Gradle Wrapper 9.5.0, Android SDK Platform 37, Build Tools `36.0.0`, and NDK `28.2.13676358`.
+- Python 3 for CI signing and APK verification helpers.
+- An iPhone and compatible head unit for device testing; USB/CH341 or native I2C authentication also requires the appropriate MFi hardware.
+
+### GitHub Actions
+
+Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstrap_unsigned` off. Normal builds use the fixed key, run unit tests and lint, build both APKs, and verify package and signing identity before uploading:
+
+| Artifact | Contents |
+| --- | --- |
+| `personal-apks-<commit>` | Both signed APKs and package/signature verification metadata. |
+| `validation-reports-<commit>` | Unit test and lint reports. |
+| `unsigned-apks-<commit>` | Unsigned inputs for explicit bootstrap or PR validation without a key; not installable. |
+
+### Local builds
+
+Set these environment variables to the original PKCS#12 key from the offline backup, using an absolute keystore path:
+
+| Variable | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_PATH` | Absolute path to `xcertplay-personal.p12`. |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password. |
+| `ANDROID_KEY_ALIAS` | Backup alias `xcertplay-personal`. |
+| `ANDROID_KEY_PASSWORD` | Private key password. |
+
+macOS / Linux:
+
+```bash
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+```
+
+Windows PowerShell:
+
+```powershell
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+```
+
+Signed release builds require the same fixed key:
+
+```bash
+./gradlew :mobile:assembleRelease :automotive:assembleRelease
+```
+
+Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned debug inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
+
+## Verification and feedback
+
+The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38844830521), commit `473e398af98ce39bf9dc4a5e9fe6496cd2895660`, passed **278 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. Both APKs were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. On-device installation and the connection stability/RF changes have not yet been verified.
+
+Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
+
+The usual personal-app log path is:
+
+```text
+/sdcard/Android/data/com.whoyang233.xcertplay/files/logs/xcertplay.log
+```
+
+When external app storage is unavailable, logs use internal app storage; the startup log reports the actual path. Android may restrict file-manager access to this directory. Review logs before attaching them to a [repository issue](https://github.com/whoyang233/xcertplay/issues).
 
 Adapter board: [CH341-to-MFI](https://github.com/shilapi/ch341-to-mfi-chip)
 
@@ -71,15 +184,6 @@ MFI reconnect.
 Store the private key in a protected location. Neither file is copied into app
 preferences; only Android's persistent read permission and document URI are
 saved.
-
-## Project structure
-
-| Path | Purpose |
-| --- | --- |
-| `common/` | Shared CarPlay host activity, settings UI, persistence, and app resources used by both targets. |
-| `mobile/` | Standard Android target using the shared CarPlay host UI. |
-| `automotive/` | Android Automotive OS target with the shared host UI and advanced audio channel mapping. |
-| `shared/` | Car App Library code plus the CH341, I2C, MFi, iPhone, iAP2, NCM, VPN, AirPlay, and media implementations. |
 
 ## Remote MFI
 
@@ -97,47 +201,23 @@ connecting to a local MFi chip for authentication.
 
 (Optional) Standard Bearer Authentication can be used for verification.
 
-**Currently, only BAA Authentication has been tested.**
+**Upstream reports testing BAA authentication; validate your authentication setup on the target hardware.**
 
-## Requirements
+## Project structure
 
-- JDK 17 or newer to launch Gradle. The daemon resolves Java 25 through the
-  Gradle toolchain.
-- Android SDK Platform 37.
-- Android 9 (API 28) or newer.
-  On Android 9, Wi-Fi P2P 5 GHz mode is unavailable and LocalOnlyHotspot is used instead.
-- Android NDK `28.2.13676358`.
-- A physical USB Host/OTG Android device and MFi hardware are required for
-  hardware validation.
+| Path | Purpose |
+| --- | --- |
+| `common/` | Shared host UI, Chinese settings, persistence, and resources. |
+| `mobile/` | Standard Android head-unit target. |
+| `automotive/` | Native Android Automotive OS target. |
+| `shared/` | CH341, I2C, MFi, iAP2, VPN, AirPlay, media, and Wi-Fi implementations. |
+| `ci/` | Fixed signing setup and APK identity verification scripts. |
+| `signing/` | Public certificate fingerprint only. |
 
-## Build
+## Acknowledgements and license
 
-On Windows PowerShell:
+Based on [shilapi/xcertplay](https://github.com/shilapi/xcertplay). Thanks to [LIVI](https://github.com/f-io/LIVI) for implementation references and [showcase](https://github.com/amineross/showcase) for BAA authentication references.
 
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-.\gradlew.bat :shared:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
-```
-
-On macOS or Linux:
-
-```bash
-./gradlew :shared:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
-```
-
-Unsigned release APKs:
-
-```powershell
-.\gradlew.bat :mobile:assembleRelease :automotive:assembleRelease
-```
-
-## Acknowledgements
-
-Thanks to [LIVI](https://github.com/f-io/LIVI) for providing important
-reference for this project.
-Thanks to the [showcase](https://github.com/amineross/showcase) project for
-providing important reference for the BAA authentication in this project.
-
-## License
+Scan suppression, the ADB protocol implementation, and associated tests adapt [DiPlay](https://github.com/shihabal3amri/DiPlay) at `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`, preserving GPL-3.0 attribution. This port does not include its cluster-control features or AGPL UI code.
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
