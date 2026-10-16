@@ -32,6 +32,7 @@ android {
 
     buildTypes {
         debug {
+            versionNameSuffix = "B"
             if (providers.environmentVariable("ANDROID_KEYSTORE_PATH").isPresent) {
                 signingConfig = signingConfigs.getByName("release")
             }

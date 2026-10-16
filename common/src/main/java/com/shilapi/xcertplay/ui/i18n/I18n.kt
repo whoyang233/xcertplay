@@ -8,24 +8,9 @@ import java.io.File
 import java.util.Locale
 
 /**
- * JSON-driven UI strings that follow the system language.
- *
- * English (`assets/i18n/en.json`) is the base table and always complete. Other languages are
- * optional overlays that only need the keys they translate; a missing key falls back to English.
- *
- * The language comes from the context's configuration: the user's ordered language list, which
- * on Android 13+ also reflects a per-app language chosen in system settings. The first language
- * in that list that has a translation wins (so a list of "fr, zh-CN, en" shows Chinese when only
- * zh-CN is translated); English is used when none has one. A system language change recreates
- * the activity, which calls [init] again; [refresh] covers activities that handle `locale`
- * configuration changes themselves.
- *
- * For the chosen language, overlays are applied from least to most specific tag:
- * `<language>`, `<language>-<Script>`, `<language>-<REGION>` (for example `zh`, `zh-Hans`, `zh-CN`).
- * For each tag, `assets/i18n/<tag>.json` is applied first and `<external files>/i18n/<tag>.json`
- * (side-loaded, no rebuild needed) on top of it. Anything passed to [inject] wins over both.
- *
- * Values may contain `{name}` placeholders, filled by [tr]. Keys are flat, dot-separated strings.
+ * This personal build prefers Simplified Chinese, independently of the head unit's language.
+ * English remains the complete fallback. Asset overlays, side-loaded tables and runtime
+ * injection retain their existing precedence; values may contain {name} placeholders.
  */
 object I18n {
     private const val TAG = "xcertplay-i18n"
@@ -89,7 +74,8 @@ object I18n {
 
     private fun preferredLocales(context: Context): List<Locale> {
         val list = context.resources.configuration.locales
-        return (0 until list.size()).map { list[it] }.ifEmpty { listOf(Locale.getDefault()) }
+        return (listOf(Locale.SIMPLIFIED_CHINESE) +
+            (0 until list.size()).map { list[it] }).distinctBy { it.toLanguageTag() }
     }
 
     private fun signature(locales: List<Locale>): String = locales.joinToString(",") { it.toLanguageTag() }

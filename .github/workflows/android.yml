@@ -40,6 +40,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Prepare signing key
+        id: signing
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
@@ -51,8 +52,9 @@ jobs:
 
           for name in RELEASE_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             if [[ -z "${!name:-}" ]]; then
-              echo "Missing required GitHub Actions secret for ${name}" >&2
-              exit 1
+              echo "Release signing is not configured; using the standard debug signing key."
+              echo "available=false" >> "${GITHUB_OUTPUT}"
+              exit 0
             fi
           done
 
@@ -63,6 +65,7 @@ jobs:
             -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
             -alias "${ANDROID_KEY_ALIAS}" >/dev/null
           echo "ANDROID_KEYSTORE_PATH=${keystore_path}" >> "${GITHUB_ENV}"
+          echo "available=true" >> "${GITHUB_OUTPUT}"
 
       - name: Test, lint, and build dev APKs
         env:
@@ -72,6 +75,7 @@ jobs:
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
+          :common:testDebugUnitTest
           :common:lintDebug
           :mobile:lintDebug
           :automotive:lintDebug
@@ -80,7 +84,7 @@ jobs:
           --stacktrace
 
       - name: Verify signed debug APKs
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.signing.outputs.available == 'true'
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -100,8 +104,7 @@ jobs:
             test "${actual_cert,,}" = "${expected_cert,,}"
           done
 
-      - name: Upload signed debug APKs
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Upload debug APKs
         uses: actions/upload-artifact@v4
         with:
           name: debug-apks-${{ github.sha }}
@@ -109,6 +112,20 @@ jobs:
             mobile/build/outputs/apk/debug/mobile-debug.apk
             automotive/build/outputs/apk/debug/automotive-debug.apk
           if-no-files-found: error
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-reports-${{ github.sha }}
+          path: |
+            common/build/test-results/
+            shared/build/test-results/
+            common/build/reports/
+            shared/build/reports/
+            mobile/build/reports/
+            automotive/build/reports/
+          if-no-files-found: ignore
 
   release:
     if: github.event_name == 'push' && github.ref_type == 'tag'

@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -188,6 +189,10 @@ class CarPlayHostActivity : ComponentActivity() {
     )
 
     private lateinit var airPlayIdentity: AirPlayIdentity
+    private val appVersionName: String by lazy {
+        @Suppress("DEPRECATION")
+        packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+    }
 
     // CH341 USB\VID_1A86&PID_5512&REV_0304 is the deployment-supplied bridge identity.
     private fun createRuntimeConfig(): CarPlayRuntimeConfig = CarPlayRuntimeConfig(
@@ -221,6 +226,7 @@ class CarPlayHostActivity : ComponentActivity() {
         transport = if (wirelessEnabled) CarPlayTransport.WIRELESS else CarPlayTransport.WIRED,
         wirelessHotspotMode = wirelessHotspotMode,
         wifiHighPerformanceEnabled = wifiHighPerformanceEnabled,
+        wifiStartupRecoveryEnabled = wifiStartupRecoveryEnabled,
         manualHotspotSsid = manualHotspotSsid,
         manualHotspotPassphrase = manualHotspotPassphrase,
         manualHotspotBand = manualHotspotBand,
@@ -435,8 +441,8 @@ class CarPlayHostActivity : ComponentActivity() {
     private val vehicleProfileImport = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) lifecycleScope.launch {
             runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { VehicleProfileRepository(this@CarPlayHostActivity).import(uri) } }
-                .onSuccess { stopVehicleDiagnostics(); vehicleProfileJson=it; vehicleProfileSource=VehicleProfileRepository.IMPORTED; vehicleProfileMessage="Validated draft. Save & Reconnect applies it." }
-                .onFailure { vehicleProfileMessage="Import rejected; previous profile retained: ${it.message}" }
+                .onSuccess { stopVehicleDiagnostics(); vehicleProfileJson=it; vehicleProfileSource=VehicleProfileRepository.IMPORTED; vehicleProfileMessage=tr("settings.vehicle.profile_ready") }
+                .onFailure { vehicleProfileMessage=tr("settings.vehicle.profile_rejected", "reason" to it.message) }
         }
     }
     /**
@@ -510,6 +516,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var microphoneGainPercent by mutableIntStateOf(MicrophoneGain.DEFAULT_PERCENT)
     private var wirelessEnabled by mutableStateOf(false)
     private var wifiHighPerformanceEnabled by mutableStateOf(true)
+    private var wifiStartupRecoveryEnabled by mutableStateOf(true)
     private var mfiTarget by mutableStateOf(MfiTarget.USB_CH341)
     private var mfiI2cPath by mutableStateOf(AirPlayPersistence.DEFAULT_MFI_I2C_PATH)
     private var remoteMfiServer by mutableStateOf("")
@@ -552,6 +559,8 @@ class CarPlayHostActivity : ComponentActivity() {
     private var edgeSettingsGestureEligible = false
     private val shuttingDown = AtomicBoolean(false)
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val displayResizeGate = DisplayResizeGate()
+    private var pendingDisplayTicket: Int? = null
     // Only exitApplication shuts these down, and Activities are recreated often (language,
     // back and reopen), so their single worker retires when idle instead of leaking per instance.
     private val teardownExecutor: ExecutorService = idleRetiringSingleThreadExecutor()
@@ -587,7 +596,15 @@ class CarPlayHostActivity : ComponentActivity() {
     }
     private val applyDisplaySize = Runnable {
         val size = pendingDisplaySize ?: return@Runnable
+        if (!displayResizeGate.accepts(pendingDisplayTicket)) return@Runnable
         pendingDisplaySize = null
+        pendingDisplayTicket = null
+        // Insets can settle after the layout that queued this task. Never renegotiate a stale size.
+        val frame = mainFrame ?: return@Runnable
+        if (size.width != frame.width || size.height != frame.height) {
+            scheduleDisplaySize(frame.width, frame.height)
+            return@Runnable
+        }
         applyDisplaySize(size)
     }
 
@@ -702,6 +719,7 @@ class CarPlayHostActivity : ComponentActivity() {
         locationPermissionAvailable = hasFineLocationPermission()
         wirelessEnabled = AirPlayPersistence.loadWirelessEnabled(this)
         wifiHighPerformanceEnabled = AirPlayPersistence.loadWifiHighPerformanceEnabled(this)
+        wifiStartupRecoveryEnabled = AirPlayPersistence.loadWifiStartupRecoveryEnabled(this)
         mfiTarget = AirPlayPersistence.loadMfiTarget(this)
         mfiI2cPath = AirPlayPersistence.loadMfiI2cPath(this)
         remoteMfiServer = AirPlayPersistence.loadRemoteMfiServer(this)
@@ -798,6 +816,8 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        displayResizeGate.setResumed(true)
+        displayResizeGate.setFocused(hasWindowFocus())
         CarPlayBackgroundSession.audioFocus(this).apply {
             retain(this@CarPlayHostActivity)
             setEnabled(audioFocusEnabled)
@@ -810,11 +830,24 @@ class CarPlayHostActivity : ComponentActivity() {
         wirelessPermissionsReady = !wirelessEnabled || hasRequiredWirelessPermissions()
         maybeStartCarPlay()
         applyFullscreenMode()
+        refreshDisplaySizeAfterLayout()
+    }
+
+    override fun onPause() {
+        displayResizeGate.setResumed(false)
+        cancelPendingDisplayResize()
+        super.onPause()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) applyFullscreenMode()
+        displayResizeGate.setFocused(hasFocus)
+        if (hasFocus) {
+            applyFullscreenMode()
+            refreshDisplaySizeAfterLayout()
+        } else {
+            cancelPendingDisplayResize()
+        }
     }
 
     override fun onStop() {
@@ -1130,12 +1163,15 @@ class CarPlayHostActivity : ComponentActivity() {
         window.translationY = clusterWindowY
     }
 
-    /** Keeps [view]'s content (the CarPlay video) clear of visible system bars and the cutout. */
+    /** Keeps the configured system bar space stable through task-switch visibility changes. */
     private fun padForSystemBars(view: View) {
         ViewCompat.setOnApplyWindowInsetsListener(view) { target, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
-            )
+            // Other apps and the task switcher briefly change bar visibility. Reserve the
+            // configured bars even then, so returning does not change the CarPlay resolution.
+            var types = WindowInsetsCompat.Type.displayCutout()
+            if (!hideTopBar) types = types or WindowInsetsCompat.Type.statusBars()
+            if (!hideBottomBar) types = types or WindowInsetsCompat.Type.navigationBars()
+            val bars = insets.getInsetsIgnoringVisibility(types)
             target.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
@@ -1163,6 +1199,7 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveWebDisplay(this, SCREEN_TYPE_ALT, clusterWebDisplay)
         AirPlayPersistence.saveWirelessEnabled(this, wirelessEnabled)
         AirPlayPersistence.saveWifiHighPerformanceEnabled(this, wifiHighPerformanceEnabled)
+        AirPlayPersistence.saveWifiStartupRecoveryEnabled(this, wifiStartupRecoveryEnabled)
         AirPlayPersistence.saveMfiTarget(this, mfiTarget)
         AirPlayPersistence.saveMfiI2cPath(this, mfiI2cPath)
         AirPlayPersistence.saveRemoteMfiServer(this, remoteMfiServer)
@@ -1367,9 +1404,9 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun updateVehicleDataStatus() {
         val provider=diagnosticVehicleProvider ?: currentVehicleProvider
-        if(provider==null) { vehicleDataStatusText="Settings pauses CarPlay. Start a separate 10-minute read-only diagnostic session. No data is sent to the phone during this session.\n" + (lastVehicleDataDiagnostics ?: "No previous connection samples.");return }
+        if(provider==null) { vehicleDataStatusText=tr("settings.vehicle.diagnostics_help") + "\n" + (lastVehicleDataDiagnostics ?: tr("settings.vehicle.no_samples"));return }
         vehicleDataStatusText=buildString {
-            append(if(diagnosticVehicleProvider!=null) "Independent diagnostic session (no phone output)" else "Connection snapshot")
+            append(tr(if(diagnosticVehicleProvider!=null) "settings.vehicle.independent_diagnostics" else "settings.vehicle.snapshot"))
             append("\nSource: ").append(selectedVehicleDataEntry().displayName)
             append("\n").append(provider.diagnostics())
         }
@@ -1502,22 +1539,22 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun validateMfiSettings(): Boolean {
         val error = when {
             mfiTarget == MfiTarget.I2C && mfiI2cPath.isBlank() ->
-                "I2C device path is required"
+                tr("settings.validation.i2c_path")
             mfiTarget == MfiTarget.REMOTE && remoteMfiServer.isBlank() ->
-                "Remote server address is required"
+                tr("settings.validation.server_required")
             mfiTarget == MfiTarget.REMOTE &&
                 !remoteMfiServer.trim().startsWith("http://") &&
                 !remoteMfiServer.trim().startsWith("https://") ->
-                "Remote server address must start with http:// or https://"
+                tr("settings.validation.server_scheme")
             mfiTarget == MfiTarget.LOCAL_FILES && localMfiCertificateUri.isBlank() ->
-                "Select a local certificate"
+                tr("settings.validation.certificate")
             mfiTarget == MfiTarget.LOCAL_FILES && localMfiPrivateKeyUri.isBlank() ->
-                "Select a local private key"
-            '\u0000' in mfiI2cPath -> "I2C device path contains U+0000"
-            '\u0000' in remoteMfiServer -> "Remote server address contains U+0000"
-            '\u0000' in remoteMfiToken -> "Remote token contains U+0000"
-            '\u0000' in localMfiCertificateUri -> "Local certificate URI contains U+0000"
-            '\u0000' in localMfiPrivateKeyUri -> "Local private key URI contains U+0000"
+                tr("settings.validation.private_key")
+            '\u0000' in mfiI2cPath -> tr("settings.validation.i2c_invalid")
+            '\u0000' in remoteMfiServer -> tr("settings.validation.server_invalid")
+            '\u0000' in remoteMfiToken -> tr("settings.validation.token_invalid")
+            '\u0000' in localMfiCertificateUri -> tr("settings.validation.certificate_invalid")
+            '\u0000' in localMfiPrivateKeyUri -> tr("settings.validation.private_key_invalid")
             else -> null
         }
         mfiError = error
@@ -1528,21 +1565,21 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun validateManualHotspotSettings(): Boolean {
         if (wirelessHotspotMode != WirelessHotspotMode.MANUAL) return true
         val error = when {
-            manualHotspotSsid.isBlank() -> "Hotspot SSID is required"
+            manualHotspotSsid.isBlank() -> tr("settings.validation.ssid_required")
             manualHotspotSsid.encodeToByteArray().size > 32 ->
-                "Hotspot SSID must be at most 32 UTF-8 bytes"
-            '\u0000' in manualHotspotSsid -> "Hotspot SSID contains U+0000"
-            manualHotspotChannel !in 0..196 -> "Channel must be 0 or 1-196"
+                tr("settings.validation.ssid_length")
+            '\u0000' in manualHotspotSsid -> tr("settings.validation.ssid_invalid")
+            manualHotspotChannel !in 0..196 -> tr("settings.validation.channel_range")
             manualHotspotChannel != 0 &&
                 !isManualHotspotChannelCompatible(manualHotspotBand, manualHotspotChannel) ->
-                "Channel is not valid for the selected band"
-            '\u0000' in manualHotspotPassphrase -> "Hotspot password contains U+0000"
+                tr("settings.validation.channel_band")
+            '\u0000' in manualHotspotPassphrase -> tr("settings.validation.password_invalid")
             manualHotspotSecurity == ManualHotspotSecurity.OPEN &&
                 manualHotspotPassphrase.isNotEmpty() ->
-                "Password must be empty when security is Open"
+                tr("settings.validation.password_open")
             manualHotspotSecurity != ManualHotspotSecurity.OPEN &&
                 manualHotspotPassphrase.length !in 8..63 ->
-                "WPA2/WPA3 password must be 8-63 characters"
+                tr("settings.validation.password_length")
             else -> null
         }
         manualHotspotError = error
@@ -2168,6 +2205,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun scheduleDisplaySize(width: Int, height: Int) {
         if (width <= 0 || height <= 0 || shuttingDown.get()) return
+        val ticket = displayResizeGate.ticket() ?: return
         val size = DisplaySize(width, height)
         val layout = currentDisplayLayout()
         if (size == pendingDisplaySize && layout == pendingDisplayLayout) return
@@ -2180,12 +2218,19 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         pendingDisplaySize = size
         pendingDisplayLayout = layout
+        pendingDisplayTicket = ticket
         mainHandler.removeCallbacks(applyDisplaySize)
         // A rotation onto a declared area is only a view area switch, so it need not wait.
         mainHandler.postDelayed(
             applyDisplaySize,
             if (viewAreas?.turnsWithScreen == true) 0L else DISPLAY_CHANGE_DEBOUNCE_MILLIS,
         )
+    }
+
+    private fun cancelPendingDisplayResize() {
+        mainHandler.removeCallbacks(applyDisplaySize)
+        pendingDisplaySize = null
+        pendingDisplayTicket = null
     }
 
     private fun applyDisplaySize(size: DisplaySize) {
@@ -2894,6 +2939,7 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        contentRoot?.let(ViewCompat::requestApplyInsets)
         applySystemBarAppearance()
     }
 
@@ -2927,6 +2973,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 safeAreaEditorActive -> SafeAreaEditorChrome()
                 menuOpen -> SettingsScreen()
                 !mainStreamActive -> HomeScreen(
+                    versionName = appVersionName,
                     timeline = handshakeTimeline,
                     revision = timelineRevision,
                     status = connectionStatus,
@@ -2947,20 +2994,22 @@ class CarPlayHostActivity : ComponentActivity() {
         M3Surface(Modifier.fillMaxSize(), color = scheme.surface, contentColor = scheme.onSurface) {
             BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 val twoPane = maxWidth >= TWO_PANE_MIN_WIDTH
+                val compactActions = maxWidth < 520.dp
                 SideEffect { settingsTwoPane = twoPane }
-                if (twoPane) {
-                    val selected = settingsCategory ?: SettingsCategory.CONNECTION
-                    Row(Modifier.fillMaxSize()) {
-                        Column(Modifier.width(CATEGORY_PANE_WIDTH).fillMaxHeight()) {
-                            SmallTopBar(
-                                title = tr("settings.title"),
-                                navigation = {
-                                    LvIconButton(R.drawable.ic_ms_close, tr("settings.discard"), { cancelSettingsEdits() })
-                                },
-                            )
+                val current = settingsCategory
+                Column(Modifier.fillMaxSize()) {
+                    // Outside every scrolling container: both actions stay in the top-right corner.
+                    SettingsToolbar(
+                        title = if (twoPane || current == null) tr("settings.title") else current.title,
+                        compact = compactActions,
+                        backToCategories = !twoPane && current != null,
+                    )
+                    HelpText(tr("settings.apply_help"))
+                    if (twoPane) {
+                        val selected = current ?: SettingsCategory.CONNECTION
+                        Row(Modifier.weight(1f).fillMaxWidth()) {
                             Column(
-                                Modifier
-                                    .weight(1f)
+                                Modifier.width(CATEGORY_PANE_WIDTH).fillMaxHeight()
                                     .verticalScroll(rememberScrollState())
                                     .padding(horizontal = Space.s3),
                                 verticalArrangement = Arrangement.spacedBy(Space.s1),
@@ -2975,107 +3024,79 @@ class CarPlayHostActivity : ComponentActivity() {
                                     )
                                 }
                             }
-                            SettingsActions(stacked = true)
-                        }
-                        M3Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .padding(top = Space.s3, end = Space.s3, bottom = Space.s3),
-                            shape = RoundedCornerShape(Radius.xl),
-                            color = scheme.surfaceContainerLow,
-                        ) {
-                            ProvideGroupColor(scheme.surfaceContainerHigh) {
-                                Column(Modifier.fillMaxSize()) {
-                                    SmallTopBar(title = selected.title)
-                                    CategoryContent(selected, Modifier.weight(1f))
+                            M3Surface(
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                                    .padding(top = Space.s3, end = Space.s3, bottom = Space.s3),
+                                shape = RoundedCornerShape(Radius.xl),
+                                color = scheme.surfaceContainerLow,
+                            ) {
+                                ProvideGroupColor(scheme.surfaceContainerHigh) {
+                                    Column(Modifier.fillMaxSize()) {
+                                        SmallTopBar(title = selected.title)
+                                        CategoryContent(selected, Modifier.weight(1f))
+                                    }
                                 }
                             }
                         }
-                    }
-                } else {
-                    val current = settingsCategory
-                    Column(Modifier.fillMaxSize()) {
-                        if (current == null) {
-                            LargeTopBar(
-                                title = tr("settings.title"),
-                                navigation = {
-                                    LvIconButton(R.drawable.ic_ms_close, tr("settings.discard"), { cancelSettingsEdits() })
-                                },
-                            )
-                            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                                SettingsCategory.entries.forEach { category ->
-                                    ListRow(
-                                        headline = category.title,
-                                        support = category.summary,
-                                        leadingIcon = category.icon,
-                                        leadingBox = true,
-                                        onClick = { settingsCategory = category },
-                                        trailing = { TrailingValue(null) },
-                                    )
-                                }
-                                Spacer(Modifier.height(Space.s4))
+                    } else if (current == null) {
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                            SettingsCategory.entries.forEach { category ->
+                                ListRow(
+                                    headline = category.title,
+                                    support = category.summary,
+                                    leadingIcon = category.icon,
+                                    leadingBox = true,
+                                    onClick = { settingsCategory = category },
+                                    trailing = { TrailingValue(null) },
+                                )
                             }
-                        } else {
-                            SmallTopBar(
-                                title = current.title,
-                                navigation = {
-                                    LvIconButton(R.drawable.ic_ms_arrow_back, tr("common.back"), { settingsCategory = null })
-                                },
-                            )
-                            CategoryContent(current, Modifier.weight(1f))
+                            Spacer(Modifier.height(Space.s4))
                         }
-                        SettingsActions(stacked = false)
+                    } else {
+                        CategoryContent(current, Modifier.weight(1f))
                     }
                 }
             }
         }
     }
 
-    /** Save is the one filled action per screen; leaving the app is a separate, quieter action. */
     @Composable
-    private fun SettingsActions(stacked: Boolean) {
+    private fun SettingsToolbar(title: String, compact: Boolean, backToCategories: Boolean) {
         val scheme = MaterialTheme.colorScheme
-        val save: @Composable (Modifier) -> Unit = { modifier ->
-            Button(
-                onClick = { saveSettingsAndReconnect() },
-                modifier = modifier.heightIn(min = 48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary, contentColor = scheme.onPrimary),
+        M3Surface(color = scheme.surfaceContainer) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Space.s2, vertical = Space.s2),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Space.s2),
             ) {
-                LvIcon(R.drawable.ic_ms_refresh, size = 18.dp)
-                Spacer(Modifier.width(Space.s2))
-                Text(tr("settings.save"), style = MaterialTheme.typography.labelLarge)
-            }
-        }
-        val exit: @Composable (Modifier) -> Unit = { modifier ->
-            TextButton(
-                onClick = { exitApplication() },
-                modifier = modifier.heightIn(min = 48.dp),
-                colors = ButtonDefaults.textButtonColors(contentColor = scheme.error),
-            ) {
-                LvIcon(R.drawable.ic_ms_power_settings_new, size = 18.dp)
-                Spacer(Modifier.width(Space.s2))
-                Text(tr("settings.exit"), style = MaterialTheme.typography.labelLarge)
-            }
-        }
-        if (stacked) {
-            Column(
-                Modifier.fillMaxWidth().padding(Space.s4),
-                verticalArrangement = Arrangement.spacedBy(Space.s2),
-            ) {
-                save(Modifier.fillMaxWidth())
-                exit(Modifier.fillMaxWidth())
-            }
-        } else {
-            M3Surface(color = scheme.surfaceContainer) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = Space.s4, vertical = Space.s3),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Space.s3),
+                LvIconButton(
+                    if (backToCategories) R.drawable.ic_ms_arrow_back else R.drawable.ic_ms_close,
+                    if (backToCategories) tr("common.back") else tr("settings.discard"),
+                    { if (backToCategories) settingsCategory = null else cancelSettingsEdits() },
+                )
+                Text(
+                    title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Button(
+                    onClick = { saveSettingsAndReconnect() },
+                    modifier = Modifier.heightIn(min = 48.dp),
                 ) {
-                    exit(Modifier)
-                    Spacer(Modifier.weight(1f))
-                    save(Modifier)
+                    LvIcon(R.drawable.ic_ms_refresh, size = 18.dp)
+                    Spacer(Modifier.width(Space.s1))
+                    Text(tr(if (compact) "settings.restart_short" else "settings.restart"), maxLines = 1)
+                }
+                TextButton(
+                    onClick = { exitApplication() },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = scheme.error),
+                ) {
+                    LvIcon(R.drawable.ic_ms_power_settings_new, size = 18.dp)
+                    if (!compact) Spacer(Modifier.width(Space.s1))
+                    Text(tr(if (compact) "settings.exit_short" else "settings.exit"), maxLines = 1)
                 }
             }
         }
@@ -3162,7 +3183,7 @@ class CarPlayHostActivity : ComponentActivity() {
                         DocumentRow(tr("settings.mfi.certificate"), localMfiCertificateUri) {
                             externalActivityInProgress = true
                             launchDocumentPicker(localMfiCertificatePicker, arrayOf("*/*")) {
-                                externalActivityInProgress = false; mfiError = "No document picker on this device: $it"
+                                externalActivityInProgress = false; mfiError = tr("settings.mfi.no_picker", "reason" to it)
                             }
                         }
                     }
@@ -3170,7 +3191,7 @@ class CarPlayHostActivity : ComponentActivity() {
                         DocumentRow(tr("settings.mfi.private_key"), localMfiPrivateKeyUri) {
                             externalActivityInProgress = true
                             launchDocumentPicker(localMfiPrivateKeyPicker, arrayOf("*/*")) {
-                                externalActivityInProgress = false; mfiError = "No document picker on this device: $it"
+                                externalActivityInProgress = false; mfiError = tr("settings.mfi.no_picker", "reason" to it)
                             }
                         }
                     }
@@ -3199,6 +3220,15 @@ class CarPlayHostActivity : ComponentActivity() {
                     support = tr("settings.wifi_high_performance.support"),
                     checked = wifiHighPerformanceEnabled,
                     onCheckedChange = { wifiHighPerformanceEnabled = it },
+                )
+            }
+            row {
+                SwitchRow(
+                    title = tr("settings.wifi_recovery"),
+                    support = tr("settings.wifi_recovery.support"),
+                    checked = wifiStartupRecoveryEnabled,
+                    onCheckedChange = { wifiStartupRecoveryEnabled = it },
+                    enabled = wirelessEnabled && wirelessHotspotMode != WirelessHotspotMode.MANUAL,
                 )
             }
             row {
@@ -3346,6 +3376,12 @@ class CarPlayHostActivity : ComponentActivity() {
         )
     }
 
+    private fun vehicleFeatureTitle(feature: VehicleDataFeature): String =
+        trOr("settings.vehicle.feature.${feature.name.lowercase(Locale.ROOT)}.title", feature.label)
+
+    private fun vehicleFeatureDescription(feature: VehicleDataFeature): String =
+        trOr("settings.vehicle.feature.${feature.name.lowercase(Locale.ROOT)}.description", feature.description)
+
     @Composable
     private fun VehicleSettings() {
         SectionHeader(tr("settings.vehicle.location"))
@@ -3374,7 +3410,7 @@ class CarPlayHostActivity : ComponentActivity() {
         val vehicleEntry = selectedVehicleDataEntry()
         SettingsGroup {
             if (vehicleDataEntries.size > 1) {
-                row { ListRow(headline = tr("settings.vehicle.source"), support = vehicleEntry.displayName) }
+                row { ListRow(headline = tr("settings.vehicle.source"), support = if (vehicleEntry is JsonProfileVehicleDataEntry) tr("settings.vehicle.default_source") else vehicleEntry.displayName) }
                 row { FlowButtons {
                     vehicleDataEntries.forEach { entry ->
                         val select = {
@@ -3388,22 +3424,24 @@ class CarPlayHostActivity : ComponentActivity() {
                 } }
             }
             if (vehicleEntry is JsonProfileVehicleDataEntry) {
-            row { ListRow(headline = "Vehicle JSON profile", support = (profile?.name ?: "No profile") +
-                if (vehicleProfileSource == VehicleProfileRepository.IMPORTED) " · imported" else "") }
+            row { ListRow(headline = tr("settings.vehicle.profile"), support = (profile?.let {
+                if (it.id == "standard-android") tr("settings.vehicle.default_profile") else it.name
+            } ?: tr("settings.vehicle.no_profile")) +
+                if (vehicleProfileSource == VehicleProfileRepository.IMPORTED) " · " + tr("settings.vehicle.imported") else "") }
             row { FlowButtons {
                 OutlinedButton(onClick = {
                     launchDocumentPicker(vehicleProfileImport,
                         arrayOf("application/json", "text/*", "application/octet-stream")) { reason ->
                         importVehicleProfileFromDisk(reason)
                     }
-                }) { Text("Import JSON") }
+                }) { Text(tr("settings.vehicle.import_json")) }
                 bundledProfileNames.forEach { (fileName, label) ->
                     val select = {
                         stopVehicleDiagnostics()
                         VehicleProfileRepository(this@CarPlayHostActivity).bundled(fileName)?.let {
                             vehicleProfileJson = it
                             vehicleProfileSource = VehicleProfileRepository.BUNDLED_PREFIX + fileName
-                            vehicleProfileMessage = "$label draft selected. Save & Reconnect applies it."
+                            vehicleProfileMessage = tr("settings.vehicle.profile_selected", "name" to label)
                         }
                         Unit
                     }
@@ -3413,7 +3451,7 @@ class CarPlayHostActivity : ComponentActivity() {
             } }
             // What the profile feeds; the feature switches below decide what is actually sent.
             profile?.signals?.filter { it.target != null }?.forEach { signal -> row {
-                ListRow(headline = signal.target!!.label, support = "${signal.name} [${signal.id}]" +
+                ListRow(headline = trOr("settings.vehicle.target.${signal.target!!.key}", signal.target!!.label), support = "${signal.name} [${signal.id}]" +
                     (signal.unit?.let { " · $it" } ?: ""))
             } }
             row { HelpText(vehicleProfileMessage) }
@@ -3423,14 +3461,14 @@ class CarPlayHostActivity : ComponentActivity() {
                 row {
                     if (!vehicleEntry.canProvide(feature)) {
                         ListRow(
-                            headline = feature.label,
-                            support = tr("settings.vehicle.feature_unavailable", "reason" to feature.description),
+                            headline = vehicleFeatureTitle(feature),
+                            support = tr("settings.vehicle.feature_unavailable", "reason" to vehicleFeatureDescription(feature)),
                             enabled = false,
                         )
                     } else {
                         SwitchRow(
-                            title = feature.label,
-                            support = feature.description,
+                            title = vehicleFeatureTitle(feature),
+                            support = vehicleFeatureDescription(feature),
                             checked = vehicleDataConfig.isEnabled(feature),
                             onCheckedChange = { onVehicleFeatureChanged(feature, it) },
                         )
@@ -3455,7 +3493,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     FilledTonalButton(onClick = { startVehicleDiagnostics() }) {
                         LvIcon(R.drawable.ic_ms_refresh, size = 18.dp)
                         Spacer(Modifier.width(Space.s2))
-                        Text("Start live diagnostics (10 min)", style = MaterialTheme.typography.labelLarge)
+                        Text(tr("settings.vehicle.live_diagnostics"), style = MaterialTheme.typography.labelLarge)
                     }
                     if (canRequestVehicleSpeedPermission()) {
                         OutlinedButton(onClick = { requestVehicleSpeedPermission() }) {
@@ -3961,6 +3999,9 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         SectionHeader(tr("settings.diagnostics.system"))
         SettingsGroup {
+            row {
+                ListRow(headline = tr("settings.app_version"), support = appVersionName)
+            }
             row {
                 ListRow(
                     headline = tr("settings.diagnostics.bluetooth"),

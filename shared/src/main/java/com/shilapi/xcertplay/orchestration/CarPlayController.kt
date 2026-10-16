@@ -46,6 +46,9 @@ import com.shilapi.xcertplay.network.CarPlayVpnService
 import com.shilapi.xcertplay.network.LocalOnlyHotspotManager
 import com.shilapi.xcertplay.network.ManualHotspotManager
 import com.shilapi.xcertplay.network.WifiP2pGroupManager
+import com.shilapi.xcertplay.network.AndroidWifiRadio
+import com.shilapi.xcertplay.network.WifiRadioRecovery
+import com.shilapi.xcertplay.network.startHotspotWithRecovery
 import com.shilapi.xcertplay.network.WirelessHotspotInfo
 import com.shilapi.xcertplay.network.WirelessHotspotManager
 import com.shilapi.xcertplay.network.WirelessPerformanceLock
@@ -1557,44 +1560,62 @@ class CarPlayController(
         } else {
             config.wirelessHotspotMode
         }
-        val manager: WirelessHotspotManager = when (hotspotMode) {
-            WirelessHotspotMode.WIFI_P2P ->
-                mfiCertificateWifiP2pCredentials(mfi.readCertificate()).let { credentials ->
-                    WifiP2pGroupManager(
-                        context = appContext,
-                        networkName = credentials.ssid,
-                        passphrase = credentials.passphrase,
-                    )
-                }
-            WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> LocalOnlyHotspotManager(appContext)
-            WirelessHotspotMode.MANUAL -> ManualHotspotManager(
-                context = appContext,
-                ssid = config.manualHotspotSsid
-                    ?: throw IOException("Manual hotspot SSID is not configured"),
-                passphrase = config.manualHotspotPassphrase.orEmpty(),
-                band = config.manualHotspotBand,
-                channel = config.manualHotspotChannel,
-                security = config.manualHotspotSecurity,
-            )
+        fun startOnce(): WirelessHotspotInfo {
+            if (isStaleWirelessRun(generation)) throw IOException("Wireless startup cancelled")
+            val manager: WirelessHotspotManager = when (hotspotMode) {
+                WirelessHotspotMode.WIFI_P2P ->
+                    mfiCertificateWifiP2pCredentials(mfi.readCertificate()).let { credentials ->
+                        WifiP2pGroupManager(
+                            context = appContext,
+                            networkName = credentials.ssid,
+                            passphrase = credentials.passphrase,
+                        )
+                    }
+                WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> LocalOnlyHotspotManager(appContext)
+                WirelessHotspotMode.MANUAL -> ManualHotspotManager(
+                    context = appContext,
+                    ssid = config.manualHotspotSsid
+                        ?: throw IOException("Manual hotspot SSID is not configured"),
+                    passphrase = config.manualHotspotPassphrase.orEmpty(),
+                    band = config.manualHotspotBand,
+                    channel = config.manualHotspotChannel,
+                    security = config.manualHotspotSecurity,
+                )
+            }
+            hotspot = manager
+            val timeoutMillis = if (hotspotMode == WirelessHotspotMode.WIFI_P2P) {
+                WIFI_P2P_START_TIMEOUT_MILLIS
+            } else {
+                HOTSPOT_START_TIMEOUT_MILLIS
+            }
+            return try {
+                manager.start(timeoutMillis)
+            } catch (failure: Exception) {
+                if (hotspot === manager) hotspot = null
+                closeBestEffort(hotspotMode.name) { manager.close() }
+                if (isStaleWirelessRun(generation)) throw failure
+                throw IOException(
+                    "Could not establish ${hotspotMode.name} hotspot: " +
+                        (failure.message ?: failure.javaClass.simpleName),
+                    failure,
+                )
+            }
         }
-        hotspot = manager
-        val timeoutMillis = if (hotspotMode == WirelessHotspotMode.WIFI_P2P) {
-            WIFI_P2P_START_TIMEOUT_MILLIS
-        } else {
-            HOTSPOT_START_TIMEOUT_MILLIS
-        }
-        return try {
-            manager.start(timeoutMillis)
-        } catch (failure: Exception) {
-            if (hotspot === manager) hotspot = null
-            closeBestEffort(hotspotMode.name) { manager.close() }
-            if (isStaleWirelessRun(generation)) throw failure
-            throw IOException(
-                "Could not establish ${hotspotMode.name} hotspot: " +
-                    (failure.message ?: failure.javaClass.simpleName),
-                failure,
-            )
-        }
+        return startHotspotWithRecovery(
+            enabled = config.wifiStartupRecoveryEnabled && hotspotMode != WirelessHotspotMode.MANUAL,
+            isCancelled = { isStaleWirelessRun(generation) },
+            recover = {
+                debugLog("STEP wifi/recovery: hotspot startup failed; releasing and recovering Wi-Fi once")
+                WifiRadioRecovery(
+                    radio = AndroidWifiRadio(appContext),
+                    isCancelled = { isStaleWirelessRun(generation) },
+                    report = ::debugLog,
+                    nowMillis = android.os.SystemClock::elapsedRealtime,
+                    waitMillis = { Thread.sleep(it) },
+                ).recover()
+            },
+            start = ::startOnce,
+        )
     }
 
     private fun isStaleWirelessRun(generation: Int): Boolean =

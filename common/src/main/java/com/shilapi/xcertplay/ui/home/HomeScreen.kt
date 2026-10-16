@@ -113,6 +113,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    versionName: String = "",
 ) {
     val scheme = MaterialTheme.colorScheme
     Column(
@@ -122,7 +123,7 @@ fun HomeScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         SmallTopBar(
-            title = tr("app.name"),
+            title = listOf(tr("app.name"), versionName).filter { it.isNotBlank() }.joinToString(" · "),
             actions = {
                 LvIconButton(
                     icon = R.drawable.ic_ms_settings,
