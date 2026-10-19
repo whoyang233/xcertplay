@@ -929,18 +929,32 @@ private class AudioRenderer(
         } else {
             maxOf(minBuffer, MIN_START_BUFFER_BYTES)
         }
-        track = AudioTrack.Builder()
-            .setAudioAttributes(audioAttributes())
-            .setAudioFormat(
-                AndroidAudioFormat.Builder()
-                    .setEncoding(encoding)
-                    .setSampleRate(format.sampleRate)
-                    .setChannelMask(channelMask)
-                    .build(),
-            )
-            .setBufferSizeInBytes(bufferBytes)
-            .setTransferMode(AudioTrack.MODE_STREAM)
-            .build()
+        fun usageTrack(): AudioTrack = AudioTrack.Builder()
+                .setAudioAttributes(audioAttributes())
+                .setAudioFormat(
+                    AndroidAudioFormat.Builder()
+                        .setEncoding(encoding)
+                        .setSampleRate(format.sampleRate)
+                        .setChannelMask(channelMask)
+                        .build(),
+                )
+                .setBufferSizeInBytes(bufferBytes)
+                .setTransferMode(AudioTrack.MODE_STREAM)
+                .build()
+        val stream = AudioChannelMapper.streamOverride(selection, playbackSettings)
+        track = if (stream == 0) usageTrack() else AudioStreamFallback.build(
+            create = {
+                Log.i(TAG, "audio stream binding role=${selection.channel} stream=$stream")
+                @Suppress("DEPRECATION")
+                AudioTrack(stream, format.sampleRate, channelMask, encoding, bufferBytes, AudioTrack.MODE_STREAM)
+            },
+            initialized = { it.state == AudioTrack.STATE_INITIALIZED },
+            release = { it.release() },
+            fallback = {
+                Log.w(TAG, "audio stream $stream unavailable; falling back to usage routing")
+                usageTrack()
+            },
+        )
         // AudioTrack consumes 16-bit PCM, so frame size follows the channel mask configured above.
         trackBytesPerFrame = trackChannelCount * BYTES_PER_PCM_16_SAMPLE
         Log.i(

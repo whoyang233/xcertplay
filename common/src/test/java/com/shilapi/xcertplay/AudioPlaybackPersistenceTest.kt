@@ -42,4 +42,17 @@ class AudioPlaybackPersistenceTest {
         prefs.edit().putString("navigation_volume_percent", "wrong-type").commit()
         assertEquals(100, AirPlayPersistence.loadAudioPlaybackSettings(context).navigationVolumePercent)
     }
+
+    @Test fun numberedStreamsSurviveReloadAndRecoverInvalidPreferences() {
+        val settings = AudioPlaybackSettings(navigationVolumePercent = 50, musicStream = 3, navigationStream = 14)
+        AirPlayPersistence.saveAudioPlaybackSettings(context, settings)
+        assertEquals(settings, AirPlayPersistence.loadAudioPlaybackSettings(context))
+        prefs.edit().putInt("music_stream_binding", 21)
+            .putString("navigation_stream_binding", "bad").commit()
+        assertEquals(settings.copy(musicStream = 0, navigationStream = 0),
+            AirPlayPersistence.loadAudioPlaybackSettings(context))
+        AirPlayPersistence.saveAudioPlaybackSettings(context, settings.copy(musicStream = -1, navigationStream = 100))
+        assertEquals(0, AirPlayPersistence.loadAudioPlaybackSettings(context).musicStream)
+        assertEquals(0, AirPlayPersistence.loadAudioPlaybackSettings(context).navigationStream)
+    }
 }

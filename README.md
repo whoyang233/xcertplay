@@ -15,7 +15,7 @@ Sign in to GitHub to download Actions artifacts. If the direct link fails, open 
 
 | APK | Target |
 | --- | --- |
-| `mobile-debug.apk` | Standard Android head units; choose this for most devices. |
+| `automotive-debug.apk` | Automotive variant, matching the upstream automotive release. |
 
 Requires **Android 9 (API 28)** or newer and a configured MFi authentication source: CH341, native I2C, local certificate files, or a remote service.
 
@@ -26,7 +26,7 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 | Current upstream base version / versionCode | `1.4.2` / `1402` |
 | Current debug version name | `1.4.2B` |
 
-The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch now builds only the mobile APK for standard Android / BYD DiLink head units. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
+The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch builds only the automotive APK, following the upstream automotive variant. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
 
 ## BYD vehicle data over ADB
 
@@ -77,6 +77,8 @@ The personal build prefers Simplified Chinese independently of the head unit's s
 
 ## Music, navigation, and in-app volume
 
+DiPlay-style numbered stream bindings are available separately for music and navigation: 0 preserves usage routing; 1–20 request the corresponding Android/vendor stream (14 is navigation on some ROMs). Unsupported or uninitialized streams are released and fall back to usage routing. Save with Restart CarPlay; closing settings discards edits. Existing installations default to 0 to preserve routing.
+
 Under Settings → Audio → Music and navigation channels, music defaults to Media and navigation to Navigation. If guidance is silent on a particular head unit, try binding navigation to Media. Quality-menu channel counts refer to mono/stereo, separately from output bindings. These settings request Android audio usages; firmware decides the physical buses, speakers, and system volume groups.
 
 Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before either local playback or web forwarding, without calling system volume APIs. Rebinding navigation to Media still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
@@ -117,7 +119,7 @@ Normal personal APKs omit browser main/instrument output. The default `xcertplay
 To restore the optional feature with the existing fixed signing environment:
 
 ```bash
-./gradlew :mobile:assembleDebug -Pxcertplay.webDisplay=true
+./gradlew :automotive:assembleDebug -Pxcertplay.webDisplay=true
 ```
 
 With that build feature enabled, the in-app main/instrument switches still default to off. Then:
@@ -152,7 +154,7 @@ Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstr
 
 | Artifact | Contents |
 | --- | --- |
-| `personal-apks-<commit>` | Signed mobile APK and package/signature verification metadata. |
+| `personal-apks-<commit>` | Signed automotive APK and package/signature verification metadata. |
 | `validation-reports-<commit>` | Unit test, lint, and settings-layout screenshot reports. |
 | `unsigned-apks-<commit>` | Unsigned inputs for explicit bootstrap or PR validation without a key; not installable. |
 
@@ -170,19 +172,19 @@ Set these environment variables to the original PKCS#12 key from the offline bac
 macOS / Linux:
 
 ```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
 ```
 
 Windows PowerShell:
 
 ```powershell
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
 ```
 
 Signed release builds require the same fixed key:
 
 ```bash
-./gradlew :mobile:assembleRelease
+./gradlew :automotive:assembleRelease
 ```
 
 Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned debug inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.

@@ -15,7 +15,7 @@
 
 | 安装包 | 适用设备 |
 | --- | --- |
-| `mobile-debug.apk` | 一般 Android 车机，通常选择这个版本。 |
+| `automotive-debug.apk` | 车载 automotive 变体，对应上游 automotive 发布包。 |
 
 最低要求为 **Android 9（API 28）**。MFi 认证需配置 CH341、原生 I2C、本地证书文件或远程服务中的一种。
 
@@ -26,7 +26,7 @@
 | 当前上游基础版本 / versionCode | `1.4.2` / `1402` |
 | 当前测试版显示版本 | `1.4.2B` |
 
-个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。个人分支今后只构建 mobile APK，适用于一般 Android / 比亚迪 DiLink 车机。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
+个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。个人分支今后只构建 automotive APK，与上游 automotive 变体对应。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
 
 ## 比亚迪车辆数据（ADB）
 
@@ -75,6 +75,8 @@ Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复�
 
 ## 音乐、导航声道与应用内音量
 
+参考 DiPlay，新增「音乐音频通道（编号）」「导航音频通道（编号）」，可分别选择 0–20：0 自动沿用用途绑定；1–20 请求对应 Android/厂商 stream，14 在部分车机为导航通道，实际定义由固件决定。指定通道被拒绝或未初始化时释放并回退用途绑定。修改后点击「重启 CarPlay」保存应用，关闭设置放弃编辑。已有设置升级后编号默认 0，保持原有路由。
+
 在「设置 → 音频 → 音乐与导航声道」分别选择输出用途：音乐默认「媒体声道」，导航默认「导航声道」。部分车机导航声道无声时，可把导航改绑到媒体声道。音质菜单中的声道数表示单声道/立体声，与输出绑定分开。这里请求的是 Android 音频用途，实际音频总线、扬声器与系统音量分组由车机固件决定。
 
 「导航音量（应用内）」为 0%–200%，每档 5%；0% 静音，100% 保持原始音量，超过 100% 可能削波失真。应用对解码后的导航/提示音 PCM 做独立增益，在本机播放和网页转发前生效，不调用系统音量接口。即使导航绑定媒体声道，也只调导航；音乐、通话、Siri 与麦克风增益保持各自处理。点击右上角「重启 CarPlay」保存应用，关闭设置放弃编辑。
@@ -115,7 +117,7 @@ Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复�
 需要恢复网页功能时，使用固定签名环境显式构建：
 
 ```bash
-./gradlew :mobile:assembleDebug -Pxcertplay.webDisplay=true
+./gradlew :automotive:assembleDebug -Pxcertplay.webDisplay=true
 ```
 
 开启构建功能后，应用内主屏/仪表屏开关初始仍为关闭，按以下步骤启用：
@@ -150,7 +152,7 @@ APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
 
 | 产物 | 内容 |
 | --- | --- |
-| `personal-apks-<commit>` | 已签名 mobile APK 和包名/签名验证信息。 |
+| `personal-apks-<commit>` | 已签名 automotive APK 和包名/签名验证信息。 |
 | `validation-reports-<commit>` | 单元测试、Lint 报告和设置布局截图。 |
 | `unsigned-apks-<commit>` | 仅供显式初始化或无密钥 PR 验证的未签名输入，不能直接安装。 |
 
@@ -168,19 +170,19 @@ APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
 macOS / Linux：
 
 ```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
 ```
 
 Windows PowerShell：
 
 ```powershell
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
 ```
 
 签名 release 构建同样需要上述固定私钥：
 
 ```bash
-./gradlew :mobile:assembleRelease
+./gradlew :automotive:assembleRelease
 ```
 
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名 debug 输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。

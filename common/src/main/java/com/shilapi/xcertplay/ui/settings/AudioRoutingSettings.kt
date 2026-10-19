@@ -3,6 +3,7 @@ package com.shilapi.xcertplay.ui.settings
 import androidx.compose.runtime.Composable
 import com.shilapi.xcertplay.media.AudioOutputChannel
 import com.shilapi.xcertplay.media.AudioPlaybackSettings
+import com.shilapi.xcertplay.media.AudioStreamBinding
 import com.shilapi.xcertplay.media.NavigationVolume
 import com.shilapi.xcertplay.ui.components.HelpText
 import com.shilapi.xcertplay.ui.components.SectionHeader
@@ -20,6 +21,7 @@ internal fun AudioRoutingSettings(
         AudioOutputChannel.MEDIA to tr("settings.audio.output.media"),
         AudioOutputChannel.NAVIGATION to tr("settings.audio.output.navigation"),
     )
+    val streams = AudioStreamBinding.choices.map { it to tr("settings.audio.stream.$it") }
     SectionHeader(tr("settings.audio.routing"))
     SettingsGroup {
         row {
@@ -38,6 +40,24 @@ internal fun AudioRoutingSettings(
                 selected = settings.navigationOutput,
                 onSelected = { onChange(settings.copy(navigationOutput = it)) },
                 support = tr("settings.audio.navigation_output.support"),
+            )
+        }
+        row {
+            SelectRow(
+                title = tr("settings.audio.music_stream"),
+                options = streams,
+                selected = AudioStreamBinding.sanitize(settings.musicStream),
+                onSelected = { onChange(settings.copy(musicStream = it)) },
+                support = tr("settings.audio.stream.support"),
+            )
+        }
+        row {
+            SelectRow(
+                title = tr("settings.audio.navigation_stream"),
+                options = streams,
+                selected = AudioStreamBinding.sanitize(settings.navigationStream),
+                onSelected = { onChange(settings.copy(navigationStream = it)) },
+                support = tr("settings.audio.stream.support"),
             )
         }
         row {

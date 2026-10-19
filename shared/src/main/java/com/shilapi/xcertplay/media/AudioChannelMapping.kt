@@ -9,7 +9,15 @@ data class AudioPlaybackSettings(
     val musicOutput: AudioOutputChannel = AudioOutputChannel.MEDIA,
     val navigationOutput: AudioOutputChannel = AudioOutputChannel.NAVIGATION,
     val navigationVolumePercent: Int = NavigationVolume.DEFAULT_PERCENT,
+    val musicStream: Int = 0,
+    val navigationStream: Int = 0,
 )
+
+/** Matches DiPlay's 0 = usage routing, 1..20 = ROM legacy stream override. */
+object AudioStreamBinding {
+    val choices: IntRange = 0..20
+    fun sanitize(value: Int): Int = value.takeIf { it in choices } ?: 0
+}
 
 internal enum class AudioChannelMappingMode {
     MOBILE_COMPATIBLE,
@@ -42,6 +50,14 @@ internal data class AudioChannelSelection(
 internal object AudioChannelMapper {
     const val STREAM_TYPE_ALT_AUDIO = 101
     const val STREAM_TYPE_MAIN_HIGH_AUDIO = 102
+
+    /** Bind by original role, so remapping navigation to media still uses its own override/gain. */
+    fun streamOverride(selection: AudioChannelSelection, settings: AudioPlaybackSettings): Int =
+        AudioStreamBinding.sanitize(when (selection.channel) {
+            AudioChannel.MEDIA -> settings.musicStream
+            AudioChannel.NAVIGATION -> settings.navigationStream
+            else -> 0
+        })
 
     fun map(
         audioType: String,

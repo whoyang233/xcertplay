@@ -32,7 +32,8 @@ class NavigationAudioPipelineTest {
         val manager = context.getSystemService(AudioManager::class.java)
         val before = manager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val sink = AndroidMediaSink(context, mediaTap = tap,
-            audioPlaybackSettings = AudioPlaybackSettings(navigationOutput = AudioOutputChannel.MEDIA, navigationVolumePercent = 25))
+            audioPlaybackSettings = AudioPlaybackSettings(navigationOutput = AudioOutputChannel.MEDIA,
+                navigationVolumePercent = 25, musicStream = 3, navigationStream = 14))
         try {
             for ((stream, type, payload) in listOf(
                 Triple(1, "default", 101), Triple(2, "media", 102),

@@ -4,6 +4,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AudioChannelMappingTest {
+    @Test fun numberedBindingsFollowOriginalRolesWithoutCapturingCallsOrSiri() {
+        for (mode in AudioChannelMappingMode.entries) {
+            val settings = AudioPlaybackSettings(AudioOutputChannel.NAVIGATION, AudioOutputChannel.MEDIA,
+                navigationVolumePercent = 50, musicStream = 3, navigationStream = 14)
+            for ((type, payload, expected) in listOf(Triple("default", 102, 3), Triple("default", 101, 14),
+                Triple("telephony", 102, 0), Triple("speechRecognition", 101, 0))) {
+                assertEquals(expected, AudioChannelMapper.streamOverride(AudioChannelMapper.map(type, payload, mode), settings))
+            }
+            val nav = AudioChannelMapper.map("navigation", 100, mode)
+            assertEquals(0, AudioChannelMapper.streamOverride(nav, settings.copy(navigationStream = -1)))
+            assertEquals(20, AudioChannelMapper.streamOverride(nav, settings.copy(navigationStream = 20)))
+        }
+    }
+
     @Test
     fun dedicatedStreamsSeparateMusicFromNavigationInBothModes() {
         for (mode in AudioChannelMappingMode.entries) {

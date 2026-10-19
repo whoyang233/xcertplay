@@ -10,10 +10,10 @@ sdk = Path(os.environ['ANDROID_HOME']) / 'build-tools' / '36.0.0'
 expected = Path('signing/personal-certificate.sha256').read_text().strip()
 metadata = []
 signed = bool(os.environ.get('ANDROID_KEYSTORE_PATH'))
-build_config = Path('mobile/build.gradle.kts').read_text()
+build_config = Path('automotive/build.gradle.kts').read_text()
 expected_version = re.search(r'versionName\s*=\s*"([^"]+)"', build_config).group(1) + 'B'
 expected_code = re.search(r'versionCode\s*=\s*(\d+)', build_config).group(1)
-for module in ('mobile',):
+for module in ('automotive',):
     files = list(Path(f'{module}/build/outputs/apk/debug').glob('*.apk'))
     if len(files) != 1:
         raise SystemExit(f'Expected one {module} APK; got {len(files)}')

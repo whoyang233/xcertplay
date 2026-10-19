@@ -227,6 +227,12 @@ object AirPlayPersistence {
             navigationVolumePercent = NavigationVolume.sanitize(runCatching {
                 prefs.getInt(KEY_NAVIGATION_VOLUME, NavigationVolume.DEFAULT_PERCENT)
             }.getOrDefault(NavigationVolume.DEFAULT_PERCENT)),
+            musicStream = com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(runCatching {
+                prefs.getInt("music_stream_binding", 0)
+            }.getOrDefault(0)),
+            navigationStream = com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(runCatching {
+                prefs.getInt("navigation_stream_binding", 0)
+            }.getOrDefault(0)),
         )
     }
 
@@ -235,6 +241,8 @@ object AirPlayPersistence {
             .putString(KEY_MUSIC_OUTPUT, settings.musicOutput.name)
             .putString(KEY_NAVIGATION_OUTPUT, settings.navigationOutput.name)
             .putInt(KEY_NAVIGATION_VOLUME, NavigationVolume.sanitize(settings.navigationVolumePercent))
+            .putInt("music_stream_binding", com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(settings.musicStream))
+            .putInt("navigation_stream_binding", com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(settings.navigationStream))
             .apply()
     }
 
