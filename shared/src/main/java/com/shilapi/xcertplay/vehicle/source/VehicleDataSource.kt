@@ -7,8 +7,8 @@ import com.shilapi.xcertplay.vehicle.VehicleDataConfig
 import com.shilapi.xcertplay.vehicle.VehicleDataFeature
 
 /**
- * What CarPlay reads vehicle data from for one session. How the car is read (a JSON profile over
- * Android Car properties, a vendor service, ...) stays behind this; CarPlay sees only EV status
+ * What CarPlay reads vehicle data from for one session. Vendor service reads stay behind this;
+ * CarPlay sees only normalized EV status
  * and wheel speed. A source that has no speed returns null from [latestSpeed].
  */
 interface VehicleDataSource : VehicleStatusProvider, VehicleSpeedSource {
@@ -30,8 +30,7 @@ class VehicleDataSourceRequest(
 )
 
 /**
- * One selectable way of reading the car, parallel to the others. Implement this to add a vehicle
- * backend without touching the JSON profile; the selected entry's [id] is kept in settings.
+ * One selectable way of reading the car; the selected entry's [id] is kept in settings.
  */
 interface VehicleDataEntry {
     /** Stable settings key; never reuse an id for a different backend. */
@@ -43,8 +42,8 @@ interface VehicleDataEntry {
 }
 
 object VehicleDataEntries {
-    /** The JSON profile entry, selected until the user picks another one. */
-    const val DEFAULT_ID = "json-profile"
+    /** A new id deliberately separates ADB consent from old JSON/Android Car settings. */
+    const val DEFAULT_ID = "byd-adb"
 
     /** The saved entry, or the first one when the saved id is no longer installed. */
     fun select(entries: List<VehicleDataEntry>, id: String): VehicleDataEntry {

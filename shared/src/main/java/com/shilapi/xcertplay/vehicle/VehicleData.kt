@@ -16,14 +16,10 @@ enum class VehicleDataFeature(val label: String, val description: String, val de
     ACCURACY("GPS accuracy", "Approximate HDOP from Android horizontal accuracy", true),
     PRECISE_POSITIONING("Precise positioning information", "Real GGA fix quality, satellites used and sea-level altitude; any value Android cannot give falls back on its own", false),
     WHEEL_SPEED("Wheel speed & gear", "PASCD dead reckoning; needs a source with wheel speed and gear", false, true),
-    EV_STATUS("EV battery & range", "VehicleStatusUpdate; needs a source with battery or range", false, true),
-    OUTSIDE_TEMPERATURE("Outside temperature", "VehicleStatusUpdate; needs a source with outside temperature", false, true),
-    BAROMETRIC_PRESSURE("Barometric pressure", "VehicleStatusUpdate in millibar; needs a source with pressure", false, true),
-    PASSENGER_SEAT("Passenger occupancy", "VehicleStatusUpdate; needs a source with passenger seat occupancy", false, true),
-    WIPERS("Wiper timing", "VehicleStatusUpdate; needs a source with washer or wipe timing", false, true),
+    EV_STATUS("EV battery & range", "BYD battery percentage, range, remaining energy and charging state", false, true),
 }
 
-data class VehicleDataConfig(val platform: VehiclePlatform = VehiclePlatform.STANDARD_ANDROID, val enabled: Set<VehicleDataFeature> = VehicleDataFeature.entries
+data class VehicleDataConfig(val enabled: Set<VehicleDataFeature> = VehicleDataFeature.entries
     .filter { it.defaultEnabled }.toSet(),
     /** The selected [com.shilapi.xcertplay.vehicle.source.VehicleDataEntry]. */
     val sourceId: String = com.shilapi.xcertplay.vehicle.source.VehicleDataEntries.DEFAULT_ID) {

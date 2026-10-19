@@ -2,12 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Read-only vehicle data through standard Android Automotive permissions. -->
-    <uses-permission android:name="android.car.permission.CAR_INFO" />
-    <uses-permission android:name="android.car.permission.CAR_SPEED" />
-    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
-    <uses-permission android:name="android.car.permission.CAR_EXTERIOR_ENVIRONMENT" />
-
     <!-- File and image pickers are probed with resolveActivity before launch; without these
          queries package visibility hides them and every picker button reports none installed. -->
     <queries>
@@ -22,8 +16,6 @@
     </queries>
 
     <application>
-        <uses-library android:name="android.car" android:required="false" />
-
         <activity
             android:name="com.shilapi.xcertplay.CarPlayHostActivity"
             android:configChanges="density|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"

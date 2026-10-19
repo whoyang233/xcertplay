@@ -6,6 +6,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class Iap2VehicleStatusTest {
+    @Test fun bydEnergyAndChargingUseChargeInfoTagsAndNeverInventMissingData() {
+        val status=VehicleStatusSnapshot(currentChargeWh=42250,charging=false)
+        assertEquals(setOf(21),Iap2VehicleStatus.capabilities(status))
+        val frame=Iap2VehicleStatus.update(status,setOf(21),emptySet())!!
+        val fields=Iap2ParameterList.parse(frame.payload).asList()
+        assertEquals(listOf(22,25),fields.map { it.id })
+        assertTrue(fields[0].payload.contentEquals(byteArrayOf(0,0,0xa5.toByte(),0x0a)))
+        assertTrue(fields[1].payload.contentEquals(byteArrayOf(0)))
+        assertNull(Iap2VehicleStatus.update(status,emptySet(),setOf(21)))
+        assertTrue(Iap2VehicleStatus.capabilities(VehicleStatusSnapshot(currentChargeWh=-1)).isEmpty())
+        assertTrue(Iap2VehicleStatus.capabilities(VehicleStatusSnapshot(currentChargeWh=0x1_0000_0000L)).isEmpty())
+        assertNull(Iap2VehicleStatus.update(VehicleStatusSnapshot(currentChargeWh=-1),setOf(21),emptySet()))
+        assertEquals(listOf(22),Iap2ParameterList.parse(Iap2VehicleStatus.update(
+            VehicleStatusSnapshot(currentChargeWh=0),setOf(21),emptySet())!!.payload).asList().map { it.id })
+    }
     @Test fun partialStatusOmitsUnknownEnergyAndUnrequestedRange() {
         val status = VehicleStatusSnapshot(51.237, 150.9)
         val frame = Iap2VehicleStatus.update(status, setOf(11, 21), emptySet())!!

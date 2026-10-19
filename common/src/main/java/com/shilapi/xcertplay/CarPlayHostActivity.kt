@@ -299,16 +299,6 @@ class CarPlayHostActivity : ComponentActivity() {
             requestStartupPrerequisites()
             if (startGainTest) startMicrophoneGainTest()
         }
-    private var vehicleSpeedPermissionPending = false
-    private var vehicleSpeedPermissionAttempted = false
-    private val vehicleSpeedPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            vehicleSpeedPermissionPending = false
-            appendLog(if (granted) "Vehicle speed permission granted; save and reconnect to retry the source"
-                else "Vehicle speed permission denied; wheel speed remains unavailable")
-            updateVehicleDataStatus()
-            if (!menuOpen) requestStartupPrerequisites()
-        }
     private val locationPermission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
             awaitingLocationPermission = false
@@ -469,19 +459,8 @@ class CarPlayHostActivity : ComponentActivity() {
     private var safeAreaDrawOutside by mutableStateOf(true)
     private var currentVehicleProvider: com.shilapi.xcertplay.vehicle.source.VehicleDataSource? = null
     private var diagnosticVehicleProvider: com.shilapi.xcertplay.vehicle.source.VehicleDataSource? = null
-    private var vehicleProfileJson by mutableStateOf("")
-    /** Where [vehicleProfileJson] came from; remembered on Save & Reconnect like other settings. */
-    private var vehicleProfileSource by mutableStateOf("")
-    private var vehicleProfileMessage by mutableStateOf("")
-    private val bundledProfileNames by lazy { VehicleProfileRepository(this).bundledProfiles() }
-    private val vehicleDataEntries by lazy { InstalledVehicleDataEntries.all { selectedVehicleProfile() } }
-    private val vehicleProfileImport = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) lifecycleScope.launch {
-            runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { VehicleProfileRepository(this@CarPlayHostActivity).import(uri) } }
-                .onSuccess { stopVehicleDiagnostics(); vehicleProfileJson=it; vehicleProfileSource=VehicleProfileRepository.IMPORTED; vehicleProfileMessage=tr("settings.vehicle.profile_ready") }
-                .onFailure { vehicleProfileMessage=tr("settings.vehicle.profile_rejected", "reason" to it.message) }
-        }
-    }
+    private var vehicleDataMessage by mutableStateOf("")
+    private val vehicleDataEntries by lazy { InstalledVehicleDataEntries.all() }
     /**
      * Many head units ship without a document picker, so launching OPEN_DOCUMENT throws
      * ActivityNotFoundException on the main thread. Probe first and never kill the Activity.
@@ -498,30 +477,6 @@ class CarPlayHostActivity : ComponentActivity() {
         if (probe.resolveActivity(packageManager) == null) { onUnavailable("no document picker on this device"); return }
         runCatching { launcher.launch(mimeTypes) }.onFailure { onUnavailable("${it.javaClass.simpleName}: ${it.message}") }
     }
-    /**
-     * Fallback import for picker-less head units: the profile is read from the app's external
-     * files directory, which adb can push into without any storage permission.
-     */
-    private fun importVehicleProfileFromDisk(reason: String) {
-        val file = VehicleProfileRepository(this).externalImportFile()
-        lifecycleScope.launch {
-            runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { VehicleProfileRepository(this@CarPlayHostActivity).importFile(file) } }
-                .onSuccess {
-                    stopVehicleDiagnostics(); vehicleProfileJson=it; vehicleProfileSource=VehicleProfileRepository.IMPORTED
-                    vehicleProfileMessage="Loaded ${file.name}. Save & Reconnect applies it. (picker unavailable: $reason)"
-                }
-                .onFailure {
-                    vehicleProfileMessage="Picker unavailable ($reason). Push a profile to ${file.absolutePath}, then tap Import JSON again. ${it.message}"
-                }
-        }
-    }
-    private fun loadVehicleProfile() {
-        val selection = VehicleProfileRepository(this).load()
-        vehicleProfileJson = selection.text
-        vehicleProfileSource = selection.source
-        vehicleProfileMessage = selection.message.orEmpty()
-    }
-    private fun selectedVehicleProfile() = com.shilapi.xcertplay.vehicle.profile.VehicleProfileParser.parse(vehicleProfileJson)
     private fun selectedVehicleDataEntry() =
         com.shilapi.xcertplay.vehicle.source.VehicleDataEntries.select(vehicleDataEntries, vehicleDataConfig.sourceId)
     private fun createVehicleDataSource(diagnostic: Boolean=false): com.shilapi.xcertplay.vehicle.source.VehicleDataSource =
@@ -531,6 +486,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun stopVehicleDiagnostics() { diagnosticVehicleProvider?.close(); diagnosticVehicleProvider=null }
     private fun startVehicleDiagnostics() {
         stopVehicleDiagnostics()
+        vehicleDataMessage = ""
         val provider=createVehicleDataSource(true);diagnosticVehicleProvider=provider;provider.start()
         lifecycleScope.launch {
             repeat(600) {
@@ -538,7 +494,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 if(diagnosticVehicleProvider !== provider) return@launch
                 updateVehicleDataStatus()
             }
-            if(diagnosticVehicleProvider===provider) { stopVehicleDiagnostics(); vehicleProfileMessage="Diagnostic sampling finished (10 minutes). Stored values are no longer live." }
+            if(diagnosticVehicleProvider===provider) { stopVehicleDiagnostics(); vehicleDataMessage="诊断采样已结束（10 分钟），显示值不再实时更新。" }
         }
     }
     private var currentGpsProvider: VehicleLocationProvider? = null
@@ -789,7 +745,6 @@ class CarPlayHostActivity : ComponentActivity() {
         hideTopBar = AirPlayPersistence.loadHideTopBar(this)
         hideBottomBar = AirPlayPersistence.loadHideBottomBar(this)
         safeAreaDrawOutside = AirPlayPersistence.loadSafeAreaDrawOutside(this)
-        loadVehicleProfile()
         vehicleDataConfig = AirPlayPersistence.loadVehicleDataConfig(this)
         locationReportingEnabled = AirPlayPersistence.loadLocationReportingEnabled(this)
         locationPermissionAvailable = hasFineLocationPermission()
@@ -819,11 +774,6 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun requestStartupPrerequisites() {
         if (locationReportingEnabled && !locationPermissionAvailable) {
             requestLocationPermission()
-            return
-        }
-        if (vehicleDataConfig.isEnabled(VehicleDataFeature.WHEEL_SPEED) && !vehicleSpeedPermissionAttempted &&
-            canRequestVehicleSpeedPermission() && checkSelfPermission("android.car.permission.CAR_SPEED") != PackageManager.PERMISSION_GRANTED) {
-            requestVehicleSpeedPermission()
             return
         }
         if (wirelessEnabled) {
@@ -1472,22 +1422,6 @@ class CarPlayHostActivity : ComponentActivity() {
         MfiTarget.I2C -> "I2C"
         MfiTarget.REMOTE -> "Remote"
         MfiTarget.LOCAL_FILES -> "Local files"
-    }
-
-    private fun canRequestVehicleSpeedPermission(): Boolean = runCatching {
-        val info = packageManager.getPermissionInfo("android.car.permission.CAR_SPEED", 0)
-        val isCar = packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE) ||
-            runCatching { Class.forName("android.car.Car") }.isSuccess
-        isCar && (info.protection) ==
-            android.content.pm.PermissionInfo.PROTECTION_DANGEROUS
-    }.getOrDefault(false)
-
-    private fun requestVehicleSpeedPermission() {
-        if (vehicleSpeedPermissionPending || !vehicleDataConfig.isEnabled(VehicleDataFeature.WHEEL_SPEED) ||
-            !canRequestVehicleSpeedPermission() || checkSelfPermission("android.car.permission.CAR_SPEED") == PackageManager.PERMISSION_GRANTED) return
-        vehicleSpeedPermissionAttempted = true
-        vehicleSpeedPermissionPending = true
-        vehicleSpeedPermission.launch("android.car.permission.CAR_SPEED")
     }
 
     private fun updateVehicleDataStatus() {
@@ -2622,7 +2556,6 @@ class CarPlayHostActivity : ComponentActivity() {
         if (!validateMfiSettings()) return
         if (!validateManualHotspotSettings()) return
         if (!validateWebDisplaySettings()) return
-        VehicleProfileRepository(this).save(VehicleProfileRepository.Selection(vehicleProfileJson, vehicleProfileSource))
         stopVehicleDiagnostics()
         persistMenuSettings()
         settingsBaseline = null
@@ -2632,7 +2565,6 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun cancelSettingsEdits() {
         if (!menuOpen) return
         stopVehicleDiagnostics()
-        loadVehicleProfile()
         restoreSettingsBaseline()
         finishSettingsMenu("Settings changes discarded")
     }
@@ -3568,56 +3500,16 @@ class CarPlayHostActivity : ComponentActivity() {
         }
 
         SectionHeader(tr("settings.vehicle.properties"))
-        val profile = runCatching { selectedVehicleProfile() }.getOrNull()
         val vehicleEntry = selectedVehicleDataEntry()
         SettingsGroup {
-            if (vehicleDataEntries.size > 1) {
-                row { ListRow(headline = tr("settings.vehicle.source"), support = if (vehicleEntry is JsonProfileVehicleDataEntry) tr("settings.vehicle.default_source") else vehicleEntry.displayName) }
-                row { FlowButtons {
-                    vehicleDataEntries.forEach { entry ->
-                        val select = {
-                            stopVehicleDiagnostics()
-                            vehicleDataConfig = vehicleDataConfig.copy(sourceId = entry.id)
-                            updateVehicleDataStatus()
-                        }
-                        if (entry.id == vehicleEntry.id) FilledTonalButton(onClick = select) { Text(entry.displayName) }
-                        else OutlinedButton(onClick = select) { Text(entry.displayName) }
-                    }
-                } }
-            }
-            if (vehicleEntry is JsonProfileVehicleDataEntry) {
-            row { ListRow(headline = tr("settings.vehicle.profile"), support = (profile?.let {
-                if (it.id == "standard-android") tr("settings.vehicle.default_profile") else it.name
-            } ?: tr("settings.vehicle.no_profile")) +
-                if (vehicleProfileSource == VehicleProfileRepository.IMPORTED) " · " + tr("settings.vehicle.imported") else "") }
+            row { ListRow(headline = tr("settings.vehicle.source"), support = vehicleEntry.displayName) }
+            row { HelpText(tr("settings.vehicle.byd_help")) }
             row { FlowButtons {
-                OutlinedButton(onClick = {
-                    launchDocumentPicker(vehicleProfileImport,
-                        arrayOf("application/json", "text/*", "application/octet-stream")) { reason ->
-                        importVehicleProfileFromDisk(reason)
-                    }
-                }) { Text(tr("settings.vehicle.import_json")) }
-                bundledProfileNames.forEach { (fileName, label) ->
-                    val select = {
-                        stopVehicleDiagnostics()
-                        VehicleProfileRepository(this@CarPlayHostActivity).bundled(fileName)?.let {
-                            vehicleProfileJson = it
-                            vehicleProfileSource = VehicleProfileRepository.BUNDLED_PREFIX + fileName
-                            vehicleProfileMessage = tr("settings.vehicle.profile_selected", "name" to label)
-                        }
-                        Unit
-                    }
-                    if (vehicleProfileSource == VehicleProfileRepository.BUNDLED_PREFIX + fileName) FilledTonalButton(onClick = select) { Text(label) }
-                    else OutlinedButton(onClick = select) { Text(label) }
+                FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
+                    Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
                 }
             } }
-            // What the profile feeds; the feature switches below decide what is actually sent.
-            profile?.signals?.filter { it.target != null }?.forEach { signal -> row {
-                ListRow(headline = trOr("settings.vehicle.target.${signal.target!!.key}", signal.target!!.label), support = "${signal.name} [${signal.id}]" +
-                    (signal.unit?.let { " · $it" } ?: ""))
-            } }
-            row { HelpText(vehicleProfileMessage) }
-            }
+            scanAdbStatus?.let { row { HelpText(tr(it)) } }
             // Precise positioning is a location option and sits under the location switch instead.
             VehicleDataFeature.entries.filter { it != VehicleDataFeature.PRECISE_POSITIONING }.forEach { feature ->
                 row {
@@ -3657,18 +3549,12 @@ class CarPlayHostActivity : ComponentActivity() {
                         Spacer(Modifier.width(Space.s2))
                         Text(tr("settings.vehicle.live_diagnostics"), style = MaterialTheme.typography.labelLarge)
                     }
-                    if (canRequestVehicleSpeedPermission()) {
-                        OutlinedButton(onClick = { requestVehicleSpeedPermission() }) {
-                            LvIcon(R.drawable.ic_ms_speed, size = 18.dp)
-                            Spacer(Modifier.width(Space.s2))
-                            Text(tr("settings.vehicle.grant_speed"), style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
+
                 }
             }
         }
-        HelpText(tr("settings.vehicle.no_adapter"))
-        HelpText(tr("settings.vehicle.requirements"))
+        HelpText(vehicleDataMessage)
+        HelpText(tr("settings.vehicle.byd_diagnostics_help"))
     }
 
     @OptIn(ExperimentalLayoutApi::class)
@@ -4476,7 +4362,6 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun onVehicleFeatureChanged(feature: VehicleDataFeature, checked: Boolean) {
         vehicleDataConfig = vehicleDataConfig.with(feature, checked)
-        if (feature == VehicleDataFeature.WHEEL_SPEED && checked) requestVehicleSpeedPermission()
         updateVehicleDataStatus()
     }
 

@@ -545,36 +545,24 @@ object AirPlayPersistence {
 
     fun loadVehicleDataConfig(context: Context): com.shilapi.xcertplay.vehicle.VehicleDataConfig {
         val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        // Moving from a JSON/Android Car source must not silently start ADB vehicle reads.
+        val bydSelected = preferences.getString("vehicle_data_source", null) ==
+            com.shilapi.xcertplay.vehicle.source.VehicleDataEntries.DEFAULT_ID
         return com.shilapi.xcertplay.vehicle.VehicleDataConfig(
             enabled = com.shilapi.xcertplay.vehicle.VehicleDataFeature.entries.filter {
-                preferences.getBoolean("vehicle_data_${it.name}", it.defaultEnabled)
+                (!it.fromVehicle || bydSelected) && preferences.getBoolean("vehicle_data_${it.name}", it.defaultEnabled)
             }.toSet(),
-            platform = runCatching { com.shilapi.xcertplay.vehicle.VehiclePlatform.valueOf(
-                preferences.getString("vehicle_data_platform", "STANDARD_ANDROID")!!)
-            }.getOrDefault(com.shilapi.xcertplay.vehicle.VehiclePlatform.STANDARD_ANDROID),
-            sourceId = preferences.getString("vehicle_data_source", null)
-                ?: com.shilapi.xcertplay.vehicle.source.VehicleDataEntries.DEFAULT_ID,
+            sourceId = com.shilapi.xcertplay.vehicle.source.VehicleDataEntries.DEFAULT_ID,
         )
     }
 
     fun saveVehicleDataConfig(context: Context, config: com.shilapi.xcertplay.vehicle.VehicleDataConfig) {
         val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString("vehicle_data_platform", config.platform.name)
             .putString("vehicle_data_source", config.sourceId)
         com.shilapi.xcertplay.vehicle.VehicleDataFeature.entries.forEach {
             editor.putBoolean("vehicle_data_${it.name}", config.isEnabled(it))
         }
         editor.apply()
-    }
-
-    /** Which JSON profile is selected: "bundled:<asset file>" or "imported"; null before any save. */
-    fun loadVehicleProfileSelection(context: Context): String? =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("vehicle_profile_selection", null)
-
-    fun saveVehicleProfileSelection(context: Context, selection: String) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString("vehicle_profile_selection", selection)
-            .apply()
     }
 
     fun loadManufacturer(context: Context): String =

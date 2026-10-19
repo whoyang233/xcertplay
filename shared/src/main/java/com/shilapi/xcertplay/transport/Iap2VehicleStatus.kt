@@ -13,6 +13,8 @@ data class VehicleStatusSnapshot(
     val barometricPressureMillibar: Int? = null,
     val passengerSeatOccupied: Boolean? = null,
     val wipers: VehicleWiperStatus? = null,
+    val currentChargeWh: Long? = null,
+    val charging: Boolean? = null,
 )
 data class VehicleWiperStatus(val washerOn: Boolean? = null,
     val wipeDurationMillis: Int? = null, val waitDurationMillis: Long? = null) {
@@ -33,7 +35,8 @@ object Iap2VehicleStatus {
     const val UPDATE = 0xa101
     const val STOP = 0xa102
     fun capabilities(status: VehicleStatusSnapshot?): Set<Int> = buildSet {
-        if (status?.batteryPercent?.let { it.isFinite() && it in 0.0..100.0 } == true) add(21)
+        if (status?.batteryPercent?.let { it.isFinite() && it in 0.0..100.0 } == true ||
+            status?.currentChargeWh?.let { it in 0..0xffff_ffffL } == true || status?.charging != null) add(21)
         if (status?.electricRangeKm?.let { it.isFinite() && it in 0.0..65535.0 } == true) add(11)
         if (status?.outsideTemperatureCelsius?.let { it.isFinite() && it in -100.0..100.0 } == true) add(4)
         if (status?.barometricPressureMillibar?.let { it in 1..65535 } == true) add(18)
@@ -55,7 +58,9 @@ object Iap2VehicleStatus {
         val pressure = status.barometricPressureMillibar?.takeIf { 18 in advertised && 18 in requested && it in 1..65535 }
         val passenger = status.passengerSeatOccupied?.takeIf { 20 in advertised && 20 in requested }
         val wiper = status.wipers?.takeIf { 17 in advertised && 17 in requested && it.isValid() }
-        if (range == null && percent == null && temperature == null && pressure == null && passenger == null && wiper == null) return null
+        val energy = status.currentChargeWh?.takeIf { 21 in advertised && it in 0..0xffff_ffffL }
+        val charging = status.charging?.takeIf { 21 in advertised }
+        if (range == null && percent == null && temperature == null && pressure == null && passenger == null && wiper == null && energy == null && charging == null) return null
         return Iap2Messages.buildRaw(UPDATE) {
             temperature?.let { i16(4, it.roundToInt()) }
             range?.let { u16(11, it.toInt()) }
@@ -66,7 +71,9 @@ object Iap2VehicleStatus {
             } }
             pressure?.let { u16(18, it) }
             passenger?.let { bool(20, it) }
+            energy?.let { u32(22, it) }
             percent?.let { u32(24, (it * 1_000).roundToInt()) }
+            charging?.let { bool(25, it) }
         }
     }
 }

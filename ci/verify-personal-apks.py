@@ -31,9 +31,15 @@ for module in ('mobile',):
     with zipfile.ZipFile(apk) as archive:
         if 'assets/carplay-display.html' in archive.namelist():
             raise SystemExit('Default car APK unexpectedly includes the browser display page')
+        if any(name.startswith('assets/vehicle-profiles/') for name in archive.namelist()):
+            raise SystemExit('Removed vehicle JSON assets unexpectedly remain in the APK')
         forbidden = (b'Lfi/iki/elonen/NanoHTTPD;', b'Lfi/iki/elonen/NanoWSD;',
                      b'Lcom/shilapi/xcertplay/WebDisplayCertificate;',
-                     b'Lcom/shilapi/xcertplay/WebDisplayServer;')
+                     b'Lcom/shilapi/xcertplay/WebDisplayServer;',
+                     b'Lcom/shilapi/xcertplay/VehicleProfileRepository;',
+                     b'Lcom/shilapi/xcertplay/JsonProfileVehicleDataEntry;',
+                     b'Lcom/shilapi/xcertplay/vehicle/AndroidCarPropertyBackend;',
+                     b'Lcom/shilapi/xcertplay/vehicle/profile/VehicleProfileParser;')
         for name in archive.namelist():
             if re.fullmatch(r'classes\d*\.dex', name):
                 dex = archive.read(name)
