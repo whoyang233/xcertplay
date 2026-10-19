@@ -9,7 +9,7 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the previously verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the verified 1.4.2B mobile APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/39216081855/artifacts/12169268663)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39216081855) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
 
@@ -44,6 +44,7 @@ Profiles map read-only Android Car properties to CarPlay fields. They are data, 
 
 | Area | Behavior |
 | --- | --- |
+| Upstream 1.4.2 | Merged microphone uplink fixes, the audio quality menu, video-buffer reuse and display performance work while retaining personal settings, audio gain and Wi-Fi behavior. |
 | App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
 | Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
 | Full-HD settings layout | Dedicated compact density and typography, adaptive navigation width, independently scrollable panes, and scrolling for long channel-choice dialogs. |
@@ -69,7 +70,7 @@ The personal build prefers Simplified Chinese independently of the head unit's s
 
 ## Music, navigation, and in-app volume
 
-Under Settings → Audio → Music and navigation channels, music defaults to Media and navigation to Navigation. If guidance is silent on a particular head unit, try binding navigation to Media. These settings request Android audio usages; firmware decides the physical buses, speakers, and system volume groups.
+Under Settings → Audio → Music and navigation channels, music defaults to Media and navigation to Navigation. If guidance is silent on a particular head unit, try binding navigation to Media. Quality-menu channel counts refer to mono/stereo, separately from output bindings. These settings request Android audio usages; firmware decides the physical buses, speakers, and system volume groups.
 
 Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before either local playback or web forwarding, without calling system volume APIs. Rebinding navigation to Media still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
 
@@ -171,7 +172,7 @@ Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce u
 
 ## Verification and feedback
 
-The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38916851294), commit `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`, passed **295 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. The mobile APK were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Audio tests cover music/navigation bindings, software gain, decoded forwarding, preference recovery, and unchanged call/Siri audio. The Full-HD audio settings controls and screenshot were also verified. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
+The [verified build from 2026-10-19](https://github.com/whoyang233/xcertplay/actions/runs/39216081855), commit `f18fe5f5470646b78bd1ed7099c517dae88e61b1`, passed **342 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. The mobile APK was checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Profile regressions cover bounded imports, draft/save behavior, invalid inputs, SDK/service/catalog mismatches, unit conversion and stale data. The quality subpage preserves fixed actions and returns to Audio at the top. Audio tests cover music/navigation bindings, software gain, decoded forwarding, preference recovery, and unchanged call/Siri audio. The Full-HD audio settings controls and screenshot were also verified. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/39216081855/artifacts/12169886471) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
 
 Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
 
