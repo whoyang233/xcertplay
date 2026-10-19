@@ -2330,9 +2330,11 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun canKeepDisplayWindow(size: DisplaySize): Boolean {
-        val areas = viewAreas ?: return false
         val active = controller ?: return false
         if (currentDisplayLayout().splitScreen) return false
+        val areas = viewAreas ?: return CarPlayBackgroundSession.snapshot()
+            ?.takeIf { it.controller === active }
+            ?.let { DisplaySizingPolicy.canKeepSingleWindow(size.width,size.height,it.width,it.height,false) } == true
         val window = areas.activitySize(active.viewAreaIndex)
         // Temporary overlays may shrink the current layout, but cannot expand it using another orientation.
         return size.width <= window.first && size.height <= window.second &&

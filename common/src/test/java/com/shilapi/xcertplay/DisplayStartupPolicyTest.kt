@@ -5,6 +5,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DisplayStartupPolicyTest {
+    @Test fun singleAreaRetainsTemporaryNonFullscreenShrinkButNotRealSplitOrRotation() {
+        assertTrue(DisplaySizingPolicy.canKeepSingleWindow(1920,978,1920,1080,false))
+        assertTrue(DisplaySizingPolicy.canKeepSingleWindow(1920,1080,1920,1080,false))
+        assertFalse(DisplaySizingPolicy.canKeepSingleWindow(960,978,1920,1080,true))
+        assertFalse(DisplaySizingPolicy.canKeepSingleWindow(1080,1920,1920,1080,false))
+        assertFalse(DisplaySizingPolicy.canKeepSingleWindow(2560,1440,1920,1080,false))
+        assertFalse(DisplaySizingPolicy.canKeepSingleWindow(0,1080,1920,1080,false))
+    }
     @Test fun startupCannotUseTheFullHeightBeforeSystemBarInsetsSettle() {
         val stability=DisplayLayoutStability()
         stability.observe(1920,1080,1,0)

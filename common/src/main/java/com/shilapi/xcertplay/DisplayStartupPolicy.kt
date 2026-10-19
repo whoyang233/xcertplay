@@ -23,6 +23,11 @@ internal class DisplayLayoutStability(private val settleMillis: Long = 500) {
 }
 
 internal object DisplaySizingPolicy {
+    fun canKeepSingleWindow(width: Int, height: Int, sessionWidth: Int, sessionHeight: Int,
+                            splitScreen: Boolean): Boolean = !splitScreen && width > 0 && height > 0 &&
+        width <= sessionWidth && height <= sessionHeight &&
+            (width > height) == (sessionWidth > sessionHeight)
+
     fun physicalSize(currentWidth: Int, currentHeight: Int, referenceWidth: Int, referenceHeight: Int,
                      millimeters: Int, basis: com.shilapi.xcertplay.airplay.AirPlayPhysicalSizeBasis)
         : com.shilapi.xcertplay.airplay.AirPlayPhysicalSizeMm {
