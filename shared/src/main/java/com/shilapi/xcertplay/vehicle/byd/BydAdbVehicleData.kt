@@ -200,7 +200,9 @@ internal object BydReadCatalog {
             if (!prefs.contains(field.name)) null else field to BydAddress(prefs.getInt("${field.name}_device", field.device), prefs.getInt(field.name, 0), field.transaction)
         }.toMap() else emptyMap()
         if (!detect) return saved
-        val apk = "'" + context.packageCodePath.replace("'", "'\"'\"'") + "'"
+        val codePath: String? = context.packageCodePath
+        if (codePath.isNullOrBlank()) return saved
+        val apk = "'" + codePath.replace("'", "'\"'\"'") + "'"
         val result = link.command("CLASSPATH=$apk app_process /system/bin ${BydCatalogProbeMain::class.java.name}", 15_000)
         if (result == null || BydCatalogProbeMain.HEADER !in result.lines()) return saved
         val symbols = result.lineSequence().mapNotNull { line ->
