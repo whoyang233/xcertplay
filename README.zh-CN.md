@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.2B 车机安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/39216081855/artifacts/12169268663)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39216081855) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载上一轮已验证的 1.4.2B 车机安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/39216081855/artifacts/12169268663)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39216081855) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
@@ -36,7 +36,7 @@
 
 - Android 与 Android Automotive OS 上的有线/无线 CarPlay 接收端，支持 CH341、原生 I2C、本地 MFi 文件及远程认证。
 - 语音、导航、音乐多通道音频，以及媒体缓冲和麦克风增益设置。
-- 动态分辨率、HEVC、安全区域，以及主屏和仪表的独立网页输出。
+- 动态分辨率、HEVC 和安全区域；浏览器主屏/仪表输出为可选构建功能，默认不包含在车机包中。
 - 可选的车机位置与车辆数据回传，实际可用数据取决于车机接口、权限和配置。
 - 保留上游实验性 CarPlay Ultra 触发能力；相关协议栈尚未完成，不能视作完整 Ultra 支持。
 
@@ -44,6 +44,7 @@
 
 | 功能 | 当前行为 |
 | --- | --- |
+| 网页显示精简 | 默认关闭构建开关，不打入 HTTP/WebSocket 服务、网页证书实现及 HTML；隐藏入口并忽略旧的开启状态，保留本地主屏与音频输出。 |
 | 上游 1.4.2 | 合入麦克风上行修复、音质菜单、视频缓冲复用和显示性能优化，保留个人设置、导航增益与 Wi-Fi 行为。 |
 | 切换应用时的连接稳定性 | 非全屏按设置预留系统栏空间，忽略后台、失焦期间的临时尺寸变化，减少切出后立刻返回导致的分辨率重连；真实分屏和旋转仍按实际尺寸处理。 |
 | 中文设置 | 默认简体中文，按类别显示配置；右上角固定“重启 CarPlay”和“退出应用”，窄窗口显示“重启”“退出”。 |
@@ -101,7 +102,17 @@ Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复�
 
 暂停自动搜网可能影响车机自动连接手机热点，不能阻止其他应用的主动扫描，也不能消除外部射频干扰。建议先对比自动、36 和 149，再单独测试扫描抑制，记录实际信道及断联时间，判断哪项对本车有效。
 
-## 网页显示
+## 网页显示（可选，默认关闭）
+
+日常个人版 APK 默认不包含浏览器主屏/仪表输出。构建开关 `xcertplay.webDisplay=false` 同时排除网页服务器、NanoHTTPD/WebSocket 依赖、网页 TLS 证书实现和 HTML 页面，并隐藏「网页显示」入口。旧的网页开启状态在此包中不生效；保存其他设置不会清除旧网页配置，以便以后显式启用可选构建。CarPlay 在车机本地主屏播放，导航音量和本地触控照常工作。
+
+需要恢复网页功能时，使用固定签名环境显式构建：
+
+```bash
+./gradlew :mobile:assembleDebug -Pxcertplay.webDisplay=true
+```
+
+开启构建功能后，应用内主屏/仪表屏开关初始仍为关闭，按以下步骤启用：
 
 1. 在「网页显示」中开启「主屏」和/或「仪表屏」的浏览器显示，填写分辨率，再点击右上角“重启 CarPlay”。
 2. 浏览器设备与 Android 接入同一局域网，打开设置中的地址（`https://<IP>:8080/main` 或 `/cluster`）。页面在 CarPlay 重连期间保持连接并自动恢复画面。

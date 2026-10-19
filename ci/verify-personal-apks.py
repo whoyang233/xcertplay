@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import zipfile
 
 sdk = Path(os.environ['ANDROID_HOME']) / 'build-tools' / '36.0.0'
 expected = Path('signing/personal-certificate.sha256').read_text().strip()
@@ -27,6 +28,17 @@ for module in ('mobile',):
         raise SystemExit(f'Wrong personal version: {version_name} / {version_code}')
     if "application-label:'xcertplay 个人版'" not in badging:
         raise SystemExit('Personal launcher label is missing')
+    with zipfile.ZipFile(apk) as archive:
+        if 'assets/carplay-display.html' in archive.namelist():
+            raise SystemExit('Default car APK unexpectedly includes the browser display page')
+        forbidden = (b'Lfi/iki/elonen/NanoHTTPD;', b'Lfi/iki/elonen/NanoWSD;',
+                     b'Lcom/shilapi/xcertplay/WebDisplayCertificate;',
+                     b'Lcom/shilapi/xcertplay/WebDisplayServer;')
+        for name in archive.namelist():
+            if re.fullmatch(r'classes\d*\.dex', name):
+                dex = archive.read(name)
+                if any(symbol in dex for symbol in forbidden):
+                    raise SystemExit(f'Default car APK unexpectedly includes web display code in {name}')
     if signed:
         verification = subprocess.check_output([str(sdk / 'apksigner'), 'verify', '--verbose', '--print-certs', str(apk)], text=True)
         certs = re.findall(r'^Signer #[0-9]+ certificate SHA-256 digest: (\w+)$', verification, re.M)
@@ -37,6 +49,7 @@ for module in ('mobile',):
             raise SystemExit('Bootstrap APK unexpectedly signed; refusing unpinned signatures')
     metadata.append({'file': str(apk), 'package': package, 'version_name': version_name,
                      'version_code': int(version_code), 'signed': signed,
+                     'web_display_enabled': False,
                      'certificate_sha256': expected if signed else None})
 Path('personal-apk-verification.json').write_text(json.dumps(metadata, indent=2) + '\n')
 print(json.dumps(metadata, indent=2))

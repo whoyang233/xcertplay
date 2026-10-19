@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.shilapi.xcertplay.host.R
+import com.shilapi.xcertplay.CarPlayWebDisplayFactory
 import com.shilapi.xcertplay.ui.components.FieldRow
 import com.shilapi.xcertplay.ui.components.HelpText
 import com.shilapi.xcertplay.ui.components.SectionHeader
@@ -60,6 +61,7 @@ class SettingsLayoutTest {
     private var exits = 0
     private var selectedChannel by mutableIntStateOf(36)
     private val destinations = listOf("连接", "车辆数据", "音频", "显示与视频", "网页显示", "标识与外观", "启动与窗口", "诊断", "关于")
+        .filter { it != "网页显示" || CarPlayWebDisplayFactory.ENABLED }
         .mapIndexed { index, title -> SettingsDestination("section$index", title, "查看并调整$title", R.drawable.ic_ms_wifi) }
 
     @Before fun loadChineseStrings() { I18n.init(ApplicationProvider.getApplicationContext()) }

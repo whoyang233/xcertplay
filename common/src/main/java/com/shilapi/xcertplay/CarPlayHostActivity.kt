@@ -3173,7 +3173,9 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun SettingsScreen() {
         ProvideSettingsUi {
             SettingsScaffold(
-                destinations = SettingsCategory.entries.map {
+                destinations = SettingsCategory.entries.filter {
+                    it != SettingsCategory.WEB || CarPlayWebDisplayFactory.ENABLED
+                }.map {
                     SettingsDestination(it.name, it.title, it.summary, it.icon)
                 },
                 selectedId = settingsCategory?.name,
@@ -3205,7 +3207,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     SettingsCategory.VEHICLE -> VehicleSettings()
                     SettingsCategory.AUDIO -> if (audioQualityOpen) AudioQualitySettingsContent() else AudioSettings()
                     SettingsCategory.DISPLAY -> DisplaySettings()
-                    SettingsCategory.WEB -> WebDisplaySettings()
+                    SettingsCategory.WEB -> if (CarPlayWebDisplayFactory.ENABLED) WebDisplaySettings()
                     SettingsCategory.IDENTITY -> IdentitySettings()
                     SettingsCategory.WINDOW -> WindowSettings()
                     SettingsCategory.DIAGNOSTICS -> DiagnosticsSettings()

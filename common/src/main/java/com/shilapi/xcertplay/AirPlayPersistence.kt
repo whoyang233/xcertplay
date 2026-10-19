@@ -99,6 +99,7 @@ object AirPlayPersistence {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val prefix = "web_display_${type}_"
         val fallback = CarPlayWebDisplayConfig(width = if (type == 111) 1920 else 1280)
+        if (!CarPlayWebDisplayFactory.ENABLED) return fallback
         return runCatching {
             fallback.copy(
                 enabled = prefs.getBoolean(prefix + "enabled", false),
@@ -110,6 +111,8 @@ object AirPlayPersistence {
     }
 
     fun saveWebDisplay(context: Context, type: Int, config: CarPlayWebDisplayConfig) {
+        // Preserve the optional feature's old preferences without activating them in this build.
+        if (!CarPlayWebDisplayFactory.ENABLED) return
         val prefix = "web_display_${type}_"
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean(prefix + "enabled", config.enabled)

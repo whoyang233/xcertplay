@@ -9,7 +9,7 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the verified 1.4.2B mobile APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/39216081855/artifacts/12169268663)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39216081855) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the previously verified 1.4.2B mobile APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/39216081855/artifacts/12169268663)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39216081855) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
 
@@ -36,7 +36,7 @@ Profiles map read-only Android Car properties to CarPlay fields. They are data, 
 
 - Wired and wireless CarPlay receivers for Android and Android Automotive OS, with CH341, native I2C, local MFi files, and remote authentication.
 - Separate voice, navigation, and music audio channels, media buffering, and microphone gain settings.
-- Dynamic resolution, HEVC, safe areas, and independent main/instrument web displays.
+- Dynamic resolution, HEVC and safe areas; browser main/instrument output is an optional build feature omitted from normal car APKs.
 - Optional head-unit location and vehicle data reporting, subject to available interfaces, permissions, and configuration.
 - Upstream's experimental CarPlay Ultra trigger is retained; the protocol stack is incomplete and does not provide full Ultra support.
 
@@ -44,6 +44,7 @@ Profiles map read-only Android Car properties to CarPlay fields. They are data, 
 
 | Area | Behavior |
 | --- | --- |
+| Optional web display | Off at build time by default; excludes the server, certificate implementation, HTML and HTTP/WebSocket dependencies. Its entry is hidden and saved enabled states cannot redirect local playback. |
 | Upstream 1.4.2 | Merged microphone uplink fixes, the audio quality menu, video-buffer reuse and display performance work while retaining personal settings, audio gain and Wi-Fi behavior. |
 | App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
 | Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
@@ -103,7 +104,17 @@ A durable marker precedes changes. The last controller closing, or a reported co
 
 This can affect automatic joining of a phone hotspot. It cannot block all app-initiated scans or eliminate external RF interference. Compare automatic, channel 36, and channel 149 first, then test scan suppression separately while recording observed channels and disconnect times.
 
-## Web displays
+## Web displays (optional, off by default)
+
+Normal personal APKs omit browser main/instrument output. The default `xcertplay.webDisplay=false` excludes the server, NanoHTTPD/WebSocket dependencies, TLS certificate implementation and HTML, and hides the settings entry. Saved enabled states are ignored in this build; saving other settings preserves the optional preferences for a later explicitly enabled build. The main screen, local touch and audio, and navigation gain remain available on the head unit.
+
+To restore the optional feature with the existing fixed signing environment:
+
+```bash
+./gradlew :mobile:assembleDebug -Pxcertplay.webDisplay=true
+```
+
+With that build feature enabled, the in-app main/instrument switches still default to off. Then:
 
 1. Under Web displays, enable the browser display for Main and/or Instrument, set the resolution, then tap Restart CarPlay at the top right.
 2. Connect the browser device to the same LAN and open the address shown in settings (`https://<IP>:8080/main` or `/cluster`). Pages remain connected through CarPlay reconnects and resume automatically.
