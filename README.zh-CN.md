@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.2B 车机安装包 ZIP（比亚迪 ADB 数据版）](https://github.com/whoyang233/xcertplay/actions/runs/39226407891/artifacts/12173908396)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39226407891) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载已验证的 1.4.2B automotive 车载包 ZIP（启动比例与音频通道版）](https://github.com/whoyang233/xcertplay/actions/runs/39267352871/artifacts/12193279325)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39267352871) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
@@ -56,7 +56,7 @@
 | 中文设置 | 默认简体中文，按类别显示配置；右上角固定“重启 CarPlay”和“退出应用”，窄窗口显示“重启”“退出”。 |
 | 1080P 设置布局 | 设置页使用独立的紧凑密度与字号，自适应分类栏；分类和详情可分别滚动，长信道列表支持滚动选择。 |
 | 设置应用方式 | 点击右上角“重启 CarPlay”校验、保存并应用修改；关闭设置放弃未保存的编辑。 |
-| 音乐与导航声道 | 音乐与导航分别绑定媒体/导航用途；导航软件音量 0%–200%，不改系统音量，不影响音乐、通话或 Siri。 |
+| 音乐与导航声道 | 音乐与导航分别绑定媒体/导航用途，并支持 DiPlay 式 0–20 编号通道；导航软件音量 0%–200%，不改系统音量，不影响音乐、通话或 Siri。 |
 | 关于 | 显示当前应用版本、Android 版本及 API 等级。 |
 | Wi-Fi 启动恢复 | 自动热点首次启动失败后释放资源，尝试关闭再开启 Wi-Fi，并用新实例重试一次；系统拒绝开关 Wi-Fi 时仅重建热点，手动热点不自动重置。 |
 | 信道策略 | Wi-Fi Direct 可选择系统自动、36 优先、149 优先或指定非 DFS 5 GHz 信道，可在请求被拒绝时回退自动。 |
@@ -189,9 +189,9 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
-2026-10-19 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39226407891)来自提交 `ca41f36b642414ea6a612e93d085241943931ce8`：**329 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告（common 81、mobile 3）。** 其中比亚迪来源/迁移 25 项，覆盖 CAN/CANFD、单位换算、非法/部分读数、固件目录缓存、失败恢复、时效、订阅、诊断隔离、退出取消及旧来源迁移；iAP2 测试核对了剩余电量与充电状态的实际参数编码。导航独立音量、音频绑定、麦克风、Wi-Fi 恢复及扫描抑制回归通过；设置布局测试覆盖多 DPI 的 1080P、150% 字体窄窗口和矮信道列表。[验证报告](https://github.com/whoyang233/xcertplay/actions/runs/39226407891/artifacts/12173808726)包含测试页面截图。实车 ADB、字段可用性、导航采用、安装和连接效果仍需验收。
+2026-10-19 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39267352871)来自提交 `e1039070440e4cfa658fd55fb928dbacee4ea960`：**350 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告（common 82、automotive 3）。** 其中比亚迪来源/迁移 25 项，覆盖 CAN/CANFD、单位换算、非法/部分读数、固件目录缓存、失败恢复、时效、订阅、诊断隔离、退出取消及旧来源迁移；iAP2 测试核对了剩余电量与充电状态的实际参数编码。导航独立音量、音频绑定、麦克风、Wi-Fi 恢复及扫描抑制回归通过；设置布局测试覆盖多 DPI 的 1080P、150% 字体窄窗口和矮信道列表。[验证报告](https://github.com/whoyang233/xcertplay/actions/runs/39267352871/artifacts/12194038348)包含测试页面截图。实车 ADB、字段可用性、导航采用、安装和连接效果仍需验收。
 
-默认 APK 已核验不含旧车辆 JSON 资源、导入/解析类、Android Car 后端和库/权限声明；比亚迪 ADB 来源已包含。网页页面、NanoHTTPD/NanoWSD、网页服务器和证书实现仍排除。固定签名、包名、Provider 和自定义权限保持一致，可覆盖升级。独立可选网页任务通过 **62 项 common 测试，其中 15 项为网页显示测试**，不额外打包 APK。相比上一轮网页精简版，APK 从 45,882,139 降至 45,733,368 字节，减少 **148,771 字节，约 145 KiB**。
+本次只生成 automotive APK，已核验个人包名、固定签名、Provider/自定义权限及版本 1.4.2B / 1402；包含启动尺寸策略、触控适配、编号音频绑定和比亚迪 ADB 后端。旧车辆 JSON 资源与解析/Android Car 属性后端不包含在包中；网页页面、服务器、证书实现和 NanoHTTPD/NanoWSD 仍排除。独立可选网页任务通过 **76 项 common 测试，其中 15 项为网页显示测试**，不额外打包 APK。
 
 实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
 
