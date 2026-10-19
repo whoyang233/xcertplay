@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.2B 车机安装包 ZIP（网页显示精简版）](https://github.com/whoyang233/xcertplay/actions/runs/39221621956/artifacts/12171923464)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39221621956) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载已验证的 1.4.2B 车机安装包 ZIP（比亚迪 ADB 数据版）](https://github.com/whoyang233/xcertplay/actions/runs/39226407891/artifacts/12173908396)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39226407891) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
@@ -182,9 +182,9 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
-2026-10-19 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39221621956)来自提交 `fdba58facd16cf169d5f49e36dc311be6308f7b9`：**333 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告。** mobile APK 的包名、桌面名称、固定签名、Provider 和自定义权限标识已核对。车辆配置回归覆盖读取大小限制、导入草稿/保存、非法输入、SDK/服务/属性匹配、单位转换和过期数据；音质子页面返回及固定操作按钮已通过界面测试。音频测试覆盖音乐/导航绑定、软件增益、解码转发、配置恢复，以及通话/Siri 音频不受影响；已检查 1080P 音频设置操作和截图。设置布局测试覆盖 1920×1080 的 160/240/320 DPI、150% 字体的窄窗口，以及矮窗口长信道列表滚动；[验证报告产物](https://github.com/whoyang233/xcertplay/actions/runs/39221621956/artifacts/12171569776) 中的 `common/build/reports/settings-layout/` 包含测试页面截图。安装、设置布局及连接稳定性、抗干扰效果仍需实车验收。
+2026-10-19 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39226407891)来自提交 `ca41f36b642414ea6a612e93d085241943931ce8`：**329 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告（common 81、mobile 3）。** 其中比亚迪来源/迁移 25 项，覆盖 CAN/CANFD、单位换算、非法/部分读数、固件目录缓存、失败恢复、时效、订阅、诊断隔离、退出取消及旧来源迁移；iAP2 测试核对了剩余电量与充电状态的实际参数编码。导航独立音量、音频绑定、麦克风、Wi-Fi 恢复及扫描抑制回归通过；设置布局测试覆盖多 DPI 的 1080P、150% 字体窄窗口和矮信道列表。[验证报告](https://github.com/whoyang233/xcertplay/actions/runs/39226407891/artifacts/12173808726)包含测试页面截图。实车 ADB、字段可用性、导航采用、安装和连接效果仍需验收。
 
-默认 APK 已核验不含网页页面、NanoHTTPD/NanoWSD，以及网页服务器和证书实现类。4 项禁用功能回归测试覆盖旧开启配置、本地显示输出及服务类缺失；独立的可选网页兼容任务通过 **67 项 common 模块测试，其中 15 项为网页显示测试**，不额外打包 APK。相比上一轮已验证的 1.4.2B，安装包由 46,028,818 降至 45,882,139 字节，减少 **146,679 字节，约 143 KiB**；媒体、界面和协议依赖仍需保留，因此体积降幅有限。
+默认 APK 已核验不含旧车辆 JSON 资源、导入/解析类、Android Car 后端和库/权限声明；比亚迪 ADB 来源已包含。网页页面、NanoHTTPD/NanoWSD、网页服务器和证书实现仍排除。固定签名、包名、Provider 和自定义权限保持一致，可覆盖升级。独立可选网页任务通过 **62 项 common 测试，其中 15 项为网页显示测试**，不额外打包 APK。相比上一轮网页精简版，APK 从 45,882,139 降至 45,733,368 字节，减少 **148,771 字节，约 145 KiB**。
 
 实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
 

@@ -52,3 +52,5 @@
 只读地址、CAN/CANFD 电池读取、车速换算、胎压/胎温及窄范围固件探测参考 [DiPlay 0.2.21](https://github.com/shihabal3amri/DiPlay/tree/6d3b8a8ce927cb4b115b8c3881f17619433e93b1) 的 BydVehicleFields、BydBattery、BydWheelSpeed、BydTyres 和 Byd13CatalogProbeMain，保留 GPL-3.0 来源说明。个人版另行实现订阅、时效、取消、迁移及 xcertplay 协议对接，未引入其车辆控制或 AGPL 界面代码。
 
 自动化回归覆盖协议、单位、非法/部分读数、错误恢复、时效、订阅、诊断隔离、取消、固件缓存、旧设置迁移及 iAP2 编码；实车 ADB、属性和导航采用效果仍需验收。
+
+2026-10-19 验证：[构建 39226407891](https://github.com/whoyang233/xcertplay/actions/runs/39226407891)，源码 `ca41f36b642414ea6a612e93d085241943931ce8`，329 项测试全通过，其中 BYD 来源/迁移 25 项；可选网页兼容 62 项通过；Lint 无错误，仍有警告。APK 已核验新来源存在、旧配置后端与权限移除，固定签名一致。实车效果未验证。
