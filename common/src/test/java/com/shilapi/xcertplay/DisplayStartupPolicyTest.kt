@@ -48,6 +48,8 @@ class DisplayStartupPolicyTest {
     }
     @Test fun fullScreenReferenceDoesNotDependOnPreviouslyObservedSmallWindow() {
         assertEquals(1920 to 1080,DisplaySizingPolicy.reference(960,978,1920,1080))
+        val split=DisplaySizingPolicy.physicalSize(960,978,1920,1080,200,AirPlayPhysicalSizeBasis.HEIGHT)
+        assertEquals(178,split.widthMm);assertEquals(181,split.heightMm)
         assertEquals(1080 to 1920,DisplaySizingPolicy.reference(1080,1800,1920,1080))
         val first=DisplaySizingPolicy.physicalSize(1920,978,1920,1080,200,AirPlayPhysicalSizeBasis.HEIGHT)
         val again=DisplaySizingPolicy.physicalSize(1920,978,1080,1920,200,AirPlayPhysicalSizeBasis.HEIGHT)

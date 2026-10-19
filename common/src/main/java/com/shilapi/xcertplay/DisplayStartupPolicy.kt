@@ -37,12 +37,11 @@ internal object DisplaySizingPolicy {
     fun reference(currentWidth: Int, currentHeight: Int, reportedWidth: Int, reportedHeight: Int): Pair<Int, Int> {
         require(currentWidth > 0 && currentHeight > 0)
         if (reportedWidth <= 0 || reportedHeight <= 0) return currentWidth to currentHeight
-        val long = maxOf(reportedWidth, reportedHeight)
-        val short = minOf(reportedWidth, reportedHeight)
-        val oriented = if (currentWidth >= currentHeight) long to short else short to long
-        // Broken OEM metrics must not create an imaginary mixed envelope either.
-        return if (oriented.first >= currentWidth && oriented.second >= currentHeight) oriented
-            else currentWidth to currentHeight
+        // A narrow split window can look portrait while the physical screen remains landscape.
+        if (reportedWidth >= currentWidth && reportedHeight >= currentHeight) return reportedWidth to reportedHeight
+        // Allow stale rotation metrics only when the swapped whole pair actually contains the window.
+        if (reportedHeight >= currentWidth && reportedWidth >= currentHeight) return reportedHeight to reportedWidth
+        return currentWidth to currentHeight
     }
 
     fun compatibleSavedSizes(saved: List<Pair<Int, Int>>, reference: Pair<Int, Int>): List<Pair<Int, Int>> {

@@ -32,6 +32,10 @@ The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **
 
 The personal vehicle backend now uses read-only local ADB/autoservice reads adapted from DiPlay 0.2.21. The old JSON import, standard Android Car backend and permissions are removed. Speed, gear, battery percentage, range, remaining energy and charging state feed the existing/extended CarPlay reporting. Four-wheel pressure/temperature are diagnostic only. Reporting is off by default; old source settings cannot silently enable the new backend. See the [fields, authorization, protocols, freshness and compatibility notes (Chinese)](docs/VEHICLE_PROFILES.zh-CN.md).
 
+## Startup sizing and display controls
+
+New handshakes wait for stable window/system-bar dimensions. Physical references use the actual screen long/short edges instead of mixed historical maxima. Single-area compatibility is the default; optional fast multi-area switching and Restore display defaults are available under Display. Local rendering and touch share the negotiated aspect ratio. Existing upstream display improvements and personal audio/Wi-Fi/BYD ADB behavior remain available. See the [fix scope, controls and vehicle checks (Chinese)](docs/DISPLAY_STARTUP.zh-CN.md).
+
 ## Core features
 
 - Wired and wireless CarPlay receivers for Android and Android Automotive OS, with CH341, native I2C, local MFi files, and remote authentication.
@@ -45,6 +49,7 @@ The personal vehicle backend now uses read-only local ADB/autoservice reads adap
 | Area | Behavior |
 | --- | --- |
 | BYD vehicle data | Six read-only ADB measurements feed normalized CarPlay reporting; tyres are diagnostic only. Replaces the old JSON/Android Car backend. |
+| Startup/display sizing | Stable-layout negotiation, real long/short-edge references, single-area compatibility by default, optional fast areas and display-default recovery. |
 | Optional web display | Off at build time by default; excludes the server, certificate implementation, HTML and HTTP/WebSocket dependencies. Its entry is hidden and saved enabled states cannot redirect local playback. |
 | Upstream 1.4.2 | Merged microphone uplink fixes, the audio quality menu, video-buffer reuse and display performance work while retaining personal settings, audio gain and Wi-Fi behavior. |
 | App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
