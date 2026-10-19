@@ -342,14 +342,6 @@
   "settings.vehicle.feature.wheel_speed.description": "Read speed and gear over approved ADB for iPhone dead reckoning. Off by default; save and restart CarPlay to apply.",
   "settings.vehicle.feature.ev_status.title": "Battery and range reporting",
   "settings.vehicle.feature.ev_status.description": "Provide available percentage, range, remaining energy and charging state. Off by default; navigation app use is not guaranteed.",
-  "settings.vehicle.feature.outside_temperature.title": "Outside temperature",
-  "settings.vehicle.feature.outside_temperature.description": "Needs outside temperature from the vehicle source",
-  "settings.vehicle.feature.barometric_pressure.title": "Barometric pressure",
-  "settings.vehicle.feature.barometric_pressure.description": "Needs pressure from the vehicle source",
-  "settings.vehicle.feature.passenger_seat.title": "Passenger occupancy",
-  "settings.vehicle.feature.passenger_seat.description": "Needs passenger occupancy from the vehicle source",
-  "settings.vehicle.feature.wipers.title": "Wiper timing",
-  "settings.vehicle.feature.wipers.description": "Needs washer or wiper timing from the vehicle source",
   "settings.app_version": "App version",
   "settings.category.about": "About",
   "settings.category.about.summary": "Android and app versions",
@@ -378,5 +370,6 @@
   "settings.channel.observed": "Last observed hotspot channel: {channel} ({band}). May change on the next connection.",
   "settings.channel.unknown": "Last observed hotspot channel: not yet available. Shown after a successful connection.",
   "settings.vehicle.byd_help": "Read-only speed, gear, battery, range, remaining energy and charging state. Enable network ADB, authorize, and run live diagnostics first. Enable reporting below and use Restart CarPlay to save. No vehicle controls.",
-  "settings.vehicle.byd_diagnostics_help": "Diagnostics stop after 10 minutes or when settings close and never report to iPhone. Tyre pressure/temperature are diagnostic only; no CarPlay mapping. Unsupported readings stay unavailable."
+  "settings.vehicle.byd_diagnostics_help": "Diagnostics stop after 10 minutes or when settings close and never report to iPhone. Tyre pressure/temperature are diagnostic only; no CarPlay mapping. Unsupported readings stay unavailable.",
+  "settings.vehicle.adb_ready": "Local ADB authorized. Run live diagnostics, then enable the reporting you need and save."
 }

@@ -62,6 +62,13 @@ class BydAdbVehicleSourceTest {
         now=32000;link.failures.clear();source.tick();assertNotNull(source.latestSpeed())
         source.onSubscriptionChanged(true);source.tick();assertNotNull(source.snapshot());source.close()
     }
+    @Test fun aKnownTransportFailureBlocksCachedValuesBeforeTheNextWorkerTick() {
+        val link=link();val source=BydAdbVehicleSource(all,false,link,{1000},autoSchedule=false)
+        source.start();source.requestSpeed(true);source.tick()
+        assertNotNull(source.snapshot());assertNotNull(source.latestSpeed())
+        link.isReady=false
+        assertNull(source.snapshot());assertNull(source.latestSpeed());source.close()
+    }
     @Test fun slowSpeedSamplesAreNotAdvertisedAsFresh() {
         var now=1000L;val link=link();val source=BydAdbVehicleSource(all,false,link,{now},autoSchedule=false)
         link.fallback={command->if(command.startsWith("getprop"))"CANFD" else {

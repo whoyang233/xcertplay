@@ -109,17 +109,17 @@ internal class BydAdbVehicleSource(
             tyreAt = now()
         }
         if (!link.isReady) { motion = null; battery = null }
-        detail = "ADB：${link.status}\n车辆协议：${source.protocol ?: "未知（需检测固件字段）"}\n" +
+        detail = "ADB：${link.status}\n车辆协议：${source.protocol ?: "未知（需检测固件字段）"}\n原始读取（非法值不会上报）：\n" +
             source.lastValues.entries.joinToString("\n") { (key, value) -> "$key：$value" } +
             if (diagnosing) "\n胎压/胎温（仅诊断，不发送至 CarPlay）：\n$tyreText" else ""
         synchronized(ready) { ready.notifyAll() }
     }
 
-    override fun snapshot(): VehicleStatusSnapshot? = if (closed || diagnostic ||
+    override fun snapshot(): VehicleStatusSnapshot? = if (closed || diagnostic || !link.isReady ||
         !config.isEnabled(VehicleDataFeature.EV_STATUS)) null else
         battery?.takeIf { now() - it.first in 0..90_000 }?.second
 
-    override fun latestSpeed(): VehicleSpeedReading? = if (closed || diagnostic ||
+    override fun latestSpeed(): VehicleSpeedReading? = if (closed || diagnostic || !link.isReady ||
         !config.isEnabled(VehicleDataFeature.WHEEL_SPEED)) null else
         motion?.takeIf { now() - it.elapsedMillis in 0..2_000 }
 

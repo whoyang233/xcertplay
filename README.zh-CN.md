@@ -28,9 +28,9 @@
 
 个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。个人分支今后只构建 mobile APK，适用于一般 Android / 比亚迪 DiLink 车机。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
 
-## 车辆 JSON 配置
+## 比亚迪车辆数据（ADB）
 
-车辆 JSON 是只读属性与 CarPlay 字段之间的映射，不是固件或脚本，也不能绕过车机权限。[查看格式、内置示例、兼容范围和本轮审核记录](docs/VEHICLE_PROFILES.zh-CN.md)。车辆来源的上报默认关闭；DiLink 4.0 是否提供标准 Android Car 服务需要实车诊断确认。
+车辆数据源改为参考 DiPlay 0.2.21 的只读本机 ADB/autoservice；旧 JSON 导入、标准 Android Car 属性后端及相关权限已移除。支持读取车速、挡位、电量、续航、剩余电量与充电状态，并接入现有 CarPlay 上报。四轮胎压/胎温仅用于诊断。上报默认关闭，旧来源的开关不会自动启用新后端。[查看字段、授权、协议、时效及兼容说明](docs/VEHICLE_PROFILES.zh-CN.md)。
 
 ## 主要功能
 
@@ -44,6 +44,7 @@
 
 | 功能 | 当前行为 |
 | --- | --- |
+| 比亚迪车辆数据 | 只读 ADB 读取六个基本量，复用并扩展 CarPlay 上报；胎压/胎温仅诊断。移除旧 JSON/Android Car 后端。 |
 | 网页显示精简 | 默认关闭构建开关，不打入 HTTP/WebSocket 服务、网页证书实现及 HTML；隐藏入口并忽略旧的开启状态，保留本地主屏与音频输出。 |
 | 上游 1.4.2 | 合入麦克风上行修复、音质菜单、视频缓冲复用和显示性能优化，保留个人设置、导航增益与 Wi-Fi 行为。 |
 | 切换应用时的连接稳定性 | 非全屏按设置预留系统栏空间，忽略后台、失焦期间的临时尺寸变化，减少切出后立刻返回导致的分辨率重连；真实分屏和旋转仍按实际尺寸处理。 |
@@ -238,6 +239,6 @@ Remote MFi 客户端把远程服务当作一块 MFi 芯片远程调用，抑或�
 
 本项目基于 [shilapi/xcertplay](https://github.com/shilapi/xcertplay)。感谢 [LIVI](https://github.com/f-io/LIVI) 提供参考、[showcase](https://github.com/amineross/showcase) 提供 BAA 认证参考。
 
-扫描抑制、ADB 协议和相关测试借鉴 [DiPlay](https://github.com/shihabal3amri/DiPlay) 提交 `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`，保留 GPL-3.0 来源说明。本次移植未引入其仪表控制或 AGPL 界面代码。
+车辆数据读取另参考 DiPlay 提交 `6d3b8a8ce927cb4b115b8c3881f17619433e93b1`（0.2.21），见[车辆数据来源说明](docs/VEHICLE_PROFILES.zh-CN.md)。扫描抑制、ADB 协议和相关测试借鉴 [DiPlay](https://github.com/shihabal3amri/DiPlay) 提交 `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`，保留 GPL-3.0 来源说明。本次移植未引入其仪表控制或 AGPL 界面代码。
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 许可。

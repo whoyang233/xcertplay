@@ -122,7 +122,8 @@ internal class BydVehicleReader(private val link: BydAdbLink,
         val pressure = listOf(-1728052956, -1728052952, -1728052948, -1728052944).map { id ->
             BydParcel.value(link.command(BydAddress(1016, id, 5).command()))?.takeIf { it in 50..600 }
         }
-        val temperature = if (pressure.any { it != null })
+        // Instrument temperature addresses are verified only on CAN-FD firmware.
+        val temperature = if (protocol == "CANFD" && pressure.any { it != null })
             listOf(1246797848, 1246797860, 1246797872, 1246797884).map { id ->
                 BydParcel.value(link.command(BydAddress(1007, id, 5).command()))?.takeIf { it in -50..150 }
             } else List(4) { null }

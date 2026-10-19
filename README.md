@@ -28,9 +28,9 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 
 The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch now builds only the mobile APK for standard Android / BYD DiLink head units. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
 
-## Vehicle JSON profiles
+## BYD vehicle data over ADB
 
-Profiles map read-only Android Car properties to CarPlay fields. They are data, cannot execute code or grant vehicle permissions, and do not enable reporting automatically. See the [schema, bundled example, compatibility limits and audit record (Chinese)](docs/VEHICLE_PROFILES.zh-CN.md). Standard Car service availability on DiLink 4.0 requires vehicle diagnostics.
+The personal vehicle backend now uses read-only local ADB/autoservice reads adapted from DiPlay 0.2.21. The old JSON import, standard Android Car backend and permissions are removed. Speed, gear, battery percentage, range, remaining energy and charging state feed the existing/extended CarPlay reporting. Four-wheel pressure/temperature are diagnostic only. Reporting is off by default; old source settings cannot silently enable the new backend. See the [fields, authorization, protocols, freshness and compatibility notes (Chinese)](docs/VEHICLE_PROFILES.zh-CN.md).
 
 ## Core features
 
@@ -44,6 +44,7 @@ Profiles map read-only Android Car properties to CarPlay fields. They are data, 
 
 | Area | Behavior |
 | --- | --- |
+| BYD vehicle data | Six read-only ADB measurements feed normalized CarPlay reporting; tyres are diagnostic only. Replaces the old JSON/Android Car backend. |
 | Optional web display | Off at build time by default; excludes the server, certificate implementation, HTML and HTTP/WebSocket dependencies. Its entry is hidden and saved enabled states cannot redirect local playback. |
 | Upstream 1.4.2 | Merged microphone uplink fixes, the audio quality menu, video-buffer reuse and display performance work while retaining personal settings, audio gain and Wi-Fi behavior. |
 | App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
@@ -245,6 +246,6 @@ connecting to a local MFi chip for authentication.
 
 Based on [shilapi/xcertplay](https://github.com/shilapi/xcertplay). Thanks to [LIVI](https://github.com/f-io/LIVI) for implementation references and [showcase](https://github.com/amineross/showcase) for BAA authentication references.
 
-Scan suppression, the ADB protocol implementation, and associated tests adapt [DiPlay](https://github.com/shihabal3amri/DiPlay) at `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`, preserving GPL-3.0 attribution. This port does not include its cluster-control features or AGPL UI code.
+Vehicle reads additionally adapt DiPlay `6d3b8a8ce927cb4b115b8c3881f17619433e93b1` (0.2.21); see the [vehicle-data provenance](docs/VEHICLE_PROFILES.zh-CN.md). Scan suppression, the ADB protocol implementation, and associated tests adapt [DiPlay](https://github.com/shihabal3amri/DiPlay) at `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`, preserving GPL-3.0 attribution. This port does not include its cluster-control features or AGPL UI code.
 
 Licensed under the [GNU General Public License v3.0](LICENSE).

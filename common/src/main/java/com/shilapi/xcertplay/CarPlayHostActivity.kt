@@ -3509,7 +3509,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
                 }
             } }
-            scanAdbStatus?.let { row { HelpText(tr(it)) } }
+            scanAdbStatus?.let { row { HelpText(tr(if (it == "settings.scan_pause.ready") "settings.vehicle.adb_ready" else it)) } }
             // Precise positioning is a location option and sits under the location switch instead.
             VehicleDataFeature.entries.filter { it != VehicleDataFeature.PRECISE_POSITIONING }.forEach { feature ->
                 row {

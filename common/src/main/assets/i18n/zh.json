@@ -339,18 +339,10 @@
   "settings.vehicle.feature.accuracy.description": "根据 Android 水平定位精度估算 HDOP",
   "settings.vehicle.feature.precise_positioning.title": "精确定位信息",
   "settings.vehicle.feature.precise_positioning.description": "回传 GGA 定位质量、卫星数和海拔；系统未提供的数据分别回退",
-  "settings.vehicle.feature.wheel_speed.title": "车轮速度与档位",
+  "settings.vehicle.feature.wheel_speed.title": "车速与挡位上报",
   "settings.vehicle.feature.wheel_speed.description": "通过已授权 ADB 读取车速和挡位，为 iPhone 提供定位辅助；默认关闭，保存并重启 CarPlay 后生效。",
   "settings.vehicle.feature.ev_status.title": "电池与续航上报",
   "settings.vehicle.feature.ev_status.description": "向 iPhone 提供可读到的电量百分比、续航、剩余电量和充电状态；默认关闭，不保证导航应用采用。",
-  "settings.vehicle.feature.outside_temperature.title": "车外温度",
-  "settings.vehicle.feature.outside_temperature.description": "需要数据源提供车外温度",
-  "settings.vehicle.feature.barometric_pressure.title": "大气压力",
-  "settings.vehicle.feature.barometric_pressure.description": "需要数据源提供气压，以毫巴回传",
-  "settings.vehicle.feature.passenger_seat.title": "副驾驶占用状态",
-  "settings.vehicle.feature.passenger_seat.description": "需要数据源提供副驾驶座椅占用状态",
-  "settings.vehicle.feature.wipers.title": "雨刷工作状态",
-  "settings.vehicle.feature.wipers.description": "需要数据源提供喷水或雨刷工作间隔",
   "settings.app_version": "应用版本",
   "settings.category.about": "关于",
   "settings.category.about.summary": "查看 Android 与应用版本",
@@ -379,5 +371,6 @@
   "settings.channel.observed": "最近一次热点实际信道：{channel}（{band}）。下次连接可能改变。",
   "settings.channel.unknown": "最近一次热点实际信道：尚未读取。连接成功后显示。",
   "settings.vehicle.byd_help": "只读获取车速、挡位、电量、续航、剩余电量和充电状态。先开启车机网络 ADB 并授权，再点击实时诊断确认数据；开启下方上报项后，点击右上角“重启 CarPlay”保存应用。不会控制车辆。",
-  "settings.vehicle.byd_diagnostics_help": "诊断最多运行 10 分钟，退出设置后停止；诊断值不会发给 iPhone。胎压/胎温仅在诊断中查看，暂无 CarPlay 映射。不支持的字段显示不可用，不使用猜测值。"
+  "settings.vehicle.byd_diagnostics_help": "诊断最多运行 10 分钟，退出设置后停止；诊断值不会发给 iPhone。胎压/胎温仅在诊断中查看，暂无 CarPlay 映射。不支持的字段显示不可用，不使用猜测值。",
+  "settings.vehicle.adb_ready": "本机 ADB 已授权。请点击实时诊断检查车辆数据，再开启所需上报项并保存。"
 }

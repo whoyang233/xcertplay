@@ -114,10 +114,18 @@ class BydVehicleReaderTest {
             listOf(1246797848,1246797860,1246797872,1246797884).forEach { values[it] = 31 }
             values[-1728052952] = 900; values[1246797872] = 999
         }
-        val text = BydVehicleReader(link).tyres()
+        val reader = BydVehicleReader(link); reader.prepare(); link.reads.clear()
+        val text = reader.tyres()
         assertEquals(8, link.reads.size)
         assertTrue(text.contains("左前：250 kPa / 31 °C"))
         assertTrue(text.contains("右前：— / 31 °C"))
         assertTrue(text.contains("左后：250 kPa / —"))
+    }
+    @Test fun canTyresDoNotGuessCanFdTemperatureAddresses() {
+        val link=FakeBydLink().apply { protocol="CAN"; values[-1728052956]=250 }
+        val reader=BydVehicleReader(link);reader.prepare();link.reads.clear()
+        assertTrue(reader.tyres().contains("左前：250 kPa / —"))
+        assertEquals(4,link.reads.size)
+        assertFalse(link.reads.any { "i32 1007" in it })
     }
 }
