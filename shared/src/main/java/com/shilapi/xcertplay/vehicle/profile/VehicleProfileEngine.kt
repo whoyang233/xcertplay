@@ -63,6 +63,12 @@ class VehicleProfileEngine(
         if(discoveryAt==Long.MIN_VALUE || catalog.properties.isEmpty() && time-discoveryAt>=1000) {
             catalog=backend.discoverProperties(); discoveryAt=time
         }
+        // A profile for another SDK/service/property catalog must never issue its getters.
+        matchReason()?.let { reason ->
+            states=profile.signals.associate { it.id to SignalState(it,normalized=NormalizedField(reason=reason)) }
+            synchronized(ready) { ready.notifyAll() }
+            return
+        }
         val desired=if(diagnostic && time<diagnosticUntil) profile.signals.map { it.id }.toSet()
             else profile.carplay.filterKeys { enabled(it) && wanted(it) }.values.toSet()
         val next=states.toMutableMap()

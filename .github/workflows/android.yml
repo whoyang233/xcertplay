@@ -52,29 +52,26 @@ jobs:
           ALLOW_UNSIGNED_BOOTSTRAP: ${{ (github.event_name == 'workflow_dispatch' && inputs.bootstrap_unsigned) || github.event_name == 'pull_request' }}
         run: python3 ci/prepare-personal-signing.py
 
-      - name: Test, lint, and build personal APKs
+      - name: Test, lint, and build personal mobile APK
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
           :common:testDebugUnitTest
           :common:lintDebug
           :mobile:lintDebug
-          :automotive:lintDebug
           :mobile:assembleDebug
-          :automotive:assembleDebug
           $UNSIGNED_BUILD_ARGUMENT
           --stacktrace
 
       - name: Verify personal package and signing identity
         run: python3 ci/verify-personal-apks.py
 
-      - name: Upload personal APKs
+      - name: Upload personal mobile APK
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.signing.outputs.artifact_prefix }}-${{ github.sha }}
           path: |
             mobile/build/outputs/apk/debug/*.apk
-            automotive/build/outputs/apk/debug/*.apk
             personal-apk-verification.json
           if-no-files-found: error
 
@@ -89,7 +86,6 @@ jobs:
             common/build/reports/
             shared/build/reports/
             mobile/build/reports/
-            automotive/build/reports/
           if-no-files-found: ignore
 
   release:
@@ -126,14 +122,12 @@ jobs:
           PERSONAL_ANDROID_SIGNING: ${{ secrets.PERSONAL_ANDROID_SIGNING }}
         run: python3 ci/prepare-personal-signing.py
 
-      - name: Test, lint, and build signed release APKs
+      - name: Test, lint, and build signed mobile release APK
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
           :common:lintRelease
           :mobile:lintRelease
-          :automotive:lintRelease
-          :automotive:assembleRelease
           :mobile:assembleRelease
           --stacktrace
 
@@ -144,20 +138,17 @@ jobs:
           mkdir -p release
           safe_tag="${GITHUB_REF_NAME//\//-}"
           mobile_apk="$(find mobile/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
-          automotive_apk="$(find automotive/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "${mobile_apk}"
-          test -n "${automotive_apk}"
 
           apksigner="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
           expected_cert="$(tr -d '\r\n' < signing/personal-certificate.sha256)"
-          for apk in "${mobile_apk}" "${automotive_apk}"; do
+          for apk in "${mobile_apk}"; do
             signer_info="$("${apksigner}" verify --verbose --print-certs "${apk}")"
             actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "${signer_info}")"
             test "${actual_cert,,}" = "${expected_cert,,}"
           done
 
           cp "${mobile_apk}" "release/xcertplay-mobile-${safe_tag}.apk"
-          cp "${automotive_apk}" "release/xcertplay-automotive-${safe_tag}.apk"
 
       - name: Upload APKs to the tag release
         env:

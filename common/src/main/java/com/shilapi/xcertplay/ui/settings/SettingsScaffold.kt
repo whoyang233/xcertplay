@@ -60,6 +60,8 @@ internal fun SettingsScaffold(
     onSave: () -> Unit,
     onExit: () -> Unit,
     onLayout: (Boolean) -> Unit = {},
+    detailTitle: String? = null,
+    detailKey: Any? = null,
     content: @Composable (String) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -74,9 +76,9 @@ internal fun SettingsScaffold(
             SideEffect { onLayout(twoPane) }
             Column(Modifier.fillMaxSize()) {
                 SettingsActions(
-                    title = selected?.title ?: tr("settings.title"),
+                    title = detailTitle ?: selected?.title ?: tr("settings.title"),
                     compact = compactActions,
-                    backToCategories = !twoPane && selected != null,
+                    backToCategories = detailTitle != null || !twoPane && selected != null,
                     onBack = onBack,
                     onSave = onSave,
                     onExit = onExit,
@@ -105,7 +107,7 @@ internal fun SettingsScaffold(
                             color = scheme.surfaceContainerLow,
                         ) {
                             ProvideGroupColor(scheme.surfaceContainerHigh) {
-                                SettingsDetail(selected!!.id, content)
+                                SettingsDetail(selected!!.id, detailKey, content)
                             }
                         }
                     }
@@ -135,7 +137,7 @@ internal fun SettingsScaffold(
                         Spacer(Modifier.height(16.dp))
                     }
                 } else {
-                    Column(Modifier.weight(1f).fillMaxWidth()) { SettingsDetail(selected.id, content) }
+                    Column(Modifier.weight(1f).fillMaxWidth()) { SettingsDetail(selected.id, detailKey, content) }
                 }
             }
         }
@@ -143,8 +145,8 @@ internal fun SettingsScaffold(
 }
 
 @Composable
-private fun SettingsDetail(id: String, content: @Composable (String) -> Unit) {
-    key(id) {
+private fun SettingsDetail(id: String, detailKey: Any?, content: @Composable (String) -> Unit) {
+    key(id, detailKey) {
         Column(
             Modifier.fillMaxSize().testTag("settings-content")
                 .verticalScroll(rememberScrollState()).padding(bottom = 16.dp),

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.shilapi.xcertplay.vehicle.profile.*
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 
 /**
  * Files contain data only. A validated draft becomes active only on Save & Reconnect, which also
@@ -20,6 +21,19 @@ class VehicleProfileRepository(private val context: Context) {
         const val IMPORTED = "imported"
         const val DEFAULT_BUNDLED = "standard-android.json"
         private const val MAX_PROFILE_BYTES = 1_048_576
+
+        /** Enforce the byte limit while reading, including files that grow after selection. */
+        internal fun readProfile(input: InputStream): String {
+            val result = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                require(result.size() + count <= MAX_PROFILE_BYTES) { "Profile exceeds 1 MiB" }
+                result.write(buffer, 0, count)
+            }
+            return result.toByteArray().toString(Charsets.UTF_8).also { VehicleProfileParser.parse(it) }
+        }
 
         /**
          * The remembered profile if it still parses, otherwise the default with the reason. A saved
@@ -41,17 +55,11 @@ class VehicleProfileRepository(private val context: Context) {
     }
     private val active = java.io.File(context.filesDir,"vehicle-profile-active.json")
     fun load(): Selection = resolve(AirPlayPersistence.loadVehicleProfileSelection(context), ::bundled) {
-        runCatching { active.readText() }.getOrNull()
+        runCatching { active.inputStream().use(::readProfile) }.getOrNull()
     }
     fun import(uri: Uri): String {
-        val text = context.contentResolver.openInputStream(uri)?.use { input ->
-            val result=ByteArrayOutputStream();val buffer=ByteArray(8192)
-            while(true) { val n=input.read(buffer);if(n<0) break
-                require(result.size()+n<=MAX_PROFILE_BYTES){"Profile exceeds 1 MiB"};result.write(buffer,0,n)
-            };result.toByteArray().toString(Charsets.UTF_8)
-        } ?: error("Cannot read selected document")
-        VehicleProfileParser.parse(text)
-        return text
+        return context.contentResolver.openInputStream(uri)?.use(::readProfile)
+            ?: error("Cannot read selected document")
     }
     /** Used when the head unit has no document picker at all. */
     fun externalImportFile(): java.io.File = java.io.File(
@@ -59,9 +67,7 @@ class VehicleProfileRepository(private val context: Context) {
     fun importFile(file: java.io.File): String {
         require(file.isFile) { "No file at ${file.absolutePath}" }
         require(file.length() <= MAX_PROFILE_BYTES) { "Profile exceeds 1 MiB" }
-        val text = file.readText()
-        VehicleProfileParser.parse(text)
-        return text
+        return file.inputStream().use(::readProfile)
     }
     /** Bundled profiles (asset file to name) in display order, so a head unit can switch without a file picker. */
     fun bundledProfiles(): List<Pair<String,String>> = runCatching {

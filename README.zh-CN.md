@@ -9,14 +9,13 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.0B 安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载上一轮已验证的 1.4.0B 安装包 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
 | 安装包 | 适用设备 |
 | --- | --- |
 | `mobile-debug.apk` | 一般 Android 车机，通常选择这个版本。 |
-| `automotive-debug.apk` | 原生 Android Automotive OS 设备。 |
 
 最低要求为 **Android 9（API 28）**。MFi 认证需配置 CH341、原生 I2C、本地证书文件或远程服务中的一种。
 
@@ -24,10 +23,14 @@
 | --- | --- |
 | 桌面名称 | xcertplay 个人版 |
 | 应用包名 | `com.whoyang233.xcertplay` |
-| 当前上游基础版本 / versionCode | `1.4.0` / `1400` |
-| 当前测试版显示版本 | `1.4.0B` |
+| 当前上游基础版本 / versionCode | `1.4.2` / `1402` |
+| 当前测试版显示版本 | `1.4.2B` |
 
-个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。mobile 与 automotive 是同一应用的两种变体，按设备选一个。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
+个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。个人分支今后只构建 mobile APK，适用于一般 Android / 比亚迪 DiLink 车机。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
+
+## 车辆 JSON 配置
+
+车辆 JSON 是只读属性与 CarPlay 字段之间的映射，不是固件或脚本，也不能绕过车机权限。[查看格式、内置示例、兼容范围和本轮审核记录](docs/VEHICLE_PROFILES.zh-CN.md)。车辆来源的上报默认关闭；DiLink 4.0 是否提供标准 Android Car 服务需要实车诊断确认。
 
 ## 主要功能
 
@@ -129,7 +132,7 @@ APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
 
 | 产物 | 内容 |
 | --- | --- |
-| `personal-apks-<commit>` | 两种已签名 APK 和包名/签名验证信息。 |
+| `personal-apks-<commit>` | 已签名 mobile APK 和包名/签名验证信息。 |
 | `validation-reports-<commit>` | 单元测试、Lint 报告和设置布局截图。 |
 | `unsigned-apks-<commit>` | 仅供显式初始化或无密钥 PR 验证的未签名输入，不能直接安装。 |
 
@@ -147,26 +150,26 @@ APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
 macOS / Linux：
 
 ```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
 ```
 
 Windows PowerShell：
 
 ```powershell
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
 ```
 
 签名 release 构建同样需要上述固定私钥：
 
 ```bash
-./gradlew :mobile:assembleRelease :automotive:assembleRelease
+./gradlew :mobile:assembleRelease
 ```
 
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名 debug 输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
 
-2026-10-16 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/38916851294)来自提交 `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`：**295 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告。** 两种 APK 的包名、桌面名称、固定签名、Provider 和自定义权限标识已核对。音频测试覆盖音乐/导航绑定、软件增益、解码转发、配置恢复，以及通话/Siri 音频不受影响；已检查 1080P 音频设置操作和截图。设置布局测试覆盖 1920×1080 的 160/240/320 DPI、150% 字体的窄窗口，以及矮窗口长信道列表滚动；[验证报告产物](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) 中的 `common/build/reports/settings-layout/` 包含测试页面截图。安装、设置布局及连接稳定性、抗干扰效果仍需实车验收。
+2026-10-16 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/38916851294)来自提交 `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`：**295 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告。** mobile APK 的包名、桌面名称、固定签名、Provider 和自定义权限标识已核对。音频测试覆盖音乐/导航绑定、软件增益、解码转发、配置恢复，以及通话/Siri 音频不受影响；已检查 1080P 音频设置操作和截图。设置布局测试覆盖 1920×1080 的 160/240/320 DPI、150% 字体的窄窗口，以及矮窗口长信道列表滚动；[验证报告产物](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) 中的 `common/build/reports/settings-layout/` 包含测试页面截图。安装、设置布局及连接稳定性、抗干扰效果仍需实车验收。
 
 实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
 

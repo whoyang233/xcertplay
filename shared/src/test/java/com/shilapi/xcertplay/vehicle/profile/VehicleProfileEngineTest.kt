@@ -32,7 +32,33 @@ class VehicleProfileEngineTest {
         val b=Backend();val p=profile().copy(requires=listOf(PropertyKey(43)))
         val e=VehicleProfileEngine(b,p,ev,{b.time},28,{true})
         e.onSubscriptionChanged(true);e.tick();assertNull(e.snapshot());assertEquals("REQUIRED_CONFIG_MISSING_OR_INACCESSIBLE",e.matchReason())
+        assertEquals("Unmatched required properties must not issue getters",0,b.calls)
         b.isConnected=false;e.tick();assertEquals("DISCONNECTED",e.current("soc").reason);e.close()
+    }
+
+    @Test fun sdkAndServiceMismatchNeverReadsProfileProperties() {
+        for ((p, packages, expected) in listOf(
+            Triple(profile().copy(androidSdk=29), true, "DEVICE_SDK_MISMATCH"),
+            Triple(profile().copy(servicePackage="car.vendor.service"), false, "SERVICE_PACKAGE_MISMATCH"),
+        )) {
+            val b=Backend()
+            val e=VehicleProfileEngine(b,p,ev,{b.time},28,{packages})
+            e.onSubscriptionChanged(true);e.tick()
+            assertEquals(expected,e.current("soc").reason)
+            assertEquals(0,b.calls)
+            assertNull(e.snapshot())
+            e.close()
+        }
+    }
+
+    @Test fun losingAMatchedServiceClearsPreviouslyValidSamplesAndStopsReads() {
+        val b=Backend();var service=true
+        val e=VehicleProfileEngine(b,profile().copy(servicePackage="car.vendor.service"),ev,{b.time},28,{service})
+        e.onSubscriptionChanged(true);e.tick();assertEquals(81.0,e.snapshot()?.batteryPercent)
+        val reads=b.calls;service=false;b.time+=1000;e.tick()
+        assertEquals(reads,b.calls);assertNull(e.snapshot())
+        assertEquals("SERVICE_PACKAGE_MISMATCH",e.current("soc").reason)
+        e.close()
     }
     @Test fun aDisabledFeatureIsNeitherStartedNorReported() {
         val b=Backend(); val e=VehicleProfileEngine(b,profile(),VehicleDataConfig(enabled=emptySet()),{b.time},28,{true})

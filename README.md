@@ -9,14 +9,13 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the previously verified 1.4.0B APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053920488)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/38916851294) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
 
 | APK | Target |
 | --- | --- |
 | `mobile-debug.apk` | Standard Android head units; choose this for most devices. |
-| `automotive-debug.apk` | Native Android Automotive OS devices. |
 
 Requires **Android 9 (API 28)** or newer and a configured MFi authentication source: CH341, native I2C, local certificate files, or a remote service.
 
@@ -24,10 +23,14 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 | --- | --- |
 | Launcher name | xcertplay 个人版 |
 | Application ID | `com.whoyang233.xcertplay` |
-| Current upstream base version / versionCode | `1.4.0` / `1400` |
-| Current debug version name | `1.4.0B` |
+| Current upstream base version / versionCode | `1.4.2` / `1402` |
+| Current debug version name | `1.4.2B` |
 
-The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. The mobile and automotive APKs are alternative variants of the same app; install one for your device. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
+The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch now builds only the mobile APK for standard Android / BYD DiLink head units. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
+
+## Vehicle JSON profiles
+
+Profiles map read-only Android Car properties to CarPlay fields. They are data, cannot execute code or grant vehicle permissions, and do not enable reporting automatically. See the [schema, bundled example, compatibility limits and audit record (Chinese)](docs/VEHICLE_PROFILES.zh-CN.md). Standard Car service availability on DiLink 4.0 requires vehicle diagnostics.
 
 ## Core features
 
@@ -131,7 +134,7 @@ Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstr
 
 | Artifact | Contents |
 | --- | --- |
-| `personal-apks-<commit>` | Both signed APKs and package/signature verification metadata. |
+| `personal-apks-<commit>` | Signed mobile APK and package/signature verification metadata. |
 | `validation-reports-<commit>` | Unit test, lint, and settings-layout screenshot reports. |
 | `unsigned-apks-<commit>` | Unsigned inputs for explicit bootstrap or PR validation without a key; not installable. |
 
@@ -149,26 +152,26 @@ Set these environment variables to the original PKCS#12 key from the offline bac
 macOS / Linux:
 
 ```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
 ```
 
 Windows PowerShell:
 
 ```powershell
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :automotive:lintDebug :mobile:assembleDebug :automotive:assembleDebug
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :mobile:lintDebug :mobile:assembleDebug
 ```
 
 Signed release builds require the same fixed key:
 
 ```bash
-./gradlew :mobile:assembleRelease :automotive:assembleRelease
+./gradlew :mobile:assembleRelease
 ```
 
 Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned debug inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
 
 ## Verification and feedback
 
-The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38916851294), commit `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`, passed **295 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. Both APKs were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Audio tests cover music/navigation bindings, software gain, decoded forwarding, preference recovery, and unchanged call/Siri audio. The Full-HD audio settings controls and screenshot were also verified. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
+The [verified build from 2026-10-16](https://github.com/whoyang233/xcertplay/actions/runs/38916851294), commit `5c3f6b83e28ba3c19da708c83d302bef5c6aa9be`, passed **295 unit tests with no failures, errors, or skips; lint had no errors but retained warnings**. The mobile APK were checked for application ID, launcher label, fixed signing identity, provider authorities, and defined permissions. Audio tests cover music/navigation bindings, software gain, decoded forwarding, preference recovery, and unchanged call/Siri audio. The Full-HD audio settings controls and screenshot were also verified. Settings layout tests cover 1920×1080 at 160/240/320 DPI, a narrow window with 150% fonts, and scrolling a long channel dialog in a short window. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/38916851294/artifacts/12053905628) includes fixture screenshots under `common/build/reports/settings-layout/`. On-device installation, settings layout, and connection stability/RF behavior still require vehicle testing.
 
 Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
 
