@@ -27,10 +27,10 @@ android {
     }
     sourceSets {
         getByName("main") {
-            java.srcDir(if (webDisplayEnabled) "src/webDisplay/java" else "src/noWebDisplay/java")
+            kotlin.srcDir(if (webDisplayEnabled) "src/webDisplay/java" else "src/noWebDisplay/java")
             if (webDisplayEnabled) assets.srcDir("src/webDisplay/assets")
         }
-        getByName("test").java.srcDir(
+        getByName("test").kotlin.srcDir(
             if (webDisplayEnabled) "src/webDisplayTest/java" else "src/noWebDisplayTest/java",
         )
     }
