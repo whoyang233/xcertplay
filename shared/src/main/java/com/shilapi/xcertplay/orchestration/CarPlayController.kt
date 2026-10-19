@@ -166,6 +166,10 @@ class CarPlayController(
         WifiScanPause.restoreIfNeeded(context)
     }
 
+    /** Immutable negotiated stream size; the host must preserve this aspect ratio during layout changes. */
+    val mainDisplaySizePixels: Pair<Int, Int>
+        get() = airPlayConfig.main.widthPixels to airPlayConfig.main.heightPixels
+
     private enum class Phase { IDLE, MFI, WIRELESS, IPHONE, REENUMERATION, DATAPATHS, CONTROL }
 
     private val appContext = context.applicationContext

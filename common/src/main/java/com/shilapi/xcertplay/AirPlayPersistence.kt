@@ -127,6 +127,15 @@ object AirPlayPersistence {
         )
     }
 
+    /** Compatibility default: old saved safe-area sizes do not enlarge a new stream. */
+    fun loadFastViewAreaSwitching(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("display_fast_view_areas", false)
+
+    fun saveFastViewAreaSwitching(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("display_fast_view_areas", enabled).apply()
+    }
+
     fun saveDisplayScaleTenths(context: Context, tenths: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putInt(KEY_DISPLAY_SCALE_TENTHS, CarPlayDisplayScale.sanitize(tenths))
