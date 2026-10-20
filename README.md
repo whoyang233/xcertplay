@@ -9,7 +9,7 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the verified 1.4.2B automotive APK ZIP (startup sizing and audio streams)](https://github.com/whoyang233/xcertplay/actions/runs/39267352871/artifacts/12193279325)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39267352871) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the verified 1.4.2B automotive APK ZIP (four DiPlay feature ports)](https://github.com/whoyang233/xcertplay/actions/runs/39352998865/artifacts/12234476798)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39352998865) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
 
@@ -52,6 +52,9 @@ The upstream base remains 1.4.2. This update adds an opt-in BYD call-popup guard
 
 | Area | Behavior |
 | --- | --- |
+| BYD call popup | Off by default; Android 10+ with the BYD call component and approved local ADB. Suppresses the overlay only during connected foreground CarPlay and attempts exact permission restoration on background/disconnect. |
+| Audio recovery | Failed software Opus frames are dropped/reset; a fresh iPhone playback transition retries focus when the existing focus setting permits it. |
+| Wired recovery | A 30-second session-start watchdog, a 10-second USB mode recheck, and delayed-retry protection for newly recovered sessions. |
 | BYD vehicle data | Six read-only ADB measurements feed normalized CarPlay reporting; tyres are diagnostic only. Replaces the old JSON/Android Car backend. |
 | Startup/display sizing | Stable-layout negotiation, real long/short-edge references, single-area compatibility by default, optional fast areas and display-default recovery. |
 | Optional web display | Off at build time by default; excludes the server, certificate implementation, HTML and HTTP/WebSocket dependencies. Its entry is hidden and saved enabled states cannot redirect local playback. |
@@ -195,9 +198,9 @@ Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce u
 
 ## Verification and feedback
 
-The [verified build from 2026-10-19](https://github.com/whoyang233/xcertplay/actions/runs/39267352871), commit `e1039070440e4cfa658fd55fb928dbacee4ea960`, passed **350 unit tests with no failures, errors or skips; lint had no errors and retained 82 common / 3 automotive warnings**. The 25 BYD source/migration tests cover CAN/CANFD, conversions, partial/invalid readings, firmware catalog caching, failure recovery, freshness, subscriptions, diagnostic isolation, cancellation and migration. iAP2 tests verify remaining-energy and charging parameter encoding. Navigation gain, audio bindings, microphone, Wi-Fi recovery and scan-suppression regressions passed. Settings checks cover Full-HD at multiple densities, narrow windows with 150% fonts and short channel dialogs. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/39267352871/artifacts/12194038348) includes fixture screenshots. Actual head-unit ADB, available fields, navigation use, installation and connection behavior still require vehicle testing.
+The [verified build from 2026-10-20](https://github.com/whoyang233/xcertplay/actions/runs/39352998865), commit `09ebf54bd09f8cdd5ec48e201eefe0dfe01138be`, passed **388 unit tests with no failures, errors or skips; lint had no errors and retained 83 common / 3 automotive warnings**. The 25 BYD source/migration tests cover CAN/CANFD, conversions, partial/invalid readings, firmware catalog caching, failure recovery, freshness, subscriptions, diagnostic isolation, cancellation and migration. iAP2 tests verify remaining-energy and charging parameter encoding. The 38 additional executions cover popup leases/cancellation/restoration, eligibility and UI, Opus failures, focus and playback transitions, wired timeouts and recovery protection. Navigation gain, audio bindings, microphone, Wi-Fi recovery and scan-suppression regressions passed. Settings checks cover Full-HD at multiple densities, narrow windows with 150% fonts and short channel dialogs. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/39352998865/artifacts/12234681416) includes fixture screenshots. Actual head-unit ADB, available fields, navigation use, installation and connection behavior still require vehicle testing.
 
-This run produces only the automotive APK. Package/version (1.4.2B / 1402), the pinned signer, and provider/custom-permission identities are verified. Startup sizing, touch adaptation, numbered audio binding and BYD ADB code are included. Old vehicle JSON assets/parser and Android Car property backend, browser assets/server/certificate and NanoHTTPD/NanoWSD remain excluded. The separate optional web job passes **76 common tests, including 15 web tests**, without packaging another APK.
+This run produces only the automotive APK. Package/version (1.4.2B / 1402), the pinned signer, and provider/custom-permission identities are verified. Startup sizing, touch adaptation, numbered audio binding and BYD ADB code are included. Old vehicle JSON assets/parser and Android Car property backend, browser assets/server/certificate and NanoHTTPD/NanoWSD remain excluded. The separate optional web job passes **83 common tests, including 15 web tests**, without packaging another APK.
 
 Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
 

@@ -271,7 +271,7 @@ class AndroidMediaSink(
             Log.i(TAG, "audio focus ${if (value) "enabled" else "disabled"}")
         }
 
-        /** Called only when the user enters the host, never by arriving audio packets. */
+        /** Explicit host/playback-resume requests only; arriving audio packets never request focus. */
         @Synchronized
         fun requestFromHost() {
             if (!enabled || owners.isEmpty() || hasFocus) return

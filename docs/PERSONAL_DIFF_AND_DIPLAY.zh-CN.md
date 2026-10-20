@@ -50,3 +50,5 @@
 ## 验证
 
 构建前后执行 shared/common 单元测试、common/automotive Lint、automotive 打包及固定签名校验；可选网页兼容任务只跑 common 测试，不生成第二个 APK。新增覆盖悬浮窗原始权限恢复、心跳过期、丢失应答、并发取消、Android/组件门槛、设置草稿、Opus 失败后继续编码、焦点许可与关闭状态、重复播放通知、超时取消及恢复后再次丢失。具体通过数量和下载链接见 README 的对应构建记录，未将源码检查视作实车验收。
+
+本轮已验证：[构建 39352998865](https://github.com/whoyang233/xcertplay/actions/runs/39352998865)，源码 `09ebf54bd09f8cdd5ec48e201eefe0dfe01138be`。**388 项测试全通过，无失败、错误或跳过；可选网页兼容 83 项全通过；Lint 无错误（common 83、automotive 3 条警告）。** 核验 APK 含四项迁移代码与既有个人模块，未包含临时系统栏、旧车辆 JSON 后端和网页模块。包名、固定签名、Provider/自定义权限及请求的系统权限集合与上一轮个人版一致，仅新增比亚迪通话组件的包可见性查询。最终包 47,752,062 字节；签名证书 SHA-256 为 `0692c68e3ca7d9ba413a4ee649bfac90d4fe63cda2e5498e11775d9f11fbe3c0`。
