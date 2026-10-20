@@ -262,10 +262,10 @@ object AirPlayPersistence {
 
     fun loadMainMediaAudioBufferDurationMs(context: Context): Int =
         MainMediaAudioBuffer.sanitizeDurationMs(
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(
+            runCatching { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(
                 KEY_MAIN_MEDIA_AUDIO_BUFFER_DURATION_MS,
                 MainMediaAudioBuffer.DEFAULT_DURATION_MS,
-            ),
+            ) }.getOrDefault(MainMediaAudioBuffer.DEFAULT_DURATION_MS),
         )
 
     fun saveMainMediaAudioBufferDurationMs(context: Context, durationMs: Int) {

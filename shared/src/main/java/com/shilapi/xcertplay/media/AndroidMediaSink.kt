@@ -919,6 +919,7 @@ private class AudioRenderer(
         val configuredMainMediaBuffer = MainMediaAudioBuffer.isMainMedia(
             audioType = format.audioType,
             payloadType = format.payloadType,
+            mode = mappingMode,
         )
         val bufferBytes = if (configuredMainMediaBuffer) {
             MainMediaAudioBuffer.bufferSizeBytes(
@@ -930,11 +931,7 @@ private class AudioRenderer(
         } else {
             maxOf(minBuffer * 4, MIN_TRACK_BUFFER_BYTES)
         }
-        startThresholdBytes = if (format.audioType == "telephony" || format.audioType == "speechrecognition") {
-            maxOf(minBuffer, MIN_START_BUFFER_BYTES)
-        } else {
-            maxOf(minBuffer, MIN_START_BUFFER_BYTES)
-        }
+        startThresholdBytes = MainMediaAudioBuffer.startThresholdBytes(bufferBytes, minBuffer)
         fun usageTrack(): AudioTrack = AudioTrack.Builder()
                 .setAudioAttributes(audioAttributes())
                 .setAudioFormat(
@@ -963,12 +960,13 @@ private class AudioRenderer(
         )
         // AudioTrack consumes 16-bit PCM, so frame size follows the channel mask configured above.
         trackBytesPerFrame = trackChannelCount * BYTES_PER_PCM_16_SAMPLE
+        val actualFrames = track?.bufferSizeInFrames ?: 0
         Log.i(
             TAG,
             "audio track prepared type=${format.payloadType} audioType=${format.audioType} " +
                 "codec=${format.codec} " +
                 "rate=${format.sampleRate} channels=${format.channels} " +
-                "bufferBytes=$bufferBytes" +
+                "bufferBytes=$bufferBytes actualBufferFrames=$actualFrames startThresholdBytes=$startThresholdBytes" +
                 if (configuredMainMediaBuffer) {
                     " configuredDurationMs=${MainMediaAudioBuffer.sanitizeDurationMs(mainMediaAudioBufferDurationMs)}"
                 } else {
@@ -1162,7 +1160,7 @@ private class AudioRenderer(
             val writeLength = if (playbackStarted) {
                 length - written
             } else {
-                minOf(length - written, PREBUFFER_WRITE_CHUNK_BYTES)
+                MainMediaAudioBuffer.prebufferWriteLength(length - written, prebufferBytes, startThresholdBytes)
             }
             val count = track.write(data, offset + written, writeLength, AudioTrack.WRITE_BLOCKING)
             if (count <= 0) break
@@ -1316,8 +1314,6 @@ private class AudioRenderer(
         const val INPUT_TIMEOUT_US = 10_000L
         const val MAX_QUEUED_PACKETS = 64
         const val MIN_TRACK_BUFFER_BYTES = 16 * 1024
-        const val MIN_START_BUFFER_BYTES = 4 * 1024
-        const val PREBUFFER_WRITE_CHUNK_BYTES = 2 * 1024
         const val DECODED_BUFFER_LOG_INTERVAL = 50
         const val AUDIO_TIMESTAMP_INTERVAL_NS = 200_000_000L
         const val NANOS_PER_SECOND = 1_000_000_000L

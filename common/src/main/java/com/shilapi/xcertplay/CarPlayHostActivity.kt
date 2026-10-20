@@ -1481,13 +1481,6 @@ class CarPlayHostActivity : ComponentActivity() {
         }
     }
 
-    private fun mainMediaAudioBufferLabel(durationMs: Int): String =
-        String.format(
-            Locale.US,
-            "%d ms",
-            MainMediaAudioBuffer.sanitizeDurationMs(durationMs),
-        )
-
     private fun microphoneGainLabel(percent: Int): String {
         val gain = MicrophoneGain.sanitize(percent)
         // Sub-unity steps are only ~0.06x apart, so one decimal would show duplicates.
@@ -3679,19 +3672,11 @@ class CarPlayHostActivity : ComponentActivity() {
             }
         }
         SectionHeader(tr("settings.audio.playback"))
-        val bufferValues = remember {
-            (MainMediaAudioBuffer.MIN_DURATION_MS..MainMediaAudioBuffer.MAX_DURATION_MS step
-                MainMediaAudioBuffer.STEP_DURATION_MS).toList()
-        }
         SettingsGroup {
             row {
-                SliderRow(
-                    title = tr("settings.audio.buffer"),
-                    support = tr("settings.audio.buffer.support"),
-                    valueLabel = mainMediaAudioBufferLabel(mainMediaAudioBufferDurationMs),
-                    index = bufferValues.indexOf(mainMediaAudioBufferDurationMs).coerceAtLeast(0),
-                    count = bufferValues.size,
-                    onIndexChange = { mainMediaAudioBufferDurationMs = bufferValues[it] },
+                com.shilapi.xcertplay.ui.settings.MediaBufferSetting(
+                    durationMs = mainMediaAudioBufferDurationMs,
+                    onChange = { mainMediaAudioBufferDurationMs = it },
                 )
             }
             if (advancedAudioChannelMappingSupported) {

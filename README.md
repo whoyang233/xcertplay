@@ -146,6 +146,14 @@ The repository Actions secret **`PERSONAL_ANDROID_SIGNING`** holds the complete 
 
 APK signing keys and MFi authentication keys serve different purposes and are not interchangeable.
 
+## Media buffer and low-latency presets
+
+Settings → Audio → Main media buffer (latency) offers **20, 50, 100, 150, 200, 250, 300…1000 ms**, in 50 ms steps after 50. Existing saved values remain unchanged; a fresh installation still defaults to **100 ms**. Restart CarPlay saves and applies; closing settings discards the draft.
+
+This controls main-media AudioTrack PCM capacity, not an audio/video synchronization offset or an end-to-end latency guarantee. Smaller buffers can reduce queued audio but tolerate less network jitter. Try 50 ms before 20 ms, and return to a larger buffer if playback becomes intermittent. Android may enforce a larger minimum; `actualBufferFrames` in the audio log reports the allocated capacity. Video keeps its existing immediate decode/render path.
+
+The startup threshold and blocking pre-play writes stay within the track capacity, avoiding a full unstarted 20 ms track. The setting also covers identified 102/default music streams; calls, Siri and navigation retain their own paths.
+
 ## Build
 
 ### Requirements

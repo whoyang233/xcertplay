@@ -3,34 +3,29 @@ package com.shilapi.xcertplay.media
 /**
  * Sizing rules for the main media AudioTrack (AirPlay stream types 100 and 102).
  *
- * [sanitizeDurationMs] keeps the configured buffer duration between [MIN_DURATION_MS] and
- * [MAX_DURATION_MS] on a [STEP_DURATION_MS] grid, so the settings slider, the persisted value and
- * the real track capacity always agree.
+ * The selectable durations include low-latency presets while retaining every legacy 100 ms step.
+ * This is a PCM buffer capacity, not a promise of end-to-end audio/video latency.
  */
 object MainMediaAudioBuffer {
-    /** Shortest buffered duration the settings slider offers. */
-    const val MIN_DURATION_MS = 100
+    const val MIN_DURATION_MS = 20
 
     /** Longest buffered duration the settings slider offers. */
     const val MAX_DURATION_MS = 1_000
 
-    /** Slider granularity of the buffered duration. */
-    const val STEP_DURATION_MS = 100
+    /** Keep the previous default and saved values; opting into 20/50 ms is explicit. */
+    const val DEFAULT_DURATION_MS = 100
 
-    /** Default buffered duration: the lowest-latency option. */
-    const val DEFAULT_DURATION_MS = MIN_DURATION_MS
+    val presetsMs: List<Int> = listOf(20) + (50..MAX_DURATION_MS step 50).toList()
 
     private const val BYTES_PER_PCM_16_SAMPLE = 2L
     private const val MILLIS_PER_SECOND = 1_000L
     private const val STREAM_TYPE_MAIN_AUDIO = 100
     private const val STREAM_TYPE_MAIN_HIGH_AUDIO = 102
 
-    /** Clamps [durationMs] into range and snaps it to the nearest [STEP_DURATION_MS] multiple. */
-    fun sanitizeDurationMs(durationMs: Int): Int {
-        val clamped = durationMs.coerceIn(MIN_DURATION_MS, MAX_DURATION_MS)
-        val steps = (clamped - MIN_DURATION_MS + STEP_DURATION_MS / 2) / STEP_DURATION_MS
-        return MIN_DURATION_MS + steps * STEP_DURATION_MS
-    }
+    /** Closest offered preset, preferring the larger buffer on ties. Uses Long for corrupt ints. */
+    fun sanitizeDurationMs(durationMs: Int): Int = presetsMs.minWith(
+        compareBy<Int> { kotlin.math.abs(it.toLong() - durationMs.toLong()) }.thenByDescending { it },
+    )
 
     /**
      * Capacity in bytes for [durationMs] of 16-bit PCM at [sampleRate] and [channelCount].
@@ -47,13 +42,26 @@ object MainMediaAudioBuffer {
         require(sampleRate > 0)
         require(channelCount > 0)
         require(minBufferBytes > 0)
-        val capacity = sampleRate.toLong() * channelCount * BYTES_PER_PCM_16_SAMPLE *
-            sanitizeDurationMs(durationMs) / MILLIS_PER_SECOND
+        val bytesPerFrame = channelCount * BYTES_PER_PCM_16_SAMPLE
+        val frames = (sampleRate.toLong() * sanitizeDurationMs(durationMs) / MILLIS_PER_SECOND)
+            .coerceAtMost(Int.MAX_VALUE / bytesPerFrame)
+        val capacity = frames * bytesPerFrame
         return maxOf(minBufferBytes.toLong(), capacity).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
+    /** Never wait for more PCM than an unstarted track can hold. Keeps the old 4 KiB target. */
+    fun startThresholdBytes(bufferBytes: Int, minBufferBytes: Int): Int {
+        require(bufferBytes > 0 && minBufferBytes > 0)
+        return minOf(bufferBytes, maxOf(minBufferBytes, 4 * 1024))
+    }
+
+    /** A blocking pre-play write must stop at the threshold so play() can start the consumer. */
+    fun prebufferWriteLength(remaining: Int, buffered: Int, threshold: Int): Int =
+        minOf(remaining, 2 * 1024, (threshold - buffered).coerceAtLeast(1))
+
     /** True only for the main media stream, whose buffered duration is user configurable. */
-    fun isMainMedia(audioType: String, payloadType: Int): Boolean =
-        audioType.equals("media", ignoreCase = true) &&
-            (payloadType == STREAM_TYPE_MAIN_AUDIO || payloadType == STREAM_TYPE_MAIN_HIGH_AUDIO)
+    internal fun isMainMedia(audioType: String, payloadType: Int,
+                             mode: AudioChannelMappingMode = AudioChannelMappingMode.MOBILE_COMPATIBLE): Boolean =
+        (payloadType == STREAM_TYPE_MAIN_AUDIO || payloadType == STREAM_TYPE_MAIN_HIGH_AUDIO) &&
+            AudioChannelMapper.map(audioType, payloadType, mode).channel == AudioChannel.MEDIA
 }
