@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.2B automotive 车载包 ZIP（DiPlay 四项迁移版）](https://github.com/whoyang233/xcertplay/actions/runs/39352998865/artifacts/12234476798)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39352998865) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载已验证的 1.4.2B automotive 车载包 ZIP（低延迟档位版）](https://github.com/whoyang233/xcertplay/actions/runs/39354887281/artifacts/12235370209)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39354887281) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
 
@@ -52,6 +52,7 @@
 
 | 功能 | 当前行为 |
 | --- | --- |
+| 低延迟缓冲 | 主媒体缓冲支持 20、50–1000 ms，保留旧值与 100 ms 默认；小缓冲启动门槛和阻塞写入不超过容量，覆盖高质量默认音乐流。 |
 | 比亚迪通话弹窗 | 默认关闭；Android 10+ 且有比亚迪通话组件时可用，需本机 ADB；仅前台已连接时抑制悬浮窗，后台/断开尝试恢复原始权限。 |
 | 音频恢复与保护 | 软件 Opus 异常丢弃单帧并重置；iPhone 从暂停/停止恢复播放时按音频焦点开关重新申请焦点。 |
 | 有线恢复 | 发出会话启动请求后 30 秒无会话则触发现有重试，USB 模式切换 10 秒后重查；延迟重试避开新恢复的健康会话。 |
@@ -204,9 +205,9 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
-2026-10-20 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39352998865)来自提交 `09ebf54bd09f8cdd5ec48e201eefe0dfe01138be`：**388 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告（common 83、automotive 3）。** 其中比亚迪来源/迁移 25 项，覆盖 CAN/CANFD、单位换算、非法/部分读数、固件目录缓存、失败恢复、时效、订阅、诊断隔离、退出取消及旧来源迁移；iAP2 测试核对了剩余电量与充电状态的实际参数编码。本轮新增 38 项执行用例，覆盖通话弹窗租约/取消/恢复、门槛及菜单、Opus 异常、焦点恢复、播放状态和有线看门狗/重试保护。导航独立音量、音频绑定、麦克风、Wi-Fi 恢复及扫描抑制回归通过；设置布局测试覆盖多 DPI 的 1080P、150% 字体窄窗口和矮信道列表。[验证报告](https://github.com/whoyang233/xcertplay/actions/runs/39352998865/artifacts/12234681416)包含测试页面截图。实车 ADB、字段可用性、导航采用、安装和连接效果仍需验收。
+2026-10-20 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39354887281)来自提交 `5b319fa45bf87afd47b8b5646933492341aea95d`：**396 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告（common 83、automotive 3）。** 其中比亚迪来源/迁移 25 项，覆盖 CAN/CANFD、单位换算、非法/部分读数、固件目录缓存、失败恢复、时效、订阅、诊断隔离、退出取消及旧来源迁移；iAP2 测试核对了剩余电量与充电状态的实际参数编码。本轮新增 8 项执行用例，核对旧缓冲值保留、低档位保存/取消、大字体菜单、小容量启动及阻塞写入；既有通话弹窗、Opus、焦点和有线恢复回归继续通过。导航独立音量、音频绑定、麦克风、Wi-Fi 恢复及扫描抑制回归通过；设置布局测试覆盖多 DPI 的 1080P、150% 字体窄窗口和矮信道列表。[验证报告](https://github.com/whoyang233/xcertplay/actions/runs/39354887281/artifacts/12235570302)包含测试页面截图。实车 ADB、字段可用性、导航采用、安装和连接效果仍需验收。
 
-本次只生成 automotive APK，已核验个人包名、固定签名、Provider/自定义权限及版本 1.4.2B / 1402；包含启动尺寸策略、触控适配、编号音频绑定和比亚迪 ADB 后端。旧车辆 JSON 资源与解析/Android Car 属性后端不包含在包中；网页页面、服务器、证书实现和 NanoHTTPD/NanoWSD 仍排除。独立可选网页任务通过 **83 项 common 测试，其中 15 项为网页显示测试**，不额外打包 APK。
+本次只生成 automotive APK，已核验个人包名、固定签名、Provider/自定义权限及版本 1.4.2B / 1402；包含启动尺寸策略、触控适配、编号音频绑定和比亚迪 ADB 后端。旧车辆 JSON 资源与解析/Android Car 属性后端不包含在包中；网页页面、服务器、证书实现和 NanoHTTPD/NanoWSD 仍排除。独立可选网页任务通过 **88 项 common 测试，其中 15 项为网页显示测试**，不额外打包 APK。
 
 实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
 
