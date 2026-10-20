@@ -402,5 +402,10 @@
   "settings.audio.stream.17": "17 · Vendor stream",
   "settings.audio.stream.18": "18 · Vendor stream",
   "settings.audio.stream.19": "19 · Vendor stream",
-  "settings.audio.stream.20": "20 · Vendor stream"
+  "settings.audio.stream.20": "20 · Vendor stream",
+  "settings.call_popup.section": "BYD call notifications",
+  "settings.call_popup.title": "Hide BYD call popup (experimental)",
+  "settings.call_popup.support": "Off by default. Requires Android 10+, the BYD Bluetooth-call component and approved local ADB.",
+  "settings.call_popup.help": "Save and restart CarPlay to apply. Temporarily suppresses the native call overlay only while connected CarPlay is foreground, restoring it on background, disconnect or exit. A detached helper also attempts recovery after losing its heartbeat. Bluetooth audio and the full-screen phone app are unchanged.",
+  "settings.call_popup.adb_ready": "Local ADB approved. Save and restart CarPlay to apply the call-popup switch. Actual support depends on head-unit firmware."
 }

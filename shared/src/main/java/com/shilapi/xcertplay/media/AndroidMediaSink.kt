@@ -281,6 +281,12 @@ class AndroidMediaSink(
             Log.i(TAG, "audio focus request result=$result")
         }
 
+        /** Called only on a fresh iPhone playing transition, never for each arriving PCM packet. */
+        @Synchronized
+        fun requestOnPlaybackResume() {
+            requestFromHost()
+        }
+
         @Synchronized
         fun release(owner: Any) {
             owners.remove(owner)

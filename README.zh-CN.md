@@ -36,6 +36,10 @@
 
 新握手等待窗口和系统栏尺寸稳定；屏幕物理基准改为实际显示尺寸的长/短边，避免历史横竖屏最大值混合。默认按当前窗口协商，新增默认关闭的「多区域快速切换（实验性）」和「恢复显示默认值」菜单，保留上游显示区域能力与个人版音频、Wi-Fi、ADB 数据功能。单区域画面与触控按同一比例适配。[查看修复范围、菜单及实车核对方法](docs/DISPLAY_STARTUP.zh-CN.md)。
 
+## DiPlay 定向迁移与官方差异
+
+官方基础仍为 1.4.2。本轮增加默认关闭的比亚迪通话弹窗屏蔽、软件 Opus 异常保护、iPhone 恢复播放时的音频焦点恢复，以及有线启动超时/已恢复会话保护；不引入临时系统栏。[查看官方与个人版对照、来源和使用限制](docs/PERSONAL_DIFF_AND_DIPLAY.zh-CN.md)。
+
 ## 主要功能
 
 - Android 与 Android Automotive OS 上的有线/无线 CarPlay 接收端，支持 CH341、原生 I2C、本地 MFi 文件及远程认证。
@@ -249,3 +253,5 @@ Remote MFi 客户端把远程服务当作一块 MFi 芯片远程调用，抑或�
 车辆数据读取另参考 DiPlay 提交 `6d3b8a8ce927cb4b115b8c3881f17619433e93b1`（0.2.21），见[车辆数据来源说明](docs/VEHICLE_PROFILES.zh-CN.md)。扫描抑制、ADB 协议和相关测试借鉴 [DiPlay](https://github.com/shihabal3amri/DiPlay) 提交 `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`，保留 GPL-3.0 来源说明。本次移植未引入其仪表控制或 AGPL 界面代码。
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 许可。
+
+本轮通话弹窗租约/辅助进程与有线看门狗移植自 DiPlay `6d3b8a8ce927cb4b115b8c3881f17619433e93b1`（GPL-3.0），Opus 和音乐恢复按本项目结构适配，详见[迁移说明](docs/PERSONAL_DIFF_AND_DIPLAY.zh-CN.md)。

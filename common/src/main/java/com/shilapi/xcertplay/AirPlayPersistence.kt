@@ -216,6 +216,14 @@ object AirPlayPersistence {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_AUDIO_FOCUS_ENABLED, true)
 
+    fun loadHideBydCallPopup(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("hide_byd_call_popup", false)
+
+    fun saveHideBydCallPopup(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("hide_byd_call_popup", enabled).apply()
+    }
+
     fun loadAudioPlaybackSettings(context: Context): AudioPlaybackSettings {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         fun output(key: String, fallback: AudioOutputChannel): AudioOutputChannel = runCatching {

@@ -403,5 +403,10 @@
   "settings.audio.stream.17": "17 · 厂商通道",
   "settings.audio.stream.18": "18 · 厂商通道",
   "settings.audio.stream.19": "19 · 厂商通道",
-  "settings.audio.stream.20": "20 · 厂商通道"
+  "settings.audio.stream.20": "20 · 厂商通道",
+  "settings.call_popup.section": "比亚迪通话提示",
+  "settings.call_popup.title": "隐藏比亚迪通话弹窗（实验性）",
+  "settings.call_popup.support": "默认关闭。仅适用于 Android 10+ 且带比亚迪蓝牙通话组件的车机；需要已授权的本机 ADB。",
+  "settings.call_popup.help": "保存并重启 CarPlay 后生效。连接的 CarPlay 在前台时暂停原生通话组件的悬浮窗权限，进入后台、断开或退出时恢复；辅助进程失联后也会尝试恢复。不改变蓝牙音频，不屏蔽全屏电话应用。",
+  "settings.call_popup.adb_ready": "本机 ADB 已授权。保存并重启 CarPlay 后按开关尝试隐藏比亚迪通话弹窗；实际效果取决于车机固件。"
 }

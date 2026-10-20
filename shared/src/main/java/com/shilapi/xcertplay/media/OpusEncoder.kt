@@ -16,7 +16,7 @@ internal class OpusEncoder(
     private val sampleRate: Int,
     private val bitrate: Int,
     systemFactory: (Int, Int) -> OpusBackend = ::MediaCodecOpusBackend,
-    private val softwareFactory: (Int, Int) -> OpusBackend = ::SoftwareOpusBackend,
+    private val softwareFactory: (Int, Int) -> OpusBackend = { rate, bits -> SoftwareOpusBackend(rate, bits) },
     private val onFallback: (String) -> Unit = {},
 ) : Closeable {
     private val pending = ArrayDeque<ByteArray>()
@@ -166,12 +166,14 @@ internal class MediaCodecOpusBackend(sampleRate: Int, bitrate: Int) : OpusBacken
 }
 
 /** Encodes one 20 ms mono PCM frame into a raw Opus packet. */
-internal class SoftwareOpusBackend(private val sampleRate: Int, bitrate: Int) : OpusBackend {
-    private val encoder = ConcentusEncoder(
-        sampleRate,
-        1,
-        OpusApplication.OPUS_APPLICATION_VOIP,
-    ).apply {
+internal class SoftwareOpusBackend(
+    private val sampleRate: Int,
+    bitrate: Int,
+    create: (Int) -> ConcentusEncoder = { ConcentusEncoder(it, 1, OpusApplication.OPUS_APPLICATION_VOIP) },
+) : OpusBackend {
+    private var closed = false
+    private var failures = 0
+    private val encoder = create(sampleRate).apply {
         setBitrate(bitrate)
         setComplexity(2)
         setUseDTX(false)
@@ -180,6 +182,7 @@ internal class SoftwareOpusBackend(private val sampleRate: Int, bitrate: Int) : 
     override val name: String = "software"
 
     override fun encode(pcm: ByteArray): List<ByteArray> {
+        if (closed) return emptyList()
         val samples = sampleRate / 50
         require(pcm.size == samples * 2) {
             "Opus microphone frame must contain 20 ms of mono PCM"
@@ -192,12 +195,25 @@ internal class SoftwareOpusBackend(private val sampleRate: Int, bitrate: Int) : 
             ).toShort()
         }
         val output = ByteArray(MAX_PACKET_BYTES)
-        val count = encoder.encode(input, 0, samples, output, 0, output.size)
-        check(count > 0) { "Opus microphone encoder produced no packet" }
-        return listOf(output.copyOf(count))
+        return try {
+            val count = encoder.encode(input, 0, samples, output, 0, output.size)
+            check(count in 1..output.size) { "Opus microphone encoder produced no packet" }
+            listOf(output.copyOf(count))
+        } catch (error: Exception) {
+            failedFrame(error)
+        } catch (error: AssertionError) {
+            // DiPlay #866: Concentus assertions are Errors, so catching Exception alone misses them.
+            failedFrame(error)
+        }
     }
 
-    override fun close() = Unit
+    private fun failedFrame(error: Throwable): List<ByteArray> {
+        if (failures++ < 3) android.util.Log.w("xcertplay-opus", "Software Opus frame dropped", error)
+        runCatching { encoder.resetState() }
+        return emptyList()
+    }
+
+    override fun close() { closed = true }
 
     private companion object {
         const val MAX_PACKET_BYTES = 1275

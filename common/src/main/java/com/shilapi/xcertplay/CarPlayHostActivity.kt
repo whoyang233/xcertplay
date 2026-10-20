@@ -433,6 +433,9 @@ class CarPlayHostActivity : ComponentActivity() {
     private var advancedAudioChannelMapping by mutableStateOf(false)
     private var audioPlaybackSettings by mutableStateOf(AudioPlaybackSettings())
     private var audioFocusEnabled by mutableStateOf(true)
+    private var hideBydCallPopup by mutableStateOf(false)
+    private var popupHostResumed = false
+    private val sessionRecoveryGate = SessionRecoveryGate()
     private var audioQuality by mutableStateOf(AudioQualitySettings())
     private var audioQualityOpen by mutableStateOf(false)
     private var audioQualityCapabilities by mutableStateOf<AudioQualityCapabilities.Result?>(null)
@@ -728,6 +731,7 @@ class CarPlayHostActivity : ComponentActivity() {
             advancedAudioChannelMappingSupported &&
                 AirPlayPersistence.loadAdvancedAudioChannelMapping(this)
         audioFocusEnabled = AirPlayPersistence.loadAudioFocusEnabled(this)
+        hideBydCallPopup = AirPlayPersistence.loadHideBydCallPopup(this)
         audioPlaybackSettings = AirPlayPersistence.loadAudioPlaybackSettings(this)
         audioQuality = AirPlayPersistence.loadAudioQuality(this)
         mainMediaAudioBufferDurationMs =
@@ -854,8 +858,21 @@ class CarPlayHostActivity : ComponentActivity() {
         )
     }
 
+    private fun updateCallPopupGuard() {
+        val expected = controller
+        val enabled = popupHostResumed && !menuOpen && !shuttingDown.get() && !handshakeResetInProgress &&
+            !reconnectScheduled && AirPlayPersistence.loadHideBydCallPopup(this) &&
+            BydCallPopupAvailability.supported(this) && expected?.hasActiveAirPlaySession() == true &&
+            CarPlayBackgroundSession.snapshot()?.controller === expected
+        com.shilapi.xcertplay.hud.BydCallPopupGuard.update(this, this, enabled) {
+            expected?.hasActiveAirPlaySession() == true && CarPlayBackgroundSession.snapshot()?.controller === expected
+        }
+    }
+
     override fun onResume() {
         super.onResume()
+        popupHostResumed = true
+        updateCallPopupGuard()
         displayResizeGate.setResumed(true)
         displayResizeGate.setFocused(hasWindowFocus())
         CarPlayBackgroundSession.audioFocus(this).apply {
@@ -874,6 +891,8 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        popupHostResumed = false
+        updateCallPopupGuard()
         localTouchSequence.reset()
         displayResizeGate.setResumed(false)
         cancelPendingDisplayResize()
@@ -921,6 +940,8 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        popupHostResumed = false
+        updateCallPopupGuard()
         synchronized(scanAdbLock) {
             scanAdbCancelled.set(true)
             scanAdbClient?.cancelPendingOperations()
@@ -1240,6 +1261,7 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun persistMenuSettings() {
+        AirPlayPersistence.saveHideBydCallPopup(this, hideBydCallPopup)
         AirPlayPersistence.saveWebDisplay(this, SCREEN_TYPE_MAIN, mainWebDisplay)
         AirPlayPersistence.saveWebDisplay(this, SCREEN_TYPE_ALT, clusterWebDisplay)
         AirPlayPersistence.saveWirelessEnabled(this, wirelessEnabled)
@@ -2009,9 +2031,11 @@ class CarPlayHostActivity : ComponentActivity() {
                     if (controllerGeneration != restartGeneration) {
                         return@runOnUiThread
                     }
+                    if (activeAirPlaySession !== session) sessionRecoveryGate.connected()
                     activeAirPlaySession = session
                     reconnectAttempts = 0
                     reconnectExhausted = false
+                    updateCallPopupGuard()
                     syncAirPlayDarkMode()
                     if (menuOpen) return@runOnUiThread
                     appendLog("AirPlay session active")
@@ -2020,7 +2044,11 @@ class CarPlayHostActivity : ComponentActivity() {
 
             override fun onSessionEnded(session: AirPlaySession) {
                 runOnUiThread {
-                    if (activeAirPlaySession === session) activeAirPlaySession = null
+                    if (activeAirPlaySession === session) {
+                        activeAirPlaySession = null
+                        sessionRecoveryGate.disconnected()
+                        updateCallPopupGuard()
+                    }
                     if (menuOpen || controllerGeneration != restartGeneration) {
                         return@runOnUiThread
                     }
@@ -2072,6 +2100,7 @@ class CarPlayHostActivity : ComponentActivity() {
             setConnectionStage(description)
             when (status) {
                 is CarPlayStatus.Failed -> {
+                    com.shilapi.xcertplay.hud.BydCallPopupGuard.update(this, this, false) { false }
                     failHandshake("CarPlay failed", description)
                     reconnectAfterLoss(description)
                 }
@@ -2111,6 +2140,7 @@ class CarPlayHostActivity : ComponentActivity() {
         clusterPreviewSurface?.let { attachDisplaySurface(SCREEN_TYPE_ALT, it) }
         updateWebDisplayPreviews()
         val serviceReused = snapshot.controller.hasActiveAirPlayAttachment()
+        if (snapshot.controller.hasActiveAirPlaySession()) sessionRecoveryGate.connected()
         appendLog(
             if (serviceReused) {
                 "Reusing existing background CarPlay service"
@@ -2222,6 +2252,7 @@ class CarPlayHostActivity : ComponentActivity() {
             clearPairRecord = { AirPlayPersistence.clearLockdownRecord(app) },
             locationProvider = locationProvider,
             vehicleStatusProvider = vehicleProvider,
+            onIphonePlaybackResume = CarPlayBackgroundSession.audioFocus(this)::requestOnPlaybackResume,
         )
         controller = next
         viewAreas = areas
@@ -2410,7 +2441,9 @@ class CarPlayHostActivity : ComponentActivity() {
             return
         }
         reconnectScheduled = true
+        updateCallPopupGuard()
         val generation = restartGeneration
+        val recoveryCheckpoint = sessionRecoveryGate.checkpoint()
         val delayMillis = if (reason.contains("AirPlay iAP tunnel", ignoreCase = true)) {
             IAP_TUNNEL_RECONNECT_DELAY_MILLIS
         } else {
@@ -2425,6 +2458,11 @@ class CarPlayHostActivity : ComponentActivity() {
             {
                 if (generation != restartGeneration) return@postDelayed
                 reconnectScheduled = false
+                if (sessionRecoveryGate.recoveredSince(recoveryCheckpoint) && controller?.hasActiveAirPlaySession() == true) {
+                    appendLog("Delayed retry cancelled: CarPlay already recovered")
+                    updateCallPopupGuard()
+                    return@postDelayed
+                }
                 if (
                     shuttingDown.get() ||
                     menuOpen ||
@@ -2450,6 +2488,8 @@ class CarPlayHostActivity : ComponentActivity() {
     /** Full-stack fallback when an AirPlay-only reconnect is unavailable. */
     private fun restartCarPlay(reason: String) {
         if (shuttingDown.get() || menuOpen || handshakeResetInProgress) return
+        com.shilapi.xcertplay.hud.BydCallPopupGuard.update(this, this, false) { false }
+        sessionRecoveryGate.disconnected()
         val size = activeDisplaySize ?: return
         appendLog(reason)
         activeScreenStreamTypes.clear()
@@ -2491,6 +2531,8 @@ class CarPlayHostActivity : ComponentActivity() {
         stopMicrophoneGainTest()
         settingsBaseline = captureSettingsBaseline()
         menuOpen = true
+        updateCallPopupGuard()
+        sessionRecoveryGate.disconnected()
         updateVehicleDataStatus()
         handshakeResetInProgress = true
         startAfterHandshakeReset = false
@@ -2644,6 +2686,8 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun shutdown(terminateProcess: Boolean, reason: String) {
         if (!shuttingDown.compareAndSet(false, true)) return
+        updateCallPopupGuard()
+        sessionRecoveryGate.disconnected()
         stopMicrophoneGainTest()
         restartGeneration += 1
         mainHandler.removeCallbacks(applyDisplaySize)
@@ -3613,6 +3657,17 @@ class CarPlayHostActivity : ComponentActivity() {
     @Composable
     private fun AudioSettings() {
         AudioRoutingSettings(audioPlaybackSettings) { audioPlaybackSettings = it }
+        if (BydCallPopupAvailability.supported(this)) {
+            com.shilapi.xcertplay.ui.settings.BydCallPopupSettings(hideBydCallPopup) { hideBydCallPopup = it }
+            SettingsGroup {
+                row {
+                    FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
+                        Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
+                    }
+                }
+                scanAdbStatus?.let { row { HelpText(tr(if (it == "settings.scan_pause.ready") "settings.call_popup.adb_ready" else it)) } }
+            }
+        }
         SettingsGroup {
             row {
                 ListRow(

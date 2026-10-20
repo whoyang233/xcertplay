@@ -158,6 +158,7 @@ class CarPlayController(
     private val clearPairRecord: () -> Unit = {},
     private val locationProvider: Iap2LocationProvider? = null,
     private val vehicleStatusProvider: com.shilapi.xcertplay.transport.VehicleStatusProvider? = null,
+    private val onIphonePlaybackResume: () -> Unit = {},
 ) : Closeable {
     init {
         require(!config.locationReportingEnabled || locationProvider != null) {
@@ -233,6 +234,8 @@ class CarPlayController(
     private val wirelessActiveReported = AtomicBoolean(false)
     private val wirelessGeneration = AtomicInteger(0)
     private val nowPlaying = Iap2NowPlayingAccumulator()
+    private val playbackTransitions = com.shilapi.xcertplay.media.IphonePlaybackTransitions()
+    @Volatile private var wiredStartWatchdog: WiredStartWatchdog? = null
 
     private var permissionCloseable: Closeable? = null
     private var attachCloseable: Closeable? = null
@@ -254,6 +257,7 @@ class CarPlayController(
 
     private val sessionListener = object : AirPlaySessionListener {
         override fun onSessionActive(session: AirPlaySession) {
+            wiredStartWatchdog?.sessionActive()
             synchronized(performanceLockLifecycle) {
                 if (closed) return
                 activeSession = session
@@ -346,6 +350,8 @@ class CarPlayController(
 
     fun isClosed(): Boolean = closed
 
+    fun hasActiveAirPlaySession(): Boolean = !closed && activeSession != null
+
     fun hasActiveAirPlayAttachment(): Boolean = synchronized(lifecycleLock) {
         !closed && vpnService?.isAttached() == true
     }
@@ -419,7 +425,11 @@ class CarPlayController(
     private fun onIap2Incoming(frame: Iap2Frame) {
         if (frame.messageId != NOW_PLAYING_UPDATE) return
         try {
-            CarPlayMediaSessionBridge.publish(this, nowPlaying.update(frame))
+            val state = nowPlaying.update(frame)
+            CarPlayMediaSessionBridge.publish(this, state)
+            if (playbackTransitions.resumed(state.status)) {
+                mainHandler.post { if (!closed) onIphonePlaybackResume() }
+            }
         } catch (error: RuntimeException) {
             debugLog("Could not decode iAP2 NowPlayingUpdate", error)
         }
@@ -506,6 +516,7 @@ class CarPlayController(
             wirelessPerformanceLock.close()
         }
         releaseWifiScanPause()
+        wiredStartWatchdog?.terminate()
         closeReceivers()
         stopFileTransferReceivers()
         availabilityPollGeneration.incrementAndGet()
@@ -1382,9 +1393,19 @@ class CarPlayController(
         reenumerationAttempts += 1
         onStatus(CarPlayStatus.SelectingConfiguration)
         iphoneHost.requestCarPlayReenumerationAsync(device, executor) { transition ->
+            if (closed || phase != Phase.REENUMERATION) return@requestCarPlayReenumerationAsync
             when (transition) {
-                IphoneUsbHost.TransitionResult.ReenumerationRequested ->
+                IphoneUsbHost.TransitionResult.ReenumerationRequested -> {
                     onStatus(CarPlayStatus.WaitingForReenumeration)
+                    val ticket = availabilityPollGeneration.get()
+                    mainHandler.postDelayed({
+                        if (!closed && phase == Phase.REENUMERATION && ticket == availabilityPollGeneration.get()) {
+                            debugLog("wired USB mode switch timed out; checking the current iPhone configuration")
+                            phase = Phase.IPHONE
+                            checkIphoneAvailability()
+                        }
+                    }, 10_000L)
+                }
                 is IphoneUsbHost.TransitionResult.Failed -> fail(transition.error)
             }
         }
@@ -1516,6 +1537,23 @@ class CarPlayController(
                 deviceIdentifier = ncmHostMac.macString(),
             )
             onStatus(CarPlayStatus.RunningControl)
+            lateinit var startWatchdog: WiredStartWatchdog
+            startWatchdog = WiredStartWatchdog(
+                schedule = { delay, action ->
+                    val timer = Runnable { action() }
+                    mainHandler.postDelayed(timer, delay)
+                    val cancel: () -> Unit = { mainHandler.removeCallbacks(timer) }
+                    cancel
+                },
+                onTimeout = {
+                    if (!closed && wiredStartWatchdog === startWatchdog && !hasActiveAirPlaySession()) {
+                        debugLog("wired start: no AirPlay session 30 s after carplay-start-session")
+                        fail(IphoneUsbException.TimedOut("The iPhone did not open CarPlay over USB in time"))
+                    }
+                },
+            )
+            wiredStartWatchdog = startWatchdog
+            if (hasActiveAirPlaySession()) startWatchdog.sessionActive()
             debugLog("wired iAP2 control starting")
             val result = Iap2WiredControlClient(csm, Iap2MfiAuthenticationClient(mfi)).run(
                 identification = config.identification,
@@ -1527,7 +1565,10 @@ class CarPlayController(
                 onReady = { activateMediaRemote(csm) },
                 onStopped = { deactivateMediaRemote(csm) },
                 onIncoming = ::onIap2Incoming,
-                onProgress = { message -> debugLog("wired $message") },
+                onProgress = { message ->
+                    if (message.startsWith("iap2 tx=0x4301 carplay-start-session")) startWatchdog.startSessionSent()
+                    debugLog("wired $message")
+                },
             )
             onStatus(
                 when (result.terminal) {
@@ -1540,6 +1581,7 @@ class CarPlayController(
             if (!ncmOwnedLocally) vpnService?.detach()
             fail(error)
         } finally {
+            wiredStartWatchdog?.terminate()
             if (ncmOwnedLocally) ncm.close()
         }
     }

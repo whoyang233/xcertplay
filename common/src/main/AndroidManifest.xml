@@ -5,6 +5,7 @@
     <!-- File and image pickers are probed with resolveActivity before launch; without these
          queries package visibility hides them and every picker button reports none installed. -->
     <queries>
+        <package android:name="com.byd.bluetoothcall" />
         <intent>
             <action android:name="android.intent.action.OPEN_DOCUMENT" />
             <data android:mimeType="*/*" />

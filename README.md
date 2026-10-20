@@ -36,6 +36,10 @@ The personal vehicle backend now uses read-only local ADB/autoservice reads adap
 
 New handshakes wait for stable window/system-bar dimensions. Physical references use the actual screen long/short edges instead of mixed historical maxima. Single-area compatibility is the default; optional fast multi-area switching and Restore display defaults are available under Display. Local rendering and touch share the negotiated aspect ratio. Existing upstream display improvements and personal audio/Wi-Fi/BYD ADB behavior remain available. See the [fix scope, controls and vehicle checks (Chinese)](docs/DISPLAY_STARTUP.zh-CN.md).
 
+## Targeted DiPlay ports and upstream comparison
+
+The upstream base remains 1.4.2. This update adds an opt-in BYD call-popup guard, software Opus frame recovery, focus recovery on fresh iPhone playback, and wired start timeouts with protection for recovered sessions. Temporary system bars are excluded. See the [personal/upstream comparison, provenance and limitations (Chinese)](docs/PERSONAL_DIFF_AND_DIPLAY.zh-CN.md).
+
 ## Core features
 
 - Wired and wireless CarPlay receivers for Android and Android Automotive OS, with CH341, native I2C, local MFi files, and remote authentication.
@@ -256,3 +260,5 @@ Based on [shilapi/xcertplay](https://github.com/shilapi/xcertplay). Thanks to [L
 Vehicle reads additionally adapt DiPlay `6d3b8a8ce927cb4b115b8c3881f17619433e93b1` (0.2.21); see the [vehicle-data provenance](docs/VEHICLE_PROFILES.zh-CN.md). Scan suppression, the ADB protocol implementation, and associated tests adapt [DiPlay](https://github.com/shihabal3amri/DiPlay) at `1b1ac5f27986ce83b6d17fdd8c4d1be852fbbb70`, preserving GPL-3.0 attribution. This port does not include its cluster-control features or AGPL UI code.
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
+
+The call-popup lease/helper and wired watchdog port DiPlay `6d3b8a8ce927cb4b115b8c3881f17619433e93b1` (GPL-3.0); Opus and playback-resume recovery are adapted to this project. See the [port notes](docs/PERSONAL_DIFF_AND_DIPLAY.zh-CN.md).
