@@ -40,6 +40,10 @@ The waiting page now shows a Chinese-friendly connection overview with four mile
 
 Connection settings prioritize transport, MFi authentication and channel policy. Performance/recovery/ADB scan suppression are under **Advanced wireless options**, hotspot information under **Connection diagnostics**, and long explanations expand on demand. Wide selectors put values on the right; narrow windows and large fonts stack them. The audio focus description explicitly states its immediate-save behavior. Restart/Exit remain fixed at the top right; validation, save/discard rules, defaults and stored connection/audio/ADB options are preserved. This UI is implemented in the personal fork.
 
+## CarPlay identity and appearance
+
+This page controls receiver information announced to iPhone: manufacturer/model (iAP2 identification and AirPlay `/info`), the return-to-car icon label (`oemIconLabel`), a custom square icon (`oemIcons`, with crop/preview/reset), and driving side (`rightHandDrive`, potentially affecting CarPlay sidebar placement). iPhone determines the display. It does not change the Android launcher icon, app theme or vehicle-data source. Save and reconnect with Restart CarPlay; closing settings restores unsaved edits, including icon changes.
+
 ## BYD vehicle data over ADB
 
 The personal vehicle backend now uses read-only local ADB/autoservice reads adapted from DiPlay 0.2.21. The old JSON import, standard Android Car backend and permissions are removed. Speed, gear, battery percentage, range, remaining energy and charging state feed the existing/extended CarPlay reporting. Four-wheel pressure/temperature are diagnostic only. Reporting is off by default; old source settings cannot silently enable the new backend. See the [fields, authorization, protocols, freshness and compatibility notes (Chinese)](docs/VEHICLE_PROFILES.zh-CN.md).
@@ -76,7 +80,7 @@ The upstream base remains 1.4.2. This update adds an opt-in BYD call-popup guard
 | Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
 | Full-HD settings layout | Dedicated compact density and typography, adaptive navigation width, independently scrollable panes, and scrolling for long channel-choice dialogs. |
 | Applying edits | Restart CarPlay validates, saves, and applies settings; closing settings discards unsaved edits. |
-| Music and navigation | Separate Media/Navigation usage bindings, DiPlay-style music/navigation stream numbers 0–20, and 0%–200% software navigation gain, without changing system volume or music/call/Siri gain. |
+| Music and navigation | DiPlay-style music/navigation stream numbers 0–20; redundant usage selectors removed, and 0%–200% software navigation gain, without changing system volume or music/call/Siri gain. |
 | About | Shows the installed app version, Android version, and API level. |
 | Wi-Fi startup recovery | Releases the first failed automatic hotspot, attempts a Wi-Fi off/on cycle, then retries once with a fresh manager. If switching is denied, only rebuilds the hotspot. Manual hotspots are excluded. |
 | Channel strategy | Wi-Fi Direct supports automatic 5 GHz, channel 36 or 149 preferences, and specific non-DFS channel requests, with optional fallback on explicit rejection. |
@@ -99,11 +103,11 @@ The personal build prefers Simplified Chinese independently of the head unit's s
 
 DiPlay-style numbered stream bindings are available separately for music and navigation: 0 preserves usage routing; 1–20 request the corresponding Android/vendor stream (14 is navigation on some ROMs). Unsupported or uninitialized streams are released and fall back to usage routing. Save with Restart CarPlay; closing settings discards edits. Existing installations default to 0 to preserve routing.
 
-Under Settings → Audio → Music and navigation channels, music defaults to Media and navigation to Navigation. If guidance is silent on a particular head unit, try binding navigation to Media. Quality-menu channel counts refer to mono/stereo, separately from output bindings. These settings request Android audio usages; firmware decides the physical buses, speakers, and system volume groups.
+The Music channel binding and Navigation channel binding usage selectors have been removed. Their saved overrides are ignored and deleted on save; numbered streams and navigation gain retain existing values. Channel 0 uses the original role (media for music, navigation for guidance); channel 3 can still request the media stream as a compatibility option. Quality-menu channel counts mean mono/stereo, separately from numbered streams. Firmware decides physical buses, speakers and system volume groups.
 
-Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before local playback, without calling system volume APIs. Rebinding navigation to Media still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
+Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before local playback, without calling system volume APIs. Selecting stream 3 for navigation still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
 
-Generic high-quality music (102) and alternate guidance (101) streams are classified as music and navigation respectively; explicit roles, calls, and Siri take precedence. The existing AAOS Advanced channel mapping option still determines how ordinary default/compatibility streams are classified. Guidance already mixed into music by the phone cannot be separated. Vehicle checks should play music alongside guidance at 0%, 50%, and 100%, also after rebinding guidance to Media, while checking calls and Siri remain unaffected.
+Generic high-quality music (102) and alternate guidance (101) streams are classified as music and navigation respectively; explicit roles, calls, and Siri take precedence. The existing AAOS Advanced channel mapping option still determines how ordinary default/compatibility streams are classified. Guidance already mixed into music by the phone cannot be separated. Vehicle checks should play music alongside guidance at 0%, 50%, and 100%, also after selecting a numbered stream for guidance, while checking calls and Siri remain unaffected.
 
 ## Wi-Fi scan suppression and channels
 
