@@ -30,6 +30,8 @@
 
 ## 连接等待页与配置界面
 
+[查看 8 个设置分类的完整滚动截图（含音质子页）](docs/SETTINGS_SCREENSHOTS.zh-CN.md)。
+
 [页面配置核对、0 ms 实现、Web 删除范围与截图说明](docs/UI_BUFFER_SETTINGS.zh-CN.md)。
 
 本轮界面改动先更新源码并执行测试，按要求暂不打包；上方下载链接仍是此前已验证的低延迟版本。Actions 手动运行时可选 `validation_only`，仅执行测试和 lint，跳过签名、APK 打包及 APK 上传。

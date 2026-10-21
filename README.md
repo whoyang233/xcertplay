@@ -30,6 +30,8 @@ The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **
 
 ## Connection overview and settings
 
+[Complete settings screenshots, including all eight categories and the audio quality subpage](docs/SETTINGS_SCREENSHOTS.zh-CN.md).
+
 [Configuration audit, 0 ms implementation, Web removal and screenshot notes (Chinese)](docs/UI_BUFFER_SETTINGS.zh-CN.md).
 
 This UI update is source-only for now; the download above remains the previously verified low-latency build. Manual Actions runs support `validation_only`, which runs tests/lint and skips signing, APK packaging and APK uploads.
