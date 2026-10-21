@@ -39,3 +39,35 @@ Android、驱动、功放和扬声器仍有最低延迟，0 不是物理零延�
 截图通过 Robolectric Android 13 / API 33 的原生绘图生成。主要设置截图为 1920 × 1080、320 DPI，直接渲染应用实际的 `SettingsScreen`；不运行真实车机、ADB 或 CarPlay 传输。缓冲选项弹窗单独捕获其真实窗口。等待页另覆盖低密度 1080P 与 150% 字体窄窗口。
 
 自动化检查涵盖保存/重载/放弃、旧 Web 偏好不能新增菜单、已删除类与依赖缺席、参考帧不因队列容量被丢弃、过期输出追赶、静止帧保留、音频 0 ms 首帧启动，以及移除 Web 转发后的本地导航增益。
+
+2026-10-21 验证源码：`3b228560ebb64c98b69d7d0fc72c24344102cfe6`。[任务 39561641865](https://github.com/whoyang233/xcertplay/actions/runs/39561641865)通过 418 项单元测试，失败/错误/跳过均为 0；Lint 无错误（common 82、automotive 3 条警告）。仅验证模式的签名、APK 打包、APK 校验和 APK 上传均跳过。完整报告另有 26 张截图；以下选取实际页面和等待页。
+
+| 页面 | 截图 |
+| --- | --- |
+| 连接等待页 | [1080P](screenshots/ui-refresh/00-waiting.png) / [150% 字体窄窗口](screenshots/ui-refresh/12-waiting-narrow-font150.png) |
+| 连接 | [传输、认证与信道](screenshots/ui-refresh/01-connection.png) |
+| 高级无线连接 | [高性能、恢复与 ADB](screenshots/ui-refresh/02-connection-advanced.png) |
+| 车辆数据 | [位置与车辆开关](screenshots/ui-refresh/03-vehicle.png) |
+| 音频绑定 | [音乐、导航、编号与音量](screenshots/ui-refresh/04-audio-routing.png) |
+| 音频缓冲 | [音频设置](screenshots/ui-refresh/05-audio-buffer.png) / [含 0 ms 的选项](screenshots/ui-refresh/11-audio-presets.png) |
+| 显示与视频 | [视频缓冲置顶](screenshots/ui-refresh/06-display.png) / [视频配置](screenshots/ui-refresh/07-video-buffer.png) / [含 0 ms 的选项](screenshots/ui-refresh/10-video-presets.png) |
+| 启动与窗口 | [启动、窗口及手势](screenshots/ui-refresh/08-window.png) |
+| 诊断 | [日志与媒体监测](screenshots/ui-refresh/09-diagnostics.png) |
+
+<details>
+<summary>展开查看视频设置与 0 ms 选项</summary>
+
+![显示与视频设置](screenshots/ui-refresh/06-display.png)
+
+![视频缓冲选项](screenshots/ui-refresh/10-video-presets.png)
+
+</details>
+
+<details>
+<summary>展开查看音频设置与 0 ms 选项</summary>
+
+![音频设置](screenshots/ui-refresh/05-audio-buffer.png)
+
+![主媒体音频缓冲选项](screenshots/ui-refresh/11-audio-presets.png)
+
+</details>
