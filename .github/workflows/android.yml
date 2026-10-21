@@ -9,6 +9,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      validation_only:
+        description: "Run tests and lint only; do not access signing keys or package APKs"
+        type: boolean
+        default: false
       bootstrap_unsigned:
         description: "Build unsigned inputs for first-time offline signing (not installable APKs)"
         type: boolean
@@ -46,27 +50,32 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Prepare fixed personal signing key
+        if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
         id: signing
         env:
           PERSONAL_ANDROID_SIGNING: ${{ secrets.PERSONAL_ANDROID_SIGNING }}
           ALLOW_UNSIGNED_BOOTSTRAP: ${{ (github.event_name == 'workflow_dispatch' && inputs.bootstrap_unsigned) || github.event_name == 'pull_request' }}
         run: python3 ci/prepare-personal-signing.py
 
-      - name: Test, lint, and build personal automotive APK
+      - name: Test and lint personal automotive sources
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
           :common:testDebugUnitTest
           :common:lintDebug
           :automotive:lintDebug
-          :automotive:assembleDebug
-          $UNSIGNED_BUILD_ARGUMENT
           --stacktrace
 
+      - name: Build personal automotive APK
+        if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
+        run: ./gradlew :automotive:assembleDebug $UNSIGNED_BUILD_ARGUMENT --stacktrace
+
       - name: Verify personal package and signing identity
+        if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
         run: python3 ci/verify-personal-apks.py
 
       - name: Upload personal automotive APK
+        if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.signing.outputs.artifact_prefix }}-${{ github.sha }}

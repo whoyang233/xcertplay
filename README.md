@@ -30,6 +30,8 @@ The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **
 
 ## Connection overview and settings
 
+This UI update is source-only for now; the download above remains the previously verified low-latency build. Manual Actions runs support `validation_only`, which runs tests/lint and skips signing, APK packaging and APK uploads.
+
 The waiting page now shows a Chinese-friendly connection overview with four milestones and separate Wi-Fi/Bluetooth/CarPlay checks. Protocol exchanges and debug logs open through **Connection details**; **Connection settings** stays in the top toolbar. Wide windows use two columns, narrower windows scroll, and waiting-page typography avoids the old excessive enlargement. Failure guidance is readable; retry remains governed by the existing controller.
 
 Connection settings prioritize transport, MFi authentication and channel policy. Performance/recovery/ADB scan suppression are under **Advanced wireless options**, hotspot information under **Connection diagnostics**, and long explanations expand on demand. Wide selectors put values on the right; narrow windows and large fonts stack them. The audio focus description explicitly states its immediate-save behavior. Restart/Exit remain fixed at the top right; validation, save/discard rules, defaults and stored connection/audio/ADB options are preserved. This UI is implemented in the personal fork.
