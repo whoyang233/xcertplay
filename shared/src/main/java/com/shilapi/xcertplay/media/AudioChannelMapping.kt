@@ -2,12 +2,7 @@ package com.shilapi.xcertplay.media
 
 import java.util.Locale
 
-/** Android usage to request for music or navigation; firmware decides the physical output bus. */
-enum class AudioOutputChannel { MEDIA, NAVIGATION }
-
 data class AudioPlaybackSettings(
-    val musicOutput: AudioOutputChannel = AudioOutputChannel.MEDIA,
-    val navigationOutput: AudioOutputChannel = AudioOutputChannel.NAVIGATION,
     val navigationVolumePercent: Int = NavigationVolume.DEFAULT_PERCENT,
     val musicStream: Int = 0,
     val navigationStream: Int = 0,
@@ -51,7 +46,7 @@ internal object AudioChannelMapper {
     const val STREAM_TYPE_ALT_AUDIO = 101
     const val STREAM_TYPE_MAIN_HIGH_AUDIO = 102
 
-    /** Bind by original role, so remapping navigation to media still uses its own override/gain. */
+    /** Numbered overrides follow the original role and never capture calls or Siri. */
     fun streamOverride(selection: AudioChannelSelection, settings: AudioPlaybackSettings): Int =
         AudioStreamBinding.sanitize(when (selection.channel) {
             AudioChannel.MEDIA -> settings.musicStream
@@ -85,19 +80,6 @@ internal object AudioChannelMapper {
             AudioChannelMappingMode.MOBILE_COMPATIBLE -> mapMobileCompatible(normalized, payloadType)
             AudioChannelMappingMode.AUTOMOTIVE_BUS -> mapAutomotiveBus(normalized, payloadType)
         }
-    }
-
-    /** Bind only the output usage. The original role remains available for navigation gain. */
-    fun outputChannel(selection: AudioChannelSelection, settings: AudioPlaybackSettings): AudioChannel =
-        when (selection.channel) {
-            AudioChannel.MEDIA -> settings.musicOutput.asChannel()
-            AudioChannel.NAVIGATION -> settings.navigationOutput.asChannel()
-            else -> selection.channel
-        }
-
-    private fun AudioOutputChannel.asChannel(): AudioChannel = when (this) {
-        AudioOutputChannel.MEDIA -> AudioChannel.MEDIA
-        AudioOutputChannel.NAVIGATION -> AudioChannel.NAVIGATION
     }
 
     private fun mapMobileCompatible(

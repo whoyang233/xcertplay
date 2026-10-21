@@ -21,8 +21,8 @@ class NavigationVolumeTest {
         }
     }
 
-    @Test fun attenuatesOnlyNavigationEvenWhenOutputBindingsAreReversed() {
-        val settings = AudioPlaybackSettings(AudioOutputChannel.NAVIGATION, AudioOutputChannel.MEDIA, 25)
+    @Test fun attenuatesOnlyNavigationEvenWithExplicitNumberedOverrides() {
+        val settings = AudioPlaybackSettings(navigationVolumePercent = 25, musicStream = 3, navigationStream = 14)
         for ((type, payload) in listOf("media" to 102, "default" to 101, "telephony" to 100, "speechRecognition" to 100)) {
             val role = AudioChannelMapper.map(type, payload, AudioChannelMappingMode.MOBILE_COMPATIBLE)
             val input = pcm(-10000, 10000)

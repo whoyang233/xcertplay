@@ -11,7 +11,6 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import com.shilapi.xcertplay.host.R
-import com.shilapi.xcertplay.media.AudioOutputChannel
 import com.shilapi.xcertplay.media.AudioPlaybackSettings
 import com.shilapi.xcertplay.ui.i18n.I18n
 import com.shilapi.xcertplay.ui.theme.ProvideSettingsUi
@@ -42,12 +41,8 @@ class AudioRoutingSettingsTest {
                 ) { AudioRoutingSettings(settings) { settings = it } }
             } }
         }
-        compose.onNodeWithText("导航声道绑定").performScrollTo().performClick()
-        compose.onNode(hasText("媒体声道") and hasAnyAncestor(isDialog())).performClick()
-        compose.runOnIdle { assertEquals(AudioOutputChannel.MEDIA, settings.navigationOutput) }
-        compose.onNodeWithText("音乐声道绑定").performScrollTo().performClick()
-        compose.onNode(hasText("导航声道") and hasAnyAncestor(isDialog())).performClick()
-        compose.runOnIdle { assertEquals(AudioOutputChannel.NAVIGATION, settings.musicOutput) }
+        compose.onNodeWithText("导航声道绑定").assertDoesNotExist()
+        compose.onNodeWithText("音乐声道绑定").assertDoesNotExist()
         compose.onNodeWithText("导航音频通道（编号）").performScrollTo().performClick()
         compose.onNode(hasText("14 · 厂商通道（部分车机为导航）") and hasAnyAncestor(isDialog()))
             .performScrollTo().performClick()

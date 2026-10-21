@@ -6,8 +6,7 @@ import org.junit.Test
 class AudioChannelMappingTest {
     @Test fun numberedBindingsFollowOriginalRolesWithoutCapturingCallsOrSiri() {
         for (mode in AudioChannelMappingMode.entries) {
-            val settings = AudioPlaybackSettings(AudioOutputChannel.NAVIGATION, AudioOutputChannel.MEDIA,
-                navigationVolumePercent = 50, musicStream = 3, navigationStream = 14)
+            val settings = AudioPlaybackSettings(navigationVolumePercent = 50, musicStream = 3, navigationStream = 14)
             for ((type, payload, expected) in listOf(Triple("default", 102, 3), Triple("default", 101, 14),
                 Triple("telephony", 102, 0), Triple("speechRecognition", 101, 0))) {
                 assertEquals(expected, AudioChannelMapper.streamOverride(AudioChannelMapper.map(type, payload, mode), settings))
@@ -32,20 +31,18 @@ class AudioChannelMappingTest {
     }
 
     @Test
-    fun outputBindingsDoNotChangeLogicalRolesOrCallAndSiriRouting() {
-        for (music in AudioOutputChannel.entries) for (navigation in AudioOutputChannel.entries) {
-            val settings = AudioPlaybackSettings(music, navigation, 0)
-            val media = AudioChannelMapper.map("media", 102, AudioChannelMappingMode.MOBILE_COMPATIBLE)
-            val nav = AudioChannelMapper.map("default", 101, AudioChannelMappingMode.AUTOMOTIVE_BUS)
-            assertEquals(AudioChannel.valueOf(music.name), AudioChannelMapper.outputChannel(media, settings))
-            assertEquals(AudioChannel.valueOf(navigation.name), AudioChannelMapper.outputChannel(nav, settings))
-            assertEquals(AudioChannel.MEDIA, media.channel)
-            assertEquals(AudioChannel.NAVIGATION, nav.channel)
-            for ((type, channel) in listOf("telephony" to AudioChannel.PHONE, "speechRecognition" to AudioChannel.ASSISTANT)) {
-                for (payload in listOf(100, 101, 102)) {
-                    val selection = AudioChannelMapper.map(type, payload, AudioChannelMappingMode.MOBILE_COMPATIBLE)
-                    assertEquals(channel, AudioChannelMapper.outputChannel(selection, settings))
-                }
+    fun numberedOverridesKeepDefaultUsagesAndDoNotCaptureCallsOrSiri() {
+        val settings = AudioPlaybackSettings(navigationVolumePercent = 0, musicStream = 3, navigationStream = 14)
+        for (mode in AudioChannelMappingMode.entries) {
+            for ((type, payload, channel, stream) in listOf(
+                listOf("media", 102, AudioChannel.MEDIA, 3),
+                listOf("navigation", 101, AudioChannel.NAVIGATION, 14),
+                listOf("telephony", 101, AudioChannel.PHONE, 0),
+                listOf("speechRecognition", 102, AudioChannel.ASSISTANT, 0),
+            )) {
+                val selection = AudioChannelMapper.map(type as String, payload as Int, mode)
+                assertEquals(channel, selection.channel)
+                assertEquals(stream, AudioChannelMapper.streamOverride(selection, settings))
             }
         }
     }

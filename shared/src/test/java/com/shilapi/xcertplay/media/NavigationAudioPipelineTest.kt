@@ -34,8 +34,7 @@ class NavigationAudioPipelineTest {
             }
             ShadowAudioTrack.addAudioDataListener(listener)
             val sink = AndroidMediaSink(context,
-                audioPlaybackSettings = AudioPlaybackSettings(navigationOutput = AudioOutputChannel.MEDIA,
-                    navigationVolumePercent = 25, musicStream = 3, navigationStream = 14))
+                audioPlaybackSettings = AudioPlaybackSettings(navigationVolumePercent = 25, musicStream = 3, navigationStream = 14))
             try {
                 val format = AudioFormat(AudioCodecKind.LPCM, 48000, 1, payload, type)
                 sink.onAudioStarted(1, format, 0)

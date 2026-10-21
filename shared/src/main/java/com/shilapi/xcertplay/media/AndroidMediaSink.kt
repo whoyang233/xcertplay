@@ -771,7 +771,7 @@ private class AudioRenderer(
         AudioChannelMappingMode.MOBILE_COMPATIBLE
     }
     private val selection = AudioChannelMapper.map(format.audioType, format.payloadType, mappingMode)
-    private val outputChannel = AudioChannelMapper.outputChannel(selection, playbackSettings)
+    private val outputChannel = selection.channel
 
     private val queue = LinkedBlockingQueue<AudioPacket>(MAX_QUEUED_PACKETS)
     @Volatile private var running = true

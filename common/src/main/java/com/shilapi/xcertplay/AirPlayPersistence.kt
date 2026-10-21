@@ -16,7 +16,6 @@ import com.shilapi.xcertplay.network.WifiChannelPolicy
 import com.shilapi.xcertplay.media.VideoBufferPolicy
 import com.shilapi.xcertplay.media.MainMediaAudioBuffer
 import com.shilapi.xcertplay.media.MicrophoneGain
-import com.shilapi.xcertplay.media.AudioOutputChannel
 import com.shilapi.xcertplay.media.AudioPlaybackSettings
 import com.shilapi.xcertplay.media.NavigationVolume
 import com.shilapi.xcertplay.orchestration.ManualHotspotBand
@@ -202,12 +201,7 @@ object AirPlayPersistence {
 
     fun loadAudioPlaybackSettings(context: Context): AudioPlaybackSettings {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        fun output(key: String, fallback: AudioOutputChannel): AudioOutputChannel = runCatching {
-            AudioOutputChannel.valueOf(prefs.getString(key, fallback.name)!!)
-        }.getOrDefault(fallback)
         return AudioPlaybackSettings(
-            musicOutput = output(KEY_MUSIC_OUTPUT, AudioOutputChannel.MEDIA),
-            navigationOutput = output(KEY_NAVIGATION_OUTPUT, AudioOutputChannel.NAVIGATION),
             navigationVolumePercent = NavigationVolume.sanitize(runCatching {
                 prefs.getInt(KEY_NAVIGATION_VOLUME, NavigationVolume.DEFAULT_PERCENT)
             }.getOrDefault(NavigationVolume.DEFAULT_PERCENT)),
@@ -222,8 +216,8 @@ object AirPlayPersistence {
 
     fun saveAudioPlaybackSettings(context: Context, settings: AudioPlaybackSettings) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_MUSIC_OUTPUT, settings.musicOutput.name)
-            .putString(KEY_NAVIGATION_OUTPUT, settings.navigationOutput.name)
+            .remove(KEY_MUSIC_OUTPUT)
+            .remove(KEY_NAVIGATION_OUTPUT)
             .putInt(KEY_NAVIGATION_VOLUME, NavigationVolume.sanitize(settings.navigationVolumePercent))
             .putInt("music_stream_binding", com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(settings.musicStream))
             .putInt("navigation_stream_binding", com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(settings.navigationStream))

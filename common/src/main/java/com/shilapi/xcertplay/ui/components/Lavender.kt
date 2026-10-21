@@ -337,7 +337,7 @@ fun SettingsGroup(modifier: Modifier = Modifier, content: GroupScope.() -> Unit)
     Column(
         modifier
             .fillMaxWidth()
-            .padding(horizontal = if (compact) 12.dp else Space.s4)
+            .padding(start = if (compact) 12.dp else Space.s4, end = if (compact) 12.dp else Space.s4, bottom = Space.s2)
             .clip(RoundedCornerShape(Radius.lg))
             .background(color),
     ) {

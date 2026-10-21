@@ -2,14 +2,18 @@ package com.shilapi.xcertplay.ui.settings
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import com.shilapi.xcertplay.ui.components.SelectRow
+import com.shilapi.xcertplay.ui.components.ListRow
 import com.shilapi.xcertplay.ui.components.SettingsGroup
 import com.shilapi.xcertplay.ui.components.SwitchRow
 import com.shilapi.xcertplay.ui.i18n.I18n
@@ -30,6 +34,37 @@ import org.robolectric.annotation.GraphicsMode
 class ExpandableSettingsSectionTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @Before fun loadChinese() { I18n.init(ApplicationProvider.getApplicationContext()) }
+
+    @Test fun adjacentAndExpandedCardsHaveGapsAndAdbButtonHasPaddingWithoutEmptyStatusSpace() {
+        var authorized = 0
+        compose.setContent { XcertplayTheme { ProvideSettingsUi {
+            Column(Modifier.fillMaxWidth()) {
+                SettingsGroup { row { ListRow("前一卡片", modifier = Modifier.testTag("previous-row")) } }
+                ExpandableSettingsSection("连接诊断信息", "查看连接状态") {
+                    SettingsGroup { row { ListRow("连接状态", modifier = Modifier.testTag("status-row")) } }
+                }
+                SettingsGroup { row { AdbAuthorizationAction(false, null) { authorized++ } } }
+                SettingsGroup { row { ListRow("音频质量设置", modifier = Modifier.testTag("quality-row")) } }
+            }
+        } } }
+        fun bounds(tag: String) = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+        val previous = bounds("previous-row")
+        val header = compose.onNodeWithText("连接诊断信息").getUnclippedBoundsInRoot()
+        assertTrue("Adjacent cards must be separated", header.top.value - previous.bottom.value >= 8f)
+        compose.onNodeWithText("连接诊断信息").performClick()
+        val status = bounds("status-row")
+        assertTrue("Expanded status must not touch its header", status.top.value - header.bottom.value >= 8f)
+        val action = bounds("adb-action")
+        val button = bounds("adb-authorize")
+        assertTrue(button.left.value - action.left.value >= 12f)
+        assertTrue(button.top.value - action.top.value >= 10f)
+        assertTrue(action.bottom.value - button.bottom.value >= 10f)
+        assertTrue("Idle action must not reserve an empty status row", action.bottom.value - action.top.value <= 72f)
+        assertTrue(button.bottom.value - button.top.value >= 48f)
+        assertTrue(bounds("quality-row").top.value - action.bottom.value >= 8f)
+        compose.onNodeWithTag("adb-authorize").performClick()
+        compose.runOnIdle { assertEquals(1, authorized) }
+    }
 
     @Test fun collapsingAdvancedOptionsPreservesTheDraftAndDoesNotInvokeRuntimeCallbacks() {
         var changes = 0

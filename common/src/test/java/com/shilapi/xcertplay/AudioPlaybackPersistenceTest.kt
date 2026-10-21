@@ -2,7 +2,6 @@ package com.shilapi.xcertplay
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.shilapi.xcertplay.media.AudioOutputChannel
 import com.shilapi.xcertplay.media.AudioPlaybackSettings
 import org.junit.Assert.*
 import org.junit.Before
@@ -28,7 +27,7 @@ class AudioPlaybackPersistenceTest {
     @Test fun bindingsAndMutedVolumeSurviveReloadWithoutChangingSystemVolume() {
         val manager = context.getSystemService(android.media.AudioManager::class.java)
         val before = manager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
-        val settings = AudioPlaybackSettings(AudioOutputChannel.NAVIGATION, AudioOutputChannel.MEDIA, 0)
+        val settings = AudioPlaybackSettings(navigationVolumePercent = 0)
         AirPlayPersistence.saveAudioPlaybackSettings(context, settings)
         assertEquals(settings, AirPlayPersistence.loadAudioPlaybackSettings(context))
         assertEquals(before, manager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC))
@@ -37,10 +36,23 @@ class AudioPlaybackPersistenceTest {
     @Test fun badPreferencesRecoverPerFieldAndClampGain() {
         prefs.edit().putString("music_output_channel", "missing")
             .putString("navigation_output_channel", "MEDIA").putInt("navigation_volume_percent", 500).commit()
-        assertEquals(AudioPlaybackSettings(AudioOutputChannel.MEDIA, AudioOutputChannel.MEDIA, 200),
+        assertEquals(AudioPlaybackSettings(navigationVolumePercent = 200),
             AirPlayPersistence.loadAudioPlaybackSettings(context))
         prefs.edit().putString("navigation_volume_percent", "wrong-type").commit()
         assertEquals(100, AirPlayPersistence.loadAudioPlaybackSettings(context).navigationVolumePercent)
+    }
+
+    @Test fun removedUsagePreferencesAreIgnoredAndDeletedOnSaveWhileNumberedOverridesRemain() {
+        prefs.edit().putString("music_output_channel", "NAVIGATION")
+            .putString("navigation_output_channel", "MEDIA")
+            .putInt("music_stream_binding", 3).putInt("navigation_stream_binding", 14)
+            .putInt("navigation_volume_percent", 75).commit()
+        val expected = AudioPlaybackSettings(navigationVolumePercent = 75, musicStream = 3, navigationStream = 14)
+        assertEquals(expected, AirPlayPersistence.loadAudioPlaybackSettings(context))
+        AirPlayPersistence.saveAudioPlaybackSettings(context, expected)
+        assertFalse(prefs.contains("music_output_channel"))
+        assertFalse(prefs.contains("navigation_output_channel"))
+        assertEquals(expected, AirPlayPersistence.loadAudioPlaybackSettings(context))
     }
 
     @Test fun numberedStreamsSurviveReloadAndRecoverInvalidPreferences() {

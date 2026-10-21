@@ -3133,12 +3133,9 @@ class CarPlayHostActivity : ComponentActivity() {
                         }
                         row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.scan_pause.help")) }
                         row {
-                            Column(verticalArrangement = Arrangement.spacedBy(Space.s2)) {
-                                FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
-                                    Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
-                                }
-                                scanAdbStatus?.let { HelpText(tr(it)) }
-                            }
+                            com.shilapi.xcertplay.ui.settings.AdbAuthorizationAction(
+                                scanAdbBusy, scanAdbStatus, ::authorizeScanAdb,
+                            )
                         }
                     }
                 }
@@ -3243,8 +3240,8 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         val stateKey = if (!wirelessEnabled) "off" else status.state
         val label = trOr("hotspot.state.${stateKey.lowercase(Locale.ROOT).replace(' ', '_')}", stateKey)
-        Column(Modifier.fillMaxWidth().padding(top = Space.s3)) {
-            StatusPill(kind, icon, label, Modifier.padding(horizontal = Space.s4))
+        Column(Modifier.fillMaxWidth().padding(vertical = Space.s3)) {
+            StatusPill(kind, icon, label, Modifier.padding(horizontal = 12.dp))
             if (wirelessEnabled) {
                 val entries = buildList {
                     status.ssid?.let { add(tr("hotspot.ssid") to it) }
@@ -3254,7 +3251,7 @@ class CarPlayHostActivity : ComponentActivity() {
                         add(tr("hotspot.channel") to if (it == 0) tr("settings.manual_hotspot.band.auto") else it.toString())
                     }
                 }
-                if (entries.isNotEmpty()) KeyValueList(entries) else Spacer(Modifier.height(Space.s3))
+                if (entries.isNotEmpty()) KeyValueList(entries)
             } else {
                 HelpText(tr("hotspot.off_help"))
             }
@@ -3409,11 +3406,12 @@ class CarPlayHostActivity : ComponentActivity() {
             com.shilapi.xcertplay.ui.settings.BydCallPopupSettings(hideBydCallPopup) { hideBydCallPopup = it }
             SettingsGroup {
                 row {
-                    FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
-                        Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
-                    }
+                    com.shilapi.xcertplay.ui.settings.AdbAuthorizationAction(
+                        scanAdbBusy,
+                        scanAdbStatus?.let { if (it == "settings.scan_pause.ready") "settings.call_popup.adb_ready" else it },
+                        ::authorizeScanAdb,
+                    )
                 }
-                scanAdbStatus?.let { row { HelpText(tr(if (it == "settings.scan_pause.ready") "settings.call_popup.adb_ready" else it)) } }
             }
         }
         SettingsGroup {
@@ -3832,25 +3830,26 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun IdentitySettings() {
+        HelpText(tr("settings.identity.help"))
         SectionHeader(tr("settings.identity.vehicle"))
         SettingsGroup {
             row {
                 FieldRow(tr("settings.identity.manufacturer"), manufacturer, {
                     manufacturer = it
                     updateResolutionMenu()
-                })
+                }, help = tr("settings.identity.manufacturer.help"))
             }
             row {
                 FieldRow(tr("settings.identity.model"), model, {
                     model = it
                     updateResolutionMenu()
-                })
+                }, help = tr("settings.identity.model.help"))
             }
             row {
                 FieldRow(tr("settings.identity.oem_label"), oemLabel, {
                     oemLabel = it
                     updateResolutionMenu()
-                })
+                }, help = tr("settings.identity.oem_label.help"))
             }
         }
 
@@ -3868,6 +3867,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     },
                 )
             }
+            row { HelpText(tr("settings.identity.driving_side.help")) }
         }
     }
 
