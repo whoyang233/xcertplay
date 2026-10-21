@@ -44,6 +44,8 @@ Android、驱动、功放和扬声器仍有最低延迟，0 不是物理零延�
 
 ## 截图和验证
 
+截图反馈修正后的验证来自 `47d6c78538027ce20dd7389d7252677573bfa875`：[任务 39567775549](https://github.com/whoyang233/xcertplay/actions/runs/39567775549)，421 项测试通过，失败/错误/跳过均为 0；Lint 无错误（common 82、automotive 3 条警告），未签名或打包 APK。当前卡片间距、ADB 按钮、编号音频通道和标识说明见 [新版完整图库](SETTINGS_SCREENSHOTS.zh-CN.md)。
+
 [完整设置图库](SETTINGS_SCREENSHOTS.zh-CN.md)补齐了 8 个设置分类、长页滚动内容、车载版/比亚迪条件项及音质子页；以下为首轮历史截图；布局及音频菜单以完整设置图库的最新截图为准。
 
 截图通过 Robolectric Android 13 / API 33 的原生绘图生成。主要设置截图为 1920 × 1080、320 DPI，直接渲染应用实际的 `SettingsScreen`；不运行真实车机、ADB 或 CarPlay 传输。缓冲选项弹窗单独捕获其真实窗口。等待页另覆盖低密度 1080P 与 150% 字体窄窗口。

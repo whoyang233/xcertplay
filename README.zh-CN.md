@@ -221,6 +221,8 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
+2026-10-21 的[截图反馈修正验证](https://github.com/whoyang233/xcertplay/actions/runs/39567775549)来自源码 `47d6c78538027ce20dd7389d7252677573bfa875`：**421 项测试通过，失败、错误、跳过均为 0；Lint 无错误，保留 common 82 / automotive 3 条警告。** 覆盖卡片分隔、ADB 按钮间距和点击、旧用途绑定清理、编号通道与导航增益，以及既有音视频缓冲和连接回归。[新版完整图库](docs/SETTINGS_SCREENSHOTS.zh-CN.md) · [完整报告](https://github.com/whoyang233/xcertplay/actions/runs/39567775549/artifacts/12331110976)。本次明确跳过签名、APK 打包、APK 校验与 APK 上传；截图来自测试环境，实车路由和连接仍需验收。
+
 2026-10-21 的[界面/缓冲仅验证任务](https://github.com/whoyang233/xcertplay/actions/runs/39561641865)来自源码 `3b228560ebb64c98b69d7d0fc72c24344102cfe6`：**418 项测试全部通过，无失败、错误或跳过；Lint 无错误，保留 common 82 / automotive 3 条警告。** 覆盖实际设置页、视频所有档位的草稿/保存/重载、音频 0 ms 首帧启动、解码输出追赶与静止帧保留、单帧队列背压及 Web 类/依赖缺席。签名、APK 打包、APK 校验和上传步骤均明确跳过。[页面截图与配置说明](docs/UI_BUFFER_SETTINGS.zh-CN.md) · [完整验证报告和截图](https://github.com/whoyang233/xcertplay/actions/runs/39561641865/artifacts/12328316122)。截图为 Android 13 / API 33 的 1080P 测试预览，不能替代实车延迟或固件兼容验证。
 
 以下为此前可下载 APK 的历史验证记录；本轮未生成新 APK。
