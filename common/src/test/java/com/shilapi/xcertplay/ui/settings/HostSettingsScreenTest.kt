@@ -127,7 +127,8 @@ class HostSettingsScreenTest {
             var maximum = 0f
             compose.runOnIdle { value = range.value(); maximum = range.maxValue() }
             if (value >= maximum - 1f) return
-            val step = content.getUnclippedBoundsInRoot().height.value *
+            val bounds = content.getUnclippedBoundsInRoot()
+            val step = (bounds.bottom.value - bounds.top.value) *
                 compose.activity.resources.displayMetrics.density * 0.75f
             content.performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, step) }
             compose.runOnIdle { assertTrue("Scrolling must advance $name", range.value() > value) }
