@@ -1,14 +1,11 @@
 {
   "_comment": "Japanese overlay for the base table (assets/i18n/en.json). Optional keys only; missing keys fall back to English. {name} marks a placeholder.",
   "_language": "ja",
-
   "app.name": "xcertplay",
-
   "common.back": "戻る",
   "common.cancel": "キャンセル",
   "common.choose": "選択",
   "common.save": "保存",
-
   "home.open_settings": "設定を開く",
   "home.starting": "起動中",
   "home.connected": "接続済み",
@@ -33,7 +30,6 @@
   "home.log.to_phone": "iPhone へ送信",
   "home.log.from_phone": "iPhone から受信",
   "home.log.local": "ローカルステップ",
-
   "link.state.off": "オフ",
   "link.state.listening": "待受中",
   "link.state.connecting": "接続中",
@@ -41,7 +37,6 @@
   "link.state.encrypted": "暗号化済み",
   "link.state.released": "解放済み",
   "link.state.failed": "失敗",
-
   "phase.mfi.title": "MFi 認証の準備中",
   "phase.hotspot.title": "Wi-Fi ホットスポットの起動中",
   "phase.advertise.title": "AirPlay サービスを通知中",
@@ -55,12 +50,10 @@
   "phase.session.title": "AirPlay セッションの開始中",
   "phase.streams.title": "メディアストリームの開設中",
   "phase.handoff.title": "Wi-Fi への引き継ぎ中",
-
   "settings.title": "設定",
   "settings.discard": "変更を破棄して閉じる",
   "settings.save": "保存して再接続",
   "settings.exit": "アプリを終了",
-
   "settings.category.connection": "接続",
   "settings.category.connection.summary": "MFi ターゲット、ワイヤレス CarPlay、ホットスポット",
   "settings.category.vehicle": "車両データ",
@@ -69,15 +62,12 @@
   "settings.category.audio.summary": "メディアバッファ、マイクゲイン",
   "settings.category.display": "ディスプレイと映像",
   "settings.category.display.summary": "解像度、フレームレート、HEVC、セーフエリア",
-  "settings.category.web": "Web ディスプレイ",
-  "settings.category.web.summary": "ブラウザでメイン・クラスターディスプレイを表示",
   "settings.category.identity": "アイデンティティと外観",
   "settings.category.identity.summary": "メーカー、AirPlay アイコン、運転席側",
   "settings.category.window": "起動とウィンドウ",
   "settings.category.window.summary": "自動起動、システムバー、ジェスチャ",
   "settings.category.diagnostics": "診断",
   "settings.category.diagnostics.summary": "ログ、レイテンシモニター、キャプチャ",
-
   "settings.connection.mfi": "MFi 認証",
   "settings.connection.transport": "接続方式",
   "settings.mfi.target": "証明書と署名のターゲット",
@@ -113,7 +103,6 @@
   "settings.manual_hotspot.password": "ホットスポットのパスワード",
   "settings.manual_hotspot.error_title": "ホットスポット設定の確認が必要です",
   "settings.hotspot_status": "ホットスポット状態",
-
   "hotspot.state.off": "ワイヤレスオフ",
   "hotspot.state.stopped": "停止",
   "hotspot.state.starting": "起動中",
@@ -129,7 +118,6 @@
   "hotspot.band": "バンド",
   "hotspot.channel": "チャンネル",
   "hotspot.off_help": "ワイヤレス CarPlay をオンにするとホットスポットが始まります。",
-
   "settings.vehicle.location": "位置情報",
   "settings.vehicle.report_location": "位置情報を iPhone に報告",
   "settings.vehicle.report_location.support": "iPhone が要求したとき、Android の高精度位置情報を CarPlay GPS データとして送信します",
@@ -145,7 +133,6 @@
   "settings.vehicle.grant_speed": "速度へのアクセスを許可",
   "settings.vehicle.no_adapter": "車内温度、アラート、HVAC、ドア、窓、タイヤ空気圧は、このアプリではスマートフォンへの検証済みアダプターがないため、これらの車両プロパティは送信されません。",
   "settings.vehicle.requirements": "GPS には正確な位置情報の権限が必要です。車両機能は読み取り可能な車両プロパティが必要で、取得できない場合や古い値は送信しません。更新は iPhone が購読した後にのみ送信されます。",
-
   "settings.audio.playback": "再生",
   "settings.audio.buffer": "メインメディアバッファ",
   "settings.audio.buffer.support": "値を大きくするとネットワークのジッターを吸収できますが遅延が増えます",
@@ -162,7 +149,6 @@
   "settings.audio.listening": "受信中…",
   "settings.audio.permission_required": "権限が必要です",
   "settings.audio.test_failed": "テストに失敗しました",
-
   "settings.display.resolution": "解像度",
   "settings.display.scale": "解像度スケール",
   "settings.display.scale.support": "画面ピクセルのうち iPhone に送信する割合",
@@ -182,29 +168,12 @@
   "settings.display.safe_area.reset": "リセット",
   "settings.display.safe_area.draw_outside": "セーフエリア外にも描画",
   "settings.display.safe_area.draw_outside.support": "CarPlay の壁紙がセーフエリア外まで表示されるようになります",
-
   "safe_area.waiting": "ディスプレイサイズを待機中",
   "safe_area.full": "{width} × {height} の全画面",
   "safe_area.custom": "{width} × {height} 画面の ({left}, {top}) に {rect_width} × {rect_height}",
   "safe_area.unavailable": "ディスプレイサイズが確定すると利用できます",
   "safe_area.editor.title": "セーフエリア",
   "safe_area.editor.help": "4 つの辺をドラッグして使用可能な領域に合わせます",
-
-  "settings.web.main": "メインディスプレイ",
-  "settings.web.instrument": "クラスターディスプレイ",
-  "settings.web.enabled": "ブラウザで開く",
-  "settings.web.enabled.support": "同じネットワーク上のブラウザでこのディスプレイを表示できます",
-  "settings.web.width": "幅",
-  "settings.web.height": "高さ",
-  "settings.web.dimension_help": "偶数の値、320～3840 × 240～2160",
-  "settings.web.dimension_error": "320～3840 × 240～2160 の範囲で偶数の寸法を使用してください",
-  "settings.web.preview": "ローカルプレビュー",
-  "settings.web.preview.support": "設定した解像度のプレビューをこの画面に収めます",
-  "settings.web.address": "アドレス",
-  "settings.web.no_network": "ローカルネットワークに接続するとアドレスが表示されます",
-  "settings.web.https_note": "Web ディスプレイは自己署名証明書による HTTPS を使用します。ブラウザで WebCodecs（H.265 含む）によるデコードを行うためです。各ブラウザで最初に一度警告が表示されるので、続行を選択してください。",
-  "settings.web.apply_note": "変更は「保存して再接続」後に反映されます。",
-
   "settings.identity.vehicle": "車両アイデンティティ",
   "settings.identity.manufacturer": "メーカー",
   "settings.identity.model": "モデル",
@@ -218,7 +187,6 @@
   "settings.identity.driving_side": "運転席側",
   "settings.identity.driving_side.left": "左ハンドル",
   "settings.identity.driving_side.right": "右ハンドル",
-
   "settings.window.startup": "起動",
   "settings.window.auto_start": "端末起動時に自動開始",
   "settings.window.auto_start.support": "端末の起動後自動的に CarPlay を開きます",
@@ -231,7 +199,6 @@
   "settings.window.edge_gesture": "端からのスワイプで設定を開く",
   "settings.window.edge_gesture.support": "左上の端から下まで一指でスワイプします",
   "settings.window.three_finger_help": "三本指の下向きスワイプは常に設定を開きます。",
-
   "settings.diagnostics.monitoring": "モニタリング",
   "settings.diagnostics.latency": "メディアレイテンシモニター",
   "settings.diagnostics.latency.support": "映像の遅延、フレームレート、音声の遅延をリアルタイムで表示します",
@@ -246,11 +213,9 @@
   "settings.diagnostics.bluetooth": "Bluetooth 設定",
   "settings.diagnostics.bluetooth.support": "システム設定でペアリングまたは登録解除を行います",
   "settings.diagnostics.summary": "次回のハンドシェイク",
-
   "settings.compat.title": "Android 9 互換",
   "settings.compat.p2p": "Wi-Fi P2P (5 GHz) は利用できないため、LocalOnlyHotspot を代わりに使用します。",
   "settings.compat.hevc": "ソフトウェア HEVC デコーダーは利用できないため、ハードウェアデコードを代わりに使用します。",
-
   "summary.handshake": "解像度",
   "summary.waiting_display": "ディスプレイを待機中",
   "summary.scale": "スケール",
@@ -278,7 +243,6 @@
   "summary.audio_mapping.aaos": "AAOS バス",
   "summary.audio_mapping.mobile": "モバイル互換",
   "summary.safe_area": "セーフエリア",
-
   "crop.loading": "画像を読み込み中",
   "crop.help": "ドラッグで移動、ピンチでズーム",
   "crop.decode_failed": "画像をデコードできませんでした",
@@ -286,7 +250,6 @@
   "crop.encode_failed": "画像をエンコードできませんでした",
   "crop.save_failed": "画像を保存できませんでした",
   "crop.save": "1:1 で保存",
-
   "unit.fps": "{value} fps",
   "unit.mm": "{value} mm"
 }

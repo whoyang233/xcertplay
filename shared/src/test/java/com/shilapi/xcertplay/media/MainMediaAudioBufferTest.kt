@@ -10,11 +10,11 @@ class MainMediaAudioBufferTest {
     fun newPresetsKeepEveryOldValueAndTheOriginalDefault() {
         assertEquals(100, MainMediaAudioBuffer.DEFAULT_DURATION_MS)
         for (old in 100..1000 step 100) assertEquals(old, MainMediaAudioBuffer.sanitizeDurationMs(old))
-        for (preset in listOf(20, 50, 100, 150, 200, 250, 300)) {
+        for (preset in listOf(0, 20, 50, 100, 150, 200, 250, 300)) {
             assertTrue(preset in MainMediaAudioBuffer.presetsMs)
             assertEquals(preset, MainMediaAudioBuffer.sanitizeDurationMs(preset))
         }
-        assertEquals(20, MainMediaAudioBuffer.sanitizeDurationMs(Int.MIN_VALUE))
+        assertEquals(0, MainMediaAudioBuffer.sanitizeDurationMs(Int.MIN_VALUE))
         assertEquals(50, MainMediaAudioBuffer.sanitizeDurationMs(35))
         assertEquals(150, MainMediaAudioBuffer.sanitizeDurationMs(149))
         assertEquals(1000, MainMediaAudioBuffer.sanitizeDurationMs(Int.MAX_VALUE))
@@ -88,4 +88,15 @@ class MainMediaAudioBufferTest {
         assertEquals(19_200, capacity)
         assertEquals(4_096, MainMediaAudioBuffer.startThresholdBytes(capacity, 1_024))
     }
+    @Test fun zeroModeRequestsOnlySystemMinimumAndStartsAfterTheFirstPcmFrame() {
+        val capacity = MainMediaAudioBuffer.bufferSizeBytes(0, 48_000, 2, 1_024)
+        assertEquals(1_024, capacity)
+        val threshold = MainMediaAudioBuffer.startThresholdBytes(capacity, 1_024, 0)
+        assertEquals(0, threshold)
+        val firstWrite = MainMediaAudioBuffer.prebufferWriteLength(8_192, 0, threshold, 4)
+        assertEquals(4, firstWrite)
+        assertTrue(firstWrite <= capacity)
+        assertTrue(firstWrite >= threshold)
+    }
+
 }

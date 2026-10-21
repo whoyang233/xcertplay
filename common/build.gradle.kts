@@ -3,10 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// Browser output is an opt-in build feature, excluded from normal personal car APKs.
-val webDisplayEnabled = providers.gradleProperty("xcertplay.webDisplay")
-    .map { it.toBooleanStrict() }.getOrElse(false)
-
 android {
     namespace = "com.shilapi.xcertplay.host"
     compileSdk {
@@ -25,25 +21,12 @@ android {
     buildFeatures {
         compose = true
     }
-    sourceSets {
-        getByName("main") {
-            kotlin.srcDir(if (webDisplayEnabled) "src/webDisplay/java" else "src/noWebDisplay/java")
-            if (webDisplayEnabled) assets.srcDir("src/webDisplay/assets")
-        }
-        getByName("test").kotlin.srcDir(
-            if (webDisplayEnabled) "src/webDisplayTest/java" else "src/noWebDisplayTest/java",
-        )
-    }
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
 }
 
 dependencies {
-    if (webDisplayEnabled) {
-        implementation("org.nanohttpd:nanohttpd:2.3.1")
-        implementation("org.nanohttpd:nanohttpd-websocket:2.3.1")
-    }
     api(project(":shared"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

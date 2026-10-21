@@ -49,10 +49,10 @@ class AndroidMediaSink(
     mediaMetricsMonitor: MediaMetricsMonitor? = null,
     onScreenStreamActiveChanged: ((Int, Boolean) -> Unit)? = null,
     private val videoSizes: Map<Int, Pair<Int, Int>> = emptyMap(),
-    private val mediaTap: MediaTap? = null,
-    private val onClosed: () -> Unit = {},
     private val audioFocus: AudioFocusSession? = null,
     private val audioPlaybackSettings: AudioPlaybackSettings = AudioPlaybackSettings(),
+    private val videoBufferDurationMs: Int = VideoBufferPolicy.DEFAULT_DURATION_MS,
+    private val videoFps: Int = 60,
 ) : MediaSink {
     private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val defaultSurface = surface
@@ -63,8 +63,6 @@ class AndroidMediaSink(
     private val microphoneUplinks = ConcurrentHashMap<Int, MicrophoneUplink>()
     private val videoRecoveryHandlers = ConcurrentHashMap<Int, () -> Boolean>()
     private val pendingVideoCodec = ConcurrentHashMap<Int, VideoCodec>()
-    private val videoConfigs = ConcurrentHashMap<Int, Pair<VideoCodec, ByteArray>>()
-    private val previewLock = Any()
     @Volatile private var mediaMetricsMonitor = mediaMetricsMonitor
 
     init {
@@ -73,27 +71,11 @@ class AndroidMediaSink(
 
     fun setSurface(type: Int, surface: Surface) {
         surfaces[type] = surface
-        if (!forwarded(type)) {
-            videoDecoders[type]?.setSurface(surface)
-            return
-        }
-        // A forwarded stream has no local decoder until a preview appears; start at the last config.
-        synchronized(previewLock) {
-            val decoder = videoDecoders[type]
-            if (decoder != null) decoder.setSurface(surface)
-            else videoConfigs[type]?.let { (codec, data) -> videoDecoder(type, midStream = true).configure(codec, data) }
-        }
+        videoDecoders[type]?.setSurface(surface)
     }
 
     fun clearSurface(type: Int, surface: Surface) {
-        if (!forwarded(type)) {
-            if (surfaces.remove(type, surface)) videoDecoders[type]?.setSurface(null)
-            return
-        }
-        // Holding frames for a future Surface would apply backpressure to the forwarded stream.
-        synchronized(previewLock) {
-            if (surfaces.remove(type, surface)) videoDecoders.remove(type)?.apply { setSurface(null) }?.close()
-        }
+        if (surfaces.remove(type, surface)) videoDecoders[type]?.setSurface(null)
     }
 
     /** Asks the phone for a random access picture; false when the stream cannot be asked. */
@@ -120,46 +102,24 @@ class AndroidMediaSink(
 
     override fun onVideoConfig(type: Int, codecData: ByteArray) {
         val codec = pendingVideoCodec[type] ?: VideoCodec.H264
-        videoConfigs[type] = codec to codecData.copyOf()
-        if (!forwarded(type)) {
-            videoDecoder(type).configure(codec, codecData)
-            return
-        }
-        mediaTap?.onVideoConfig(type, codec, codecData.copyOf())
-        synchronized(previewLock) {
-            if (surfaces[type] != null) videoDecoder(type).configure(codec, codecData)
-        }
+        videoDecoder(type).configure(codec, codecData)
     }
 
     override fun onVideoFrame(type: Int, accessUnit: VideoAccessUnit) {
         val arrivalNs = System.nanoTime()
-        val arrivalUs = arrivalNs / 1_000L
         if (type == STREAM_TYPE_MAIN_SCREEN) mediaMetricsMonitor?.recordVideoFrameReceived(arrivalNs)
-        if (!forwarded(type)) {
-            videoDecoder(type).submit(accessUnit, arrivalUs)
-            return
-        }
-        if (mediaTap?.wantsVideoFrames(type) == true) {
-            val forwardedUnit = MediaCodecSupport.toLengthPrefixed(accessUnit.bytes.copyOf(accessUnit.size))
-            if (forwardedUnit.isNotEmpty()) mediaTap.onVideoFrame(type, forwardedUnit, arrivalUs)
-        }
-        // Only a preview decoder created with a Surface may take frames; it never holds them.
-        val decoder = videoDecoders[type]
-        if (decoder != null) decoder.submit(accessUnit, arrivalUs) else accessUnit.close()
+        videoDecoder(type).submit(accessUnit, arrivalNs / 1_000L)
     }
 
     override fun onScreenStreamActive(type: Int, active: Boolean) {
         if (!active) {
             videoDecoders.remove(type)?.close()
             pendingVideoCodec.remove(type)
-            videoConfigs.remove(type)
             videoRecoveryHandlers.remove(type)
         }
-        mediaTap?.onVideoActive(type, active)
         screenStreamActiveChanged?.invoke(type, active)
     }
 
-    private fun forwarded(type: Int) = mediaTap?.forwardsVideo(type) == true
 
     override fun onAudioStarted(type: Int, format: AudioFormat, firstSample: Int) {
         audioRenderer(type, format).start()
@@ -171,7 +131,6 @@ class AndroidMediaSink(
 
     override fun onAudioStopped(type: Int) {
         audioRenderers.remove(type)?.close()
-        mediaTap?.onAudioStopped(type)
     }
 
     override fun onMicrophoneStarted(type: Int, config: MicrophoneConfig) {
@@ -191,16 +150,14 @@ class AndroidMediaSink(
         videoDecoders.clear()
         videoRecoveryHandlers.clear()
         pendingVideoCodec.clear()
-        videoConfigs.clear()
         audioRenderers.values.forEach(AudioRenderer::close)
         audioRenderers.clear()
         microphoneUplinks.values.forEach(MicrophoneUplink::close)
         microphoneUplinks.clear()
         audioFocus?.release(this)
-        onClosed()
     }
 
-    private fun videoDecoder(type: Int, midStream: Boolean = false): VideoDecoder =
+    private fun videoDecoder(type: Int): VideoDecoder =
         videoDecoders.computeIfAbsent(type) {
             VideoDecoder(
                 surfaces[type] ?: defaultSurface,
@@ -209,7 +166,8 @@ class AndroidMediaSink(
                 preferSoftwareHevcDecoder,
                 mediaMetricsMonitor,
                 requestKeyFrame = { videoRecoveryHandlers[type]?.invoke() ?: false },
-                midStream = midStream,
+                bufferDurationMs = videoBufferDurationMs,
+                fps = videoFps,
             )
         }
 
@@ -224,7 +182,6 @@ class AndroidMediaSink(
             advancedAudioChannelMapping,
             mainMediaAudioBufferDurationMs,
             mediaMetricsMonitor,
-            mediaTap,
             audioPlaybackSettings,
         ).also {
             audioRenderers[type] = it
@@ -339,12 +296,13 @@ private class VideoDecoder(
     private val preferSoftwareHevcDecoder: Boolean,
     mediaMetricsMonitor: MediaMetricsMonitor?,
     private val requestKeyFrame: () -> Boolean,
-    /** Joining a running stream: the next random access picture may be a GOP away, or never on a static screen. */
-    midStream: Boolean = false,
+    bufferDurationMs: Int,
+    fps: Int,
 ) : Closeable {
-    private val queue = VideoWorkQueue<VideoJob>(8) { job ->
+    private val queue = VideoWorkQueue<VideoJob>(VideoBufferPolicy.queueCapacity(bufferDurationMs, fps)) { job ->
         if (job is VideoJob.Frame) job.accessUnit.close()
     }
+    private val outputBuffer = VideoOutputBuffer(bufferDurationMs)
     @Volatile private var running = true
     @Volatile private var decoder: MediaCodec? = null
     private var pump: VideoDecodePump? = null
@@ -360,7 +318,7 @@ private class VideoDecoder(
     private var inputRetries = 0
     private var syncSkips = 0
     private var maxOutputAgeUs = 0L
-    private var needsKeyFrame = midStream
+    private var needsKeyFrame = false
     private var lastKeyFrameRequestNs = 0L
     @Volatile private var requestedSurface: Surface? = surface
     @Volatile private var detached: CountDownLatch? = null
@@ -676,37 +634,41 @@ private class VideoDecoder(
 
     private fun drainOutput(codec: MediaCodec, firstTimeoutUs: Long = 0) {
         val info = drainInfo
+        val release: (VideoOutputBuffer.Frame, Boolean) -> Unit = { frame, render ->
+            codec.releaseOutputBuffer(frame.index, render)
+            if (render) {
+                mediaMetricsMonitor?.recordVideoFrameRendered(
+                    arrivalNs = frame.ptsUs * 1_000L,
+                    renderedNs = System.nanoTime(),
+                )
+                if (!renderedFrameLogged) {
+                    renderedFrameLogged = true
+                    Log.i(TAG, "video decoder rendered first frame bytes=${frame.size}")
+                }
+            }
+        }
         var timeoutUs = firstTimeoutUs
         while (running) {
             val index = codec.dequeueOutputBuffer(info, timeoutUs)
             timeoutUs = 0
             when {
-                index == MediaCodec.INFO_TRY_AGAIN_LATER -> return
+                index == MediaCodec.INFO_TRY_AGAIN_LATER -> break
                 index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> logOutputFormat(codec.outputFormat)
                 index >= 0 -> {
-                    val render = outputSurface != null &&
-                        info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0
                     outputCount++
                     if (inFlight > 0) inFlight--
-                    maxOutputAgeUs = maxOf(maxOutputAgeUs, System.nanoTime() / 1000 - info.presentationTimeUs)
-                    codec.releaseOutputBuffer(index, render)
-                    if (render) {
-                        // feed() assigns the System.nanoTime-based arrival as input PTS. This
-                        // measurement assumes MediaCodec preserves that PTS in BufferInfo.
-                        mediaMetricsMonitor?.recordVideoFrameRendered(
-                            arrivalNs = info.presentationTimeUs * 1_000L,
-                            renderedNs = System.nanoTime(),
-                        )
-                    }
-                    if (render && !renderedFrameLogged) {
-                        renderedFrameLogged = true
-                        Log.i(TAG, "video decoder rendered first frame bytes=${info.size}")
-                    }
-                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
+                    val nowUs = System.nanoTime() / 1000
+                    maxOutputAgeUs = maxOf(maxOutputAgeUs, nowUs - info.presentationTimeUs)
+                    outputBuffer.offer(VideoOutputBuffer.Frame(index, info.presentationTimeUs,
+                        outputSurface != null && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0,
+                        info.size), nowUs, release)
+                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break
                 }
-                else -> return
+                else -> break
             }
         }
+        // Even an old static/final picture must reach the Surface; never wait for a newer packet.
+        outputBuffer.finish(release)
     }
 
     private fun logVideoStats() {
@@ -742,6 +704,7 @@ private class VideoDecoder(
 
     @Synchronized
     private fun releaseDecoder() {
+        outputBuffer.clear()
         val codec = decoder
         decoder = null
         pump?.clear()
@@ -798,7 +761,6 @@ private class AudioRenderer(
     private val advancedAudioChannelMapping: Boolean,
     private val mainMediaAudioBufferDurationMs: Int,
     mediaMetricsMonitor: MediaMetricsMonitor?,
-    private val mediaTap: MediaTap?,
     private val playbackSettings: AudioPlaybackSettings,
 ) : Closeable {
     private data class AudioPacket(val rtp: ByteArray, val sample: Int)
@@ -931,7 +893,8 @@ private class AudioRenderer(
         } else {
             maxOf(minBuffer * 4, MIN_TRACK_BUFFER_BYTES)
         }
-        startThresholdBytes = MainMediaAudioBuffer.startThresholdBytes(bufferBytes, minBuffer)
+        startThresholdBytes = MainMediaAudioBuffer.startThresholdBytes(bufferBytes, minBuffer,
+            if (configuredMainMediaBuffer) mainMediaAudioBufferDurationMs else MainMediaAudioBuffer.DEFAULT_DURATION_MS)
         fun usageTrack(): AudioTrack = AudioTrack.Builder()
                 .setAudioAttributes(audioAttributes())
                 .setAudioFormat(
@@ -960,6 +923,11 @@ private class AudioRenderer(
         )
         // AudioTrack consumes 16-bit PCM, so frame size follows the channel mask configured above.
         trackBytesPerFrame = trackChannelCount * BYTES_PER_PCM_16_SAMPLE
+        if (configuredMainMediaBuffer && MainMediaAudioBuffer.sanitizeDurationMs(mainMediaAudioBufferDurationMs) == 0 &&
+            Build.VERSION.SDK_INT >= 31) {
+            runCatching { track?.setStartThresholdInFrames(1) }
+                .onFailure { Log.w(TAG, "AudioTrack minimum start threshold is controlled by the device", it) }
+        }
         val actualFrames = track?.bufferSizeInFrames ?: 0
         Log.i(
             TAG,
@@ -1137,10 +1105,6 @@ private class AudioRenderer(
         NavigationVolume.applyPcm16InPlace(
             data, offset, length, selection, playbackSettings.navigationVolumePercent,
         )
-        if (mediaTap?.takesAudio() == true) {
-            forwardPcm(data, offset, length)
-            return
-        }
         val track = track ?: return
         if (!firstPcmLogged && length > 0) {
             firstPcmLogged = true
@@ -1160,7 +1124,7 @@ private class AudioRenderer(
             val writeLength = if (playbackStarted) {
                 length - written
             } else {
-                MainMediaAudioBuffer.prebufferWriteLength(length - written, prebufferBytes, startThresholdBytes)
+                MainMediaAudioBuffer.prebufferWriteLength(length - written, prebufferBytes, startThresholdBytes, trackBytesPerFrame)
             }
             val count = track.write(data, offset + written, writeLength, AudioTrack.WRITE_BLOCKING)
             if (count <= 0) break
@@ -1187,25 +1151,6 @@ private class AudioRenderer(
                 }
             }
         }
-    }
-
-    /** Remote playback silences the local track; returning to it starts over with prebuffering. */
-    private fun forwardPcm(data: ByteArray, offset: Int, length: Int) {
-        val tap = mediaTap ?: return
-        val track = track
-        if (track != null && (playbackStarted || prebufferBytes > 0)) {
-            try {
-                track.pause()
-                track.flush()
-            } catch (_: Exception) {
-                // Best effort.
-            }
-            playbackStarted = false
-            prebufferBytes = 0
-            fadeApplied = false
-            Log.i(TAG, "audio forwarded remotely type=${format.payloadType}")
-        }
-        tap.onAudioPcm(stream, format.sampleRate, if (format.channels >= 2) 2 else 1, data, offset, length)
     }
 
     private fun playbackHeadFrames(track: AudioTrack): Long {

@@ -1,14 +1,11 @@
 {
   "_comment": "Optional French overlay. Keys missing here fall back to assets/i18n/en.json; {name} marks a placeholder.",
   "_language": "fr",
-
   "app.name": "xcertplay",
-
   "common.back": "Retour",
   "common.cancel": "Annuler",
   "common.choose": "Choisir",
   "common.save": "Enregistrer",
-
   "home.open_settings": "Ouvrir les paramètres",
   "home.starting": "Démarrage",
   "home.connected": "Connecté",
@@ -33,7 +30,6 @@
   "home.log.to_phone": "Envoyé à l'iPhone",
   "home.log.from_phone": "Reçu de l'iPhone",
   "home.log.local": "Étape locale",
-
   "link.state.off": "Inactif",
   "link.state.listening": "À l'écoute",
   "link.state.connecting": "Connexion en cours",
@@ -41,7 +37,6 @@
   "link.state.encrypted": "Chiffré",
   "link.state.released": "Libéré",
   "link.state.failed": "Échec",
-
   "phase.mfi.title": "Préparation de l'authentification MFi",
   "phase.hotspot.title": "Démarrage du point d'accès Wi-Fi",
   "phase.advertise.title": "Publicité du service AirPlay",
@@ -55,12 +50,10 @@
   "phase.session.title": "Démarrage de la session AirPlay",
   "phase.streams.title": "Ouverture des flux multimédias",
   "phase.handoff.title": "Transfert vers le Wi-Fi",
-
   "settings.title": "Paramètres",
   "settings.discard": "Abandonner les modifications et fermer",
   "settings.save": "Enregistrer et reconnecter",
   "settings.exit": "Quitter l'application",
-
   "settings.category.connection": "Connexion",
   "settings.category.connection.summary": "Cible MFi, CarPlay sans fil, point d'accès",
   "settings.category.vehicle": "Données du véhicule",
@@ -69,15 +62,12 @@
   "settings.category.audio.summary": "Mémoire tampon média, gain du microphone",
   "settings.category.display": "Affichage et vidéo",
   "settings.category.display.summary": "Résolution, fréquence d'images, HEVC, zone sûre",
-  "settings.category.web": "Affichages Web",
-  "settings.category.web.summary": "Écrans principal et d'instruments dans un navigateur",
   "settings.category.identity": "Identité et apparence",
   "settings.category.identity.summary": "Constructeur, icône AirPlay, côté de conduite",
   "settings.category.window": "Démarrage et fenêtre",
   "settings.category.window.summary": "Démarrage auto, barres système, gestes",
   "settings.category.diagnostics": "Diagnostics",
   "settings.category.diagnostics.summary": "Journaux, moniteur de latence, captures",
-
   "settings.connection.mfi": "Authentification MFi",
   "settings.connection.transport": "Transport",
   "settings.mfi.target": "Cible du certificat et de la signature",
@@ -113,7 +103,6 @@
   "settings.manual_hotspot.password": "Mot de passe du point d'accès",
   "settings.manual_hotspot.error_title": "Paramètres du point d'accès à vérifier",
   "settings.hotspot_status": "État du point d'accès",
-
   "hotspot.state.off": "Sans fil désactivé",
   "hotspot.state.stopped": "Arrêté",
   "hotspot.state.starting": "Démarrage",
@@ -129,7 +118,6 @@
   "hotspot.band": "Bande",
   "hotspot.channel": "Canal",
   "hotspot.off_help": "Active CarPlay sans fil pour démarrer un point d'accès.",
-
   "settings.vehicle.location": "Position",
   "settings.vehicle.report_location": "Signaler la position à l'iPhone",
   "settings.vehicle.report_location.support": "Envoie la position précise d'Android comme données GPS CarPlay quand l'iPhone la demande",
@@ -145,7 +133,6 @@
   "settings.vehicle.grant_speed": "Accorder l'accès à la vitesse",
   "settings.vehicle.no_adapter": "La température de l'habitacle, les alertes, la climatisation, les portes, les vitres et la pression des pneus n'ont aucun adaptateur vérifié vers le téléphone dans cette application. Leurs propriétés de véhicule ne sont pas envoyées.",
   "settings.vehicle.requirements": "Le GPS requiert l'autorisation de position précise. Les fonctions véhicule requièrent des propriétés de voiture lisibles ; les mesures indisponibles ou obsolètes sont omises. Les mises à jour ne sont envoyées qu'après l'abonnement de l'iPhone.",
-
   "settings.audio.playback": "Lecture",
   "settings.audio.buffer": "Mémoire tampon média principale",
   "settings.audio.buffer.support": "Les valeurs plus élevées absorbent la gigue réseau mais ajoutent de la latence",
@@ -162,7 +149,6 @@
   "settings.audio.listening": "Écoute…",
   "settings.audio.permission_required": "Autorisation requise",
   "settings.audio.test_failed": "Échec du test",
-
   "settings.display.resolution": "Résolution",
   "settings.display.scale": "Échelle de résolution",
   "settings.display.scale.support": "Part des pixels de l'écran envoyée à l'iPhone",
@@ -182,29 +168,12 @@
   "settings.display.safe_area.reset": "Réinitialiser",
   "settings.display.safe_area.draw_outside": "Dessiner hors de la zone sûre",
   "settings.display.safe_area.draw_outside.support": "Permet au fond d'écran CarPlay de remplir la zone extérieure",
-
   "safe_area.waiting": "En attente de la taille de l'affichage",
   "safe_area.full": "Plein écran sur {width} × {height}",
   "safe_area.custom": "{rect_width} × {rect_height} en ({left}, {top}) dans {width} × {height}",
   "safe_area.unavailable": "Disponible dès que l'affichage a une taille",
   "safe_area.editor.title": "Zone sûre",
   "safe_area.editor.help": "Fais glisser les quatre bords sur la partie utilisable de l'écran",
-
-  "settings.web.main": "Écran principal",
-  "settings.web.instrument": "Écran d'instruments",
-  "settings.web.enabled": "Ouvrir dans un navigateur",
-  "settings.web.enabled.support": "N'importe quel navigateur du même réseau peut afficher cet écran",
-  "settings.web.width": "Largeur",
-  "settings.web.height": "Hauteur",
-  "settings.web.dimension_help": "Nombres pairs, 320–3840 × 240–2160",
-  "settings.web.dimension_error": "Utilise des dimensions paires : 320–3840 × 240–2160",
-  "settings.web.preview": "Aperçu local",
-  "settings.web.preview.support": "Ajuster un aperçu de la résolution configurée sur cet écran",
-  "settings.web.address": "Adresse",
-  "settings.web.no_network": "Connecte-toi à un réseau local pour obtenir une adresse",
-  "settings.web.https_note": "Les affichages Web utilisent HTTPS avec un certificat auto-signé pour que les navigateurs puissent décoder avec WebCodecs (H.265 inclus). Chaque navigateur avertit une fois ; choisis de continuer.",
-  "settings.web.apply_note": "Les modifications s'appliquent après « Enregistrer et reconnecter ».",
-
   "settings.identity.vehicle": "Identité du véhicule",
   "settings.identity.manufacturer": "Constructeur",
   "settings.identity.model": "Modèle",
@@ -218,7 +187,6 @@
   "settings.identity.driving_side": "Côté de conduite",
   "settings.identity.driving_side.left": "Conduite à gauche",
   "settings.identity.driving_side.right": "Conduite à droite",
-
   "settings.window.startup": "Démarrage",
   "settings.window.auto_start": "Démarrer au démarrage",
   "settings.window.auto_start.support": "Ouvre CarPlay automatiquement après le démarrage de l'appareil",
@@ -231,7 +199,6 @@
   "settings.window.edge_gesture": "Balayage du bord ouvrant les paramètres",
   "settings.window.edge_gesture.support": "Un doigt le long du bord supérieur gauche jusqu'en bas",
   "settings.window.three_finger_help": "Un balayage à trois doigts vers le bas ouvre toujours les paramètres.",
-
   "settings.diagnostics.monitoring": "Surveillance",
   "settings.diagnostics.latency": "Moniteur de latence média",
   "settings.diagnostics.latency.support": "Affiche en direct la latence vidéo, la fréquence d'images et la latence audio",
@@ -246,11 +213,9 @@
   "settings.diagnostics.bluetooth": "Paramètres Bluetooth",
   "settings.diagnostics.bluetooth.support": "Appaire ou oublier des téléphones dans les paramètres système",
   "settings.diagnostics.summary": "Prochaine poignée de main",
-
   "settings.compat.title": "Compatibilité Android 9",
   "settings.compat.p2p": "Wi-Fi P2P (5 GHz) indisponible ; LocalOnlyHotspot est utilisé à la place.",
   "settings.compat.hevc": "Le décodeur HEVC logiciel est indisponible ; le décodage matériel est utilisé à la place.",
-
   "summary.handshake": "Résolution",
   "summary.waiting_display": "En attente de l'affichage",
   "summary.scale": "Échelle",
@@ -278,7 +243,6 @@
   "summary.audio_mapping.aaos": "Bus AAOS",
   "summary.audio_mapping.mobile": "Compatible mobile",
   "summary.safe_area": "Zone sûre",
-
   "crop.loading": "Chargement de l'image",
   "crop.help": "Fais glisser pour déplacer, pince pour zoomer",
   "crop.decode_failed": "Impossible de décoder l'image",
@@ -286,7 +250,6 @@
   "crop.encode_failed": "Impossible d'encoder l'image",
   "crop.save_failed": "Impossible d'enregistrer l'image",
   "crop.save": "Enregistrer en 1:1",
-
   "unit.fps": "{value} fps",
   "unit.mm": "{value} mm"
 }

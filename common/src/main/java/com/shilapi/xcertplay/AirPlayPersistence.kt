@@ -13,6 +13,7 @@ import com.shilapi.xcertplay.airplay.PairingStore
 import com.shilapi.xcertplay.airplay.SafeAreaCodec
 import com.shilapi.xcertplay.airplay.SafeAreaRect
 import com.shilapi.xcertplay.network.WifiChannelPolicy
+import com.shilapi.xcertplay.media.VideoBufferPolicy
 import com.shilapi.xcertplay.media.MainMediaAudioBuffer
 import com.shilapi.xcertplay.media.MicrophoneGain
 import com.shilapi.xcertplay.media.AudioOutputChannel
@@ -94,31 +95,6 @@ object AirPlayPersistence {
     const val DEFAULT_MODEL = "xcertplay"
     const val DEFAULT_OEM_LABEL = ""
     const val DEFAULT_MFI_I2C_PATH = "/dev/i2c-1"
-
-    fun loadWebDisplay(context: Context, type: Int): CarPlayWebDisplayConfig {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val prefix = "web_display_${type}_"
-        val fallback = CarPlayWebDisplayConfig(width = if (type == 111) 1920 else 1280)
-        if (!CarPlayWebDisplayFactory.ENABLED) return fallback
-        return runCatching {
-            fallback.copy(
-                enabled = prefs.getBoolean(prefix + "enabled", false),
-                width = prefs.getInt(prefix + "width", fallback.width),
-                height = prefs.getInt(prefix + "height", fallback.height),
-                preview = prefs.getBoolean(prefix + "preview", true),
-            )
-        }.getOrDefault(fallback)
-    }
-
-    fun saveWebDisplay(context: Context, type: Int, config: CarPlayWebDisplayConfig) {
-        // Preserve the optional feature's old preferences without activating them in this build.
-        if (!CarPlayWebDisplayFactory.ENABLED) return
-        val prefix = "web_display_${type}_"
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(prefix + "enabled", config.enabled)
-            .putInt(prefix + "width", config.width).putInt(prefix + "height", config.height)
-            .putBoolean(prefix + "preview", config.preview).apply()
-    }
 
     fun loadDisplayScaleTenths(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -275,6 +251,17 @@ object AirPlayPersistence {
                 MainMediaAudioBuffer.sanitizeDurationMs(durationMs),
             )
             .apply()
+    }
+
+    fun loadVideoBufferDurationMs(context: Context): Int = VideoBufferPolicy.sanitize(
+        runCatching { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt("video_buffer_duration_ms", VideoBufferPolicy.DEFAULT_DURATION_MS) }
+            .getOrDefault(VideoBufferPolicy.DEFAULT_DURATION_MS),
+    )
+
+    fun saveVideoBufferDurationMs(context: Context, durationMs: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putInt("video_buffer_duration_ms", VideoBufferPolicy.sanitize(durationMs)).apply()
     }
 
     fun loadMicrophoneGainPercent(context: Context): Int =

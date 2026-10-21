@@ -10,7 +10,7 @@ internal fun MediaBufferSetting(durationMs: Int, onChange: (Int) -> Unit) {
     SelectRow(
         title = tr("settings.audio.buffer"),
         support = tr("settings.audio.buffer.support"),
-        options = MainMediaAudioBuffer.presetsMs.map { it to "$it ms" },
+        options = MainMediaAudioBuffer.presetsMs.map { it to if (it == 0) tr("settings.audio.buffer.immediate") else "$it ms" },
         selected = MainMediaAudioBuffer.sanitizeDurationMs(durationMs),
         onSelected = onChange,
     )

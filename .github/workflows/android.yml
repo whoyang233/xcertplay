@@ -97,40 +97,6 @@ jobs:
             automotive/build/reports/
           if-no-files-found: ignore
 
-  web-display-compatibility:
-    if: github.ref_type != 'tag'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "25"
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-37.0
-            build-tools;36.0.0
-            ndk;28.2.13676358
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-      - name: Test the explicitly enabled optional web feature without packaging an APK
-        run: ./gradlew :common:testDebugUnitTest -Pxcertplay.webDisplay=true --stacktrace
-      - name: Upload optional feature reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-display-compatibility-reports-${{ github.sha }}
-          path: |
-            common/build/test-results/
-            common/build/reports/
-          if-no-files-found: ignore
-
   release:
     if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest

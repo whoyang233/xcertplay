@@ -50,7 +50,7 @@ class MediaBufferSettingTest {
     }
     private fun choose(value: Int) {
         compose.onNodeWithText("主媒体缓冲（延迟调节）").performScrollTo().performClick()
-        compose.onNode(hasText("$value ms") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
+        compose.onNode(hasText(if (value == 0) I18n.text("settings.audio.buffer.immediate") else "$value ms") and hasAnyAncestor(isDialog())).performScrollTo().performClick()
         compose.runOnIdle {
             assertEquals(value, duration)
             assertEquals(500, AirPlayPersistence.loadMainMediaAudioBufferDurationMs(context))
@@ -70,7 +70,7 @@ class MediaBufferSettingTest {
     @Test @Config(qualifiers = "zh-rCN-w960dp-h540dp-xhdpi")
     fun fullHdShowsAllNewPresetsAndPreservesTheOldValueUntilSave() {
         render(1f)
-        for (value in listOf(20, 50, 100, 150, 200, 250, 300, 1000, 20)) choose(value)
+        for (value in listOf(0, 20, 50, 100, 150, 200, 250, 300, 1000, 20)) choose(value)
         compose.onNodeWithTag("settings-restart").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(20, AirPlayPersistence.loadMainMediaAudioBufferDurationMs(context)) }
         capture("1080p-low-latency-buffer")

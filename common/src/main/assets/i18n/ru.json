@@ -1,14 +1,11 @@
 {
   "_comment": "Russian (ru) optional overlay for en.json; missing keys fall back to en.json. {name} marks a placeholder.",
   "_language": "ru",
-
   "app.name": "xcertplay",
-
   "common.back": "Назад",
   "common.cancel": "Отмена",
   "common.choose": "Выбрать",
   "common.save": "Сохранить",
-
   "home.open_settings": "Открыть настройки",
   "home.starting": "Запуск",
   "home.connected": "Подключено",
@@ -33,7 +30,6 @@
   "home.log.to_phone": "Отправлено на iPhone",
   "home.log.from_phone": "Получено от iPhone",
   "home.log.local": "Локальный шаг",
-
   "link.state.off": "Выключен",
   "link.state.listening": "Ожидание",
   "link.state.connecting": "Подключение",
@@ -41,7 +37,6 @@
   "link.state.encrypted": "Зашифрован",
   "link.state.released": "Освобождён",
   "link.state.failed": "Ошибка",
-
   "phase.mfi.title": "Подготовка аутентификации MFi",
   "phase.hotspot.title": "Запуск точки доступа Wi-Fi",
   "phase.advertise.title": "Объявление службы AirPlay",
@@ -55,12 +50,10 @@
   "phase.session.title": "Запуск сессии AirPlay",
   "phase.streams.title": "Открытие медиапотоков",
   "phase.handoff.title": "Передача на Wi-Fi",
-
   "settings.title": "Настройки",
   "settings.discard": "Отменить изменения и закрыть",
   "settings.save": "Сохранить и переподключить",
   "settings.exit": "Выйти из приложения",
-
   "settings.category.connection": "Подключение",
   "settings.category.connection.summary": "Цель MFi, беспроводной CarPlay, точка доступа",
   "settings.category.vehicle": "Данные автомобиля",
@@ -69,15 +62,12 @@
   "settings.category.audio.summary": "Буфер медиа, усиление микрофона",
   "settings.category.display": "Экран и видео",
   "settings.category.display.summary": "Разрешение, частота кадров, HEVC, безопасная область",
-  "settings.category.web": "Веб-экраны",
-  "settings.category.web.summary": "Главный и приборный экраны в браузере",
   "settings.category.identity": "Идентификация и внешний вид",
   "settings.category.identity.summary": "Производитель, значок AirPlay, сторона движения",
   "settings.category.window": "Запуск и окно",
   "settings.category.window.summary": "Автозапуск, системные панели, жесты",
   "settings.category.diagnostics": "Диагностика",
   "settings.category.diagnostics.summary": "Журналы, монитор задержки, захваты",
-
   "settings.connection.mfi": "Аутентификация MFi",
   "settings.connection.transport": "Транспорт",
   "settings.mfi.target": "Цель сертификата и подписи",
@@ -113,7 +103,6 @@
   "settings.manual_hotspot.password": "Пароль точки доступа",
   "settings.manual_hotspot.error_title": "Настройки точки доступа требуют внимания",
   "settings.hotspot_status": "Состояние точки доступа",
-
   "hotspot.state.off": "Беспроводной режим выключен",
   "hotspot.state.stopped": "Остановлена",
   "hotspot.state.starting": "Запуск",
@@ -129,7 +118,6 @@
   "hotspot.band": "Диапазон",
   "hotspot.channel": "Канал",
   "hotspot.off_help": "Включите беспроводной CarPlay, чтобы запустить точку доступа.",
-
   "settings.vehicle.location": "Местоположение",
   "settings.vehicle.report_location": "Передавать местоположение на iPhone",
   "settings.vehicle.report_location.support": "Отправляет точное местоположение Android как данные GPS CarPlay, когда iPhone их запрашивает",
@@ -145,7 +133,6 @@
   "settings.vehicle.grant_speed": "Разрешить доступ к скорости",
   "settings.vehicle.no_adapter": "Для температуры в салоне, предупреждений, климата, дверей, стёкол и давления в шинах в этом приложении нет проверенного адаптера к телефону. Их свойства автомобиля не передаются.",
   "settings.vehicle.requirements": "Для GPS нужно разрешение на точное местоположение. Функции автомобиля требуют читаемых свойств машины; недоступные или устаревшие показания пропускаются. Обновления отправляются только после подписки iPhone.",
-
   "settings.audio.playback": "Воспроизведение",
   "settings.audio.buffer": "Основной буфер медиа",
   "settings.audio.buffer.support": "Большие значения сглаживают нестабильность сети, но добавляют задержку",
@@ -162,7 +149,6 @@
   "settings.audio.listening": "Слушаю…",
   "settings.audio.permission_required": "Требуется разрешение",
   "settings.audio.test_failed": "Сбой теста",
-
   "settings.display.resolution": "Разрешение",
   "settings.display.scale": "Масштаб разрешения",
   "settings.display.scale.support": "Доля пикселей экрана, передаваемая на iPhone",
@@ -182,29 +168,12 @@
   "settings.display.safe_area.reset": "Сбросить",
   "settings.display.safe_area.draw_outside": "Рисовать за пределами безопасной области",
   "settings.display.safe_area.draw_outside.support": "Позволяет обоям CarPlay заполнять область снаружи",
-
   "safe_area.waiting": "Ожидание размера экрана",
   "safe_area.full": "Весь экран {width} × {height}",
   "safe_area.custom": "{rect_width} × {rect_height} в ({left}, {top}) при {width} × {height}",
   "safe_area.unavailable": "Доступно, когда экран получит размер",
   "safe_area.editor.title": "Безопасная область",
   "safe_area.editor.help": "Перетащите четыре границы к используемой части экрана",
-
-  "settings.web.main": "Главный экран",
-  "settings.web.instrument": "Приборный экран",
-  "settings.web.enabled": "Открывать в браузере",
-  "settings.web.enabled.support": "Любой браузер в той же сети может показывать этот экран",
-  "settings.web.width": "Ширина",
-  "settings.web.height": "Высота",
-  "settings.web.dimension_help": "Чётные числа, 320–3840 × 240–2160",
-  "settings.web.dimension_error": "Используйте чётные размеры: 320–3840 × 240–2160",
-  "settings.web.preview": "Локальный предпросмотр",
-  "settings.web.preview.support": "Вписать предпросмотр настроенного разрешения в этот экран",
-  "settings.web.address": "Адрес",
-  "settings.web.no_network": "Подключитесь к локальной сети, чтобы получить адрес",
-  "settings.web.https_note": "Веб-экраны используют HTTPS с самоподписанным сертификатом, чтобы браузеры могли декодировать через WebCodecs (включая H.265). Каждый браузер предупреждает один раз; выберите «Продолжить».",
-  "settings.web.apply_note": "Изменения применяются после «Сохранить и переподключить».",
-
   "settings.identity.vehicle": "Идентификация автомобиля",
   "settings.identity.manufacturer": "Производитель",
   "settings.identity.model": "Модель",
@@ -218,7 +187,6 @@
   "settings.identity.driving_side": "Сторона движения",
   "settings.identity.driving_side.left": "Левая",
   "settings.identity.driving_side.right": "Правая",
-
   "settings.window.startup": "Запуск",
   "settings.window.auto_start": "Запускать при загрузке",
   "settings.window.auto_start.support": "Автоматически открывает CarPlay после включения устройства",
@@ -231,7 +199,6 @@
   "settings.window.edge_gesture": "Свайп от края открывает настройки",
   "settings.window.edge_gesture.support": "Одним пальцем от верхнего левого края до нижнего",
   "settings.window.three_finger_help": "Свайп тремя пальцами вниз всегда открывает настройки.",
-
   "settings.diagnostics.monitoring": "Мониторинг",
   "settings.diagnostics.latency": "Монитор задержки медиа",
   "settings.diagnostics.latency.support": "Показывает живую задержку видео, частоту кадров и задержку аудио",
@@ -246,11 +213,9 @@
   "settings.diagnostics.bluetooth": "Настройки Bluetooth",
   "settings.diagnostics.bluetooth.support": "Сопрягайте или удаляйте телефоны в системных настройках",
   "settings.diagnostics.summary": "Следующее рукопожатие",
-
   "settings.compat.title": "Совместимость с Android 9",
   "settings.compat.p2p": "Wi-Fi P2P (5 ГГц) недоступен; вместо него используется LocalOnlyHotspot.",
   "settings.compat.hevc": "Программный декодер HEVC недоступен; вместо него используется аппаратное декодирование.",
-
   "summary.handshake": "Разрешение",
   "summary.waiting_display": "Ожидание экрана",
   "summary.scale": "Масштаб",
@@ -278,7 +243,6 @@
   "summary.audio_mapping.aaos": "Шины AAOS",
   "summary.audio_mapping.mobile": "Мобильная совместимость",
   "summary.safe_area": "Безопасная область",
-
   "crop.loading": "Загрузка изображения",
   "crop.help": "Перетаскивайте, чтобы двигать; щипок — чтобы масштабировать",
   "crop.decode_failed": "Не удалось декодировать изображение",
@@ -286,7 +250,6 @@
   "crop.encode_failed": "Не удалось закодировать изображение",
   "crop.save_failed": "Не удалось сохранить изображение",
   "crop.save": "Сохранить 1:1",
-
   "unit.fps": "{value} fps",
   "unit.mm": "{value} mm"
 }

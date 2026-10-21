@@ -1,14 +1,11 @@
 {
   "_comment": "Optional German overlay. Keys missing here fall back to assets/i18n/en.json; {name} marks a placeholder.",
   "_language": "de",
-
   "app.name": "xcertplay",
-
   "common.back": "Zurück",
   "common.cancel": "Abbrechen",
   "common.choose": "Auswählen",
   "common.save": "Speichern",
-
   "home.open_settings": "Einstellungen öffnen",
   "home.starting": "Wird gestartet",
   "home.connected": "Verbunden",
@@ -33,7 +30,6 @@
   "home.log.to_phone": "An iPhone gesendet",
   "home.log.from_phone": "Von iPhone empfangen",
   "home.log.local": "Lokaler Schritt",
-
   "link.state.off": "Aus",
   "link.state.listening": "Empfangsbereit",
   "link.state.connecting": "Verbindung wird hergestellt",
@@ -41,7 +37,6 @@
   "link.state.encrypted": "Verschlüsselt",
   "link.state.released": "Beendet",
   "link.state.failed": "Fehlgeschlagen",
-
   "phase.mfi.title": "MFi-Authentifizierung wird vorbereitet",
   "phase.hotspot.title": "Wi-Fi-Hotspot wird gestartet",
   "phase.advertise.title": "AirPlay-Dienst wird bekanntgegeben",
@@ -55,12 +50,10 @@
   "phase.session.title": "AirPlay-Sitzung wird gestartet",
   "phase.streams.title": "Medien-Streams werden geöffnet",
   "phase.handoff.title": "Übergabe an Wi-Fi",
-
   "settings.title": "Einstellungen",
   "settings.discard": "Änderungen verwerfen und schließen",
   "settings.save": "Speichern und neu verbinden",
   "settings.exit": "App beenden",
-
   "settings.category.connection": "Verbindung",
   "settings.category.connection.summary": "MFi-Ziel, kabelloses CarPlay, Hotspot",
   "settings.category.vehicle": "Fahrzeugdaten",
@@ -69,15 +62,12 @@
   "settings.category.audio.summary": "Media-Buffer, Mikrofonverstärkung",
   "settings.category.display": "Anzeige & Video",
   "settings.category.display.summary": "Auflösung, Bildrate, HEVC, Safe Area",
-  "settings.category.web": "Web-Anzeigen",
-  "settings.category.web.summary": "Haupt- und Instrumentenanzeige im Browser",
   "settings.category.identity": "Identität & Aussehen",
   "settings.category.identity.summary": "Hersteller, AirPlay-Symbol, Fahrseite",
   "settings.category.window": "Start & Fenster",
   "settings.category.window.summary": "Autostart, Systemleisten, Gesten",
   "settings.category.diagnostics": "Diagnose",
   "settings.category.diagnostics.summary": "Protokolle, Latenzmonitor, Aufnahmen",
-
   "settings.connection.mfi": "MFi-Authentifizierung",
   "settings.connection.transport": "Übertragungsart",
   "settings.mfi.target": "Zertifikats- & Signaturziel",
@@ -113,7 +103,6 @@
   "settings.manual_hotspot.password": "Hotspot-Passwort",
   "settings.manual_hotspot.error_title": "Hotspot-Einstellungen prüfen",
   "settings.hotspot_status": "Hotspot-Status",
-
   "hotspot.state.off": "Kabellos aus",
   "hotspot.state.stopped": "Beendet",
   "hotspot.state.starting": "Wird gestartet",
@@ -129,7 +118,6 @@
   "hotspot.band": "Frequenzband",
   "hotspot.channel": "Kanal",
   "hotspot.off_help": "Schalte kabelloses CarPlay ein, um einen Hotspot zu starten.",
-
   "settings.vehicle.location": "Position",
   "settings.vehicle.report_location": "Position an iPhone melden",
   "settings.vehicle.report_location.support": "Sendet die genaue Android-Position als CarPlay-GPS-Daten, wenn das iPhone sie anfordert",
@@ -145,7 +133,6 @@
   "settings.vehicle.grant_speed": "Zugriff auf Geschwindigkeit erteilen",
   "settings.vehicle.no_adapter": "Für Innentemperatur, Warnungen, Klima, Türen, Fenster und Reifendruck gibt es in dieser App keinen geprüften Adapter zum Telefon. Diese Fahrzeugeigenschaften werden nicht gesendet.",
   "settings.vehicle.requirements": "GPS benötigt die Berechtigung für die genaue Position. Fahrzeugfunktionen benötigen lesbare Fahrzeugeigenschaften; unverfügbare oder veraltete Werte werden weggelassen. Aktualisierungen werden erst gesendet, wenn das iPhone sie abonniert hat.",
-
   "settings.audio.playback": "Wiedergabe",
   "settings.audio.buffer": "Haupt-Media-Buffer",
   "settings.audio.buffer.support": "Größere Werte puffern Netzwerk-Jitter, erhöhen aber die Verzögerung",
@@ -162,7 +149,6 @@
   "settings.audio.listening": "Hört zu …",
   "settings.audio.permission_required": "Berechtigung erforderlich",
   "settings.audio.test_failed": "Test fehlgeschlagen",
-
   "settings.display.resolution": "Auflösung",
   "settings.display.scale": "Auflösungsfaktor",
   "settings.display.scale.support": "Anteil der Bildschirm-Pixel, die an das iPhone gesendet werden",
@@ -182,29 +168,12 @@
   "settings.display.safe_area.reset": "Zurücksetzen",
   "settings.display.safe_area.draw_outside": "Außerhalb der Safe Area zeichnen",
   "settings.display.safe_area.draw_outside.support": "Lässt das CarPlay-Hintergrundbild auch den Bereich außerhalb davon füllen",
-
   "safe_area.waiting": "Warten auf die Anzeigegröße",
   "safe_area.full": "Vollbild bei {width} × {height}",
   "safe_area.custom": "{rect_width} × {rect_height} bei ({left}, {top}) in {width} × {height}",
   "safe_area.unavailable": "Verfügbar, sobald die Anzeige eine Größe hat",
   "safe_area.editor.title": "Safe Area",
   "safe_area.editor.help": "Ziehe die vier Ränder auf den nutzbaren Teil des Bildschirms",
-
-  "settings.web.main": "Hauptanzeige",
-  "settings.web.instrument": "Instrumentenanzeige",
-  "settings.web.enabled": "Im Browser öffnen",
-  "settings.web.enabled.support": "Jeder Browser im selben Netzwerk kann diese Anzeige zeigen",
-  "settings.web.width": "Breite",
-  "settings.web.height": "Höhe",
-  "settings.web.dimension_help": "Gerade Zahlen, 320–3840 × 240–2160",
-  "settings.web.dimension_error": "Gerade Maße verwenden: 320–3840 × 240–2160",
-  "settings.web.preview": "Lokale Vorschau",
-  "settings.web.preview.support": "Vorschau der konfigurierten Auflösung auf diesem Bildschirm einpassen",
-  "settings.web.address": "Adresse",
-  "settings.web.no_network": "Mit einem lokalen Netzwerk verbinden, um eine Adresse zu erhalten",
-  "settings.web.https_note": "Web-Anzeigen nutzen HTTPS mit einem selbst ausgestellten Zertifikat, damit Browser über WebCodecs dekodieren können (inklusive H.265). Jeder Browser warnt einmal; wähle „Fortfahren“.",
-  "settings.web.apply_note": "Änderungen werden nach „Speichern und neu verbinden“ wirksam.",
-
   "settings.identity.vehicle": "Fahrzeugidentität",
   "settings.identity.manufacturer": "Hersteller",
   "settings.identity.model": "Modell",
@@ -218,7 +187,6 @@
   "settings.identity.driving_side": "Fahrseite",
   "settings.identity.driving_side.left": "Linkslenker",
   "settings.identity.driving_side.right": "Rechtslenker",
-
   "settings.window.startup": "Start",
   "settings.window.auto_start": "Beim Hochfahren starten",
   "settings.window.auto_start.support": "Öffnet CarPlay automatisch nach dem Start des Geräts",
@@ -231,7 +199,6 @@
   "settings.window.edge_gesture": "Wischen am Rand öffnet die Einstellungen",
   "settings.window.edge_gesture.support": "Ein Finger an der oberen linken Kante nach unten",
   "settings.window.three_finger_help": "Ein Wischen mit drei Fingern nach unten öffnet immer die Einstellungen.",
-
   "settings.diagnostics.monitoring": "Überwachung",
   "settings.diagnostics.latency": "Medien-Latenzmonitor",
   "settings.diagnostics.latency.support": "Zeigt Video-Latenz, Bildrate und Audio-Latenz live an",
@@ -246,11 +213,9 @@
   "settings.diagnostics.bluetooth": "Bluetooth-Einstellungen",
   "settings.diagnostics.bluetooth.support": "Kopple oder entferne Telefone in den Systemeinstellungen",
   "settings.diagnostics.summary": "Nächster Handshake",
-
   "settings.compat.title": "Kompatibilität mit Android 9",
   "settings.compat.p2p": "Wi-Fi P2P (5 GHz) ist nicht verfügbar; stattdessen wird LocalOnlyHotspot verwendet.",
   "settings.compat.hevc": "Der Software-HEVC-Decoder ist nicht verfügbar; stattdessen wird die Hardware-Dekodierung verwendet.",
-
   "summary.handshake": "Auflösung",
   "summary.waiting_display": "Warten auf die Anzeige",
   "summary.scale": "Faktor",
@@ -278,7 +243,6 @@
   "summary.audio_mapping.aaos": "AAOS-Buses",
   "summary.audio_mapping.mobile": "Mobil kompatibel",
   "summary.safe_area": "Safe Area",
-
   "crop.loading": "Bild wird geladen",
   "crop.help": "Ziehen zum Verschieben, mit zwei Fingern zoomen",
   "crop.decode_failed": "Bild konnte nicht dekodiert werden",
@@ -286,7 +250,6 @@
   "crop.encode_failed": "Bild konnte nicht kodiert werden",
   "crop.save_failed": "Bild konnte nicht gespeichert werden",
   "crop.save": "1:1 speichern",
-
   "unit.fps": "{value} fps",
   "unit.mm": "{value} mm"
 }

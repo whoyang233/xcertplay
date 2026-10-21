@@ -7,15 +7,15 @@ package com.shilapi.xcertplay.media
  * This is a PCM buffer capacity, not a promise of end-to-end audio/video latency.
  */
 object MainMediaAudioBuffer {
-    const val MIN_DURATION_MS = 20
+    const val MIN_DURATION_MS = 0
 
     /** Longest buffered duration the settings slider offers. */
     const val MAX_DURATION_MS = 1_000
 
-    /** Keep the previous default and saved values; opting into 20/50 ms is explicit. */
+    /** Keep the previous default and saved values; opting into 0/20/50 ms is explicit. */
     const val DEFAULT_DURATION_MS = 100
 
-    val presetsMs: List<Int> = listOf(20) + (50..MAX_DURATION_MS step 50).toList()
+    val presetsMs: List<Int> = listOf(0, 20) + (50..MAX_DURATION_MS step 50).toList()
 
     private const val BYTES_PER_PCM_16_SAMPLE = 2L
     private const val MILLIS_PER_SECOND = 1_000L
@@ -50,14 +50,16 @@ object MainMediaAudioBuffer {
     }
 
     /** Never wait for more PCM than an unstarted track can hold. Keeps the old 4 KiB target. */
-    fun startThresholdBytes(bufferBytes: Int, minBufferBytes: Int): Int {
+    fun startThresholdBytes(bufferBytes: Int, minBufferBytes: Int, durationMs: Int = DEFAULT_DURATION_MS): Int {
         require(bufferBytes > 0 && minBufferBytes > 0)
+        if (sanitizeDurationMs(durationMs) == 0) return 0
         return minOf(bufferBytes, maxOf(minBufferBytes, 4 * 1024))
     }
 
     /** A blocking pre-play write must stop at the threshold so play() can start the consumer. */
-    fun prebufferWriteLength(remaining: Int, buffered: Int, threshold: Int): Int =
-        minOf(remaining, 2 * 1024, (threshold - buffered).coerceAtLeast(1))
+    fun prebufferWriteLength(remaining: Int, buffered: Int, threshold: Int, bytesPerFrame: Int = 1): Int =
+        if (threshold == 0) minOf(remaining, bytesPerFrame.coerceAtLeast(1))
+        else minOf(remaining, 2 * 1024, (threshold - buffered).coerceAtLeast(1))
 
     /** True only for the main media stream, whose buffered duration is user configurable. */
     internal fun isMainMedia(audioType: String, payloadType: Int,

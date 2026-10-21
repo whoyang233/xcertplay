@@ -52,7 +52,7 @@ The upstream base remains 1.4.2. This update adds an opt-in BYD call-popup guard
 
 - Wired and wireless CarPlay receivers for Android and Android Automotive OS, with CH341, native I2C, local MFi files, and remote authentication.
 - Separate voice, navigation, and music audio channels, media buffering, and microphone gain settings.
-- Dynamic resolution, HEVC and safe areas; browser main/instrument output is an optional build feature omitted from normal car APKs.
+- Dynamic resolution, HEVC and safe areas; browser main/instrument output has been removed from this personal branch.
 - Optional head-unit location and vehicle data reporting, subject to available interfaces, permissions, and configuration.
 - Upstream's experimental CarPlay Ultra trigger is retained; the protocol stack is incomplete and does not provide full Ultra support.
 
@@ -60,13 +60,13 @@ The upstream base remains 1.4.2. This update adds an opt-in BYD call-popup guard
 
 | Area | Behavior |
 | --- | --- |
-| Low-latency buffer | Main media supports 20 and 50–1000 ms while preserving saved values and the 100 ms default. Startup/blocking writes fit small tracks, including default high-quality music. |
+| Low-latency buffer | Main media supports 0, 20 and 50–1000 ms while preserving saved values and the 100 ms default. Startup/blocking writes fit small tracks, including default high-quality music. |
 | BYD call popup | Off by default; Android 10+ with the BYD call component and approved local ADB. Suppresses the overlay only during connected foreground CarPlay and attempts exact permission restoration on background/disconnect. |
 | Audio recovery | Failed software Opus frames are dropped/reset; a fresh iPhone playback transition retries focus when the existing focus setting permits it. |
 | Wired recovery | A 30-second session-start watchdog, a 10-second USB mode recheck, and delayed-retry protection for newly recovered sessions. |
 | BYD vehicle data | Six read-only ADB measurements feed normalized CarPlay reporting; tyres are diagnostic only. Replaces the old JSON/Android Car backend. |
 | Startup/display sizing | Stable-layout negotiation, real long/short-edge references, single-area compatibility by default, optional fast areas and display-default recovery. |
-| Optional web display | Off at build time by default; excludes the server, certificate implementation, HTML and HTTP/WebSocket dependencies. Its entry is hidden and saved enabled states cannot redirect local playback. |
+| Web rendering | Removed from source, settings and dependencies; old enabled preferences cannot redirect local playback. |
 | Upstream 1.4.2 | Merged microphone uplink fixes, the audio quality menu, video-buffer reuse and display performance work while retaining personal settings, audio gain and Wi-Fi behavior. |
 | App switching | Reserves configured system-bar space outside fullscreen and ignores transient background/unfocused size changes to reduce unnecessary resolution handshakes. Real split-screen and rotation changes still apply. |
 | Settings | Simplified Chinese by default, grouped categories, and fixed top-right Restart CarPlay / Exit app buttons, with shorter labels in narrow windows. |
@@ -97,7 +97,7 @@ DiPlay-style numbered stream bindings are available separately for music and nav
 
 Under Settings → Audio → Music and navigation channels, music defaults to Media and navigation to Navigation. If guidance is silent on a particular head unit, try binding navigation to Media. Quality-menu channel counts refer to mono/stereo, separately from output bindings. These settings request Android audio usages; firmware decides the physical buses, speakers, and system volume groups.
 
-Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before either local playback or web forwarding, without calling system volume APIs. Rebinding navigation to Media still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
+Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before local playback, without calling system volume APIs. Rebinding navigation to Media still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
 
 Generic high-quality music (102) and alternate guidance (101) streams are classified as music and navigation respectively; explicit roles, calls, and Siri take precedence. The existing AAOS Advanced channel mapping option still determines how ordinary default/compatibility streams are classified. Guidance already mixed into music by the phone cannot be separated. Vehicle checks should play music alongside guidance at 0%, 50%, and 100%, also after rebinding guidance to Media, while checking calls and Siri remain unaffected.
 
@@ -128,24 +128,13 @@ A durable marker precedes changes. The last controller closing, or a reported co
 
 This can affect automatic joining of a phone hotspot. It cannot block all app-initiated scans or eliminate external RF interference. Compare automatic, channel 36, and channel 149 first, then test scan suppression separately while recording observed channels and disconnect times.
 
-## Web displays (optional, off by default)
+## Web rendering removed
 
-Normal personal APKs omit browser main/instrument output. The default `xcertplay.webDisplay=false` excludes the server, NanoHTTPD/WebSocket dependencies, TLS certificate implementation and HTML, and hides the settings entry. Saved enabled states are ignored in this build; saving other settings preserves the optional preferences for a later explicitly enabled build. The main screen, local touch and audio, and navigation gain remain available on the head unit.
+The personal branch removes the web server, TLS certificates, HTML, NanoHTTPD/WebSocket dependencies, remote audio/video forwarding, Web settings and build flag. The instrument preview window that was only enabled with Web output is also removed. Local main-screen decoding, touch, startup geometry and audio routing remain. Old `web_display_*` preferences are never read and cannot redirect playback. The old `xcertplay.webDisplay` flag no longer provides any feature. The optional Web CI job is retired; tests verify the removed runtime classes are absent.
 
-To restore the optional feature with the existing fixed signing environment:
+## Video buffer and 0 ms
 
-```bash
-./gradlew :automotive:assembleDebug -Pxcertplay.webDisplay=true
-```
-
-With that build feature enabled, the in-app main/instrument switches still default to off. Then:
-
-1. Under Web displays, enable the browser display for Main and/or Instrument, set the resolution, then tap Restart CarPlay at the top right.
-2. Connect the browser device to the same LAN and open the address shown in settings (`https://<IP>:8080/main` or `/cluster`). Pages remain connected through CarPlay reconnects and resume automatically.
-3. The certificate is self-signed; accept the browser's first-visit prompt.
-4. Main display supports up to two touch points and plays the phone's audio after an initial tap to enable sound. The microphone remains on Android. The instrument page is view-only and requires the iPhone to provide its second display stream.
-
-Use a recent Chrome, Edge, or Safari. Disable `HEVC (H.265)` in settings if the browser cannot decode it.
+Settings → Display & video → Video buffer limit offers Compatibility, **Immediate (0 ms), 20, 50, 100, 150, 200, 250 and 300 ms**. Compatibility preserves the original 8-frame input queue and output rendering. Other choices bound the compressed queue using frame rate and skip expired decoded pictures only when a newer output is already available. Compressed reference frames remain fully decoded; the final/static picture always renders. Immediate adds no delay and presents the latest ready output. This is a queue limit, not an A/V offset or guaranteed total latency; network, codec and system delays remain. Try 50 ms first. Audio and video are saved separately; Restart CarPlay applies and closing settings discards. Restore display defaults also restores Compatibility buffering.
 
 ## Fixed APK signing
 
@@ -157,9 +146,9 @@ APK signing keys and MFi authentication keys serve different purposes and are no
 
 ## Media buffer and low-latency presets
 
-Settings → Audio → Main media buffer (latency) offers **20, 50, 100, 150, 200, 250, 300…1000 ms**, in 50 ms steps after 50. Existing saved values remain unchanged; a fresh installation still defaults to **100 ms**. Restart CarPlay saves and applies; closing settings discards the draft.
+Settings → Audio → Main media buffer (latency) offers **0, 20, 50, 100, 150, 200, 250, 300…1000 ms**, in 50 ms steps after 50. Existing saved values remain unchanged; a fresh installation still defaults to **100 ms**. Restart CarPlay saves and applies; closing settings discards the draft.
 
-This controls main-media AudioTrack PCM capacity, not an audio/video synchronization offset or an end-to-end latency guarantee. Smaller buffers can reduce queued audio but tolerate less network jitter. Try 50 ms before 20 ms, and return to a larger buffer if playback becomes intermittent. Android may enforce a larger minimum; `actualBufferFrames` in the audio log reports the allocated capacity. Video keeps its existing immediate decode/render path.
+This controls main-media AudioTrack PCM capacity, not an audio/video synchronization offset or an end-to-end latency guarantee. Smaller buffers can reduce queued audio but tolerate less network jitter. Try 50 ms before 20 ms, and return to a larger buffer if playback becomes intermittent. Android may enforce a larger minimum; `actualBufferFrames` in the audio log reports the allocated capacity. Video has its own independent queue limit. Zero audio buffering uses the minimum system AudioTrack capacity and calls play after the first PCM sample frame is written; Android 12+ also attempts a one-frame device start threshold. Driver and hardware latency remain.
 
 The startup threshold and blocking pre-play writes stay within the track capacity, avoiding a full unstarted 20 ms track. The setting also covers identified 102/default music streams; calls, Siri and navigation retain their own paths.
 
@@ -174,7 +163,7 @@ The startup threshold and blocking pre-play writes stay within the track capacit
 
 ### GitHub Actions
 
-Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstrap_unsigned` off. Normal builds use the fixed key, run unit tests and lint, build both APKs, and verify package and signing identity before uploading:
+Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstrap_unsigned` off. Normal builds use the fixed key, run unit tests and lint, build only the automotive APK, and verify package and signing identity before uploading:
 
 | Artifact | Contents |
 | --- | --- |
@@ -217,7 +206,7 @@ Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce u
 
 The [verified build from 2026-10-20](https://github.com/whoyang233/xcertplay/actions/runs/39354887281), commit `5b319fa45bf87afd47b8b5646933492341aea95d`, passed **396 unit tests with no failures, errors or skips; lint had no errors and retained 83 common / 3 automotive warnings**. The 25 BYD source/migration tests cover CAN/CANFD, conversions, partial/invalid readings, firmware catalog caching, failure recovery, freshness, subscriptions, diagnostic isolation, cancellation and migration. iAP2 tests verify remaining-energy and charging parameter encoding. The 8 additional executions cover preserved buffer settings, low-preset persistence and discard, large-font controls, and safe startup/blocking writes for small tracks. Prior popup, Opus, focus and wired-recovery regressions remain passing. Navigation gain, audio bindings, microphone, Wi-Fi recovery and scan-suppression regressions passed. Settings checks cover Full-HD at multiple densities, narrow windows with 150% fonts and short channel dialogs. The [validation artifact](https://github.com/whoyang233/xcertplay/actions/runs/39354887281/artifacts/12235570302) includes fixture screenshots. Actual head-unit ADB, available fields, navigation use, installation and connection behavior still require vehicle testing.
 
-This run produces only the automotive APK. Package/version (1.4.2B / 1402), the pinned signer, and provider/custom-permission identities are verified. Startup sizing, touch adaptation, numbered audio binding and BYD ADB code are included. Old vehicle JSON assets/parser and Android Car property backend, browser assets/server/certificate and NanoHTTPD/NanoWSD remain excluded. The separate optional web job passes **88 common tests, including 15 web tests**, without packaging another APK.
+The historical verified run produces only the automotive APK. Package/version (1.4.2B / 1402), the pinned signer, and provider/custom-permission identities are verified. Startup sizing, touch adaptation, numbered audio binding and BYD ADB code are included. Old vehicle JSON assets/parser and Android Car property backend, browser assets/server/certificate and NanoHTTPD/NanoWSD remain excluded. That historical optional Web job passed 88 common tests. Current sources remove that module and CI job completely; this update validates sources and captures UI screenshots without packaging an APK.
 
 Vehicle checks should cover rapid app switching outside fullscreen, split-screen and rotation, settings save/cancel, first-hotspot-failure recovery, channel strategies, and scan suppression. Include the head unit model, Android/API, app and iOS versions, hotspot mode, observed channel, reproduction steps, disconnect time, and relevant logs when reporting a problem.
 

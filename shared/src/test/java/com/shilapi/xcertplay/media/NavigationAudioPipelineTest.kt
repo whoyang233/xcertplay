@@ -10,44 +10,47 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowAudioTrack
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class NavigationAudioPipelineTest {
-    @Test fun decodedNavigationGainReachesWebOutputExactlyOnceWithoutAffectingOtherStreams() {
-        val received = ConcurrentHashMap<Int, ByteArray>()
-        val done = CountDownLatch(4)
-        val tap = object : MediaTap {
-            override fun forwardsVideo(type: Int) = false
-            override fun takesAudio() = true
-            override fun onAudioPcm(stream: Int, sampleRate: Int, channels: Int, pcm: ByteArray, offset: Int, length: Int) {
-                received[stream] = pcm.copyOfRange(offset, offset + length)
-                done.countDown()
-            }
-        }
+    @Test fun decodedNavigationGainReachesLocalAudioTrackWithoutAffectingOtherStreams() {
         val context: Context = RuntimeEnvironment.getApplication()
         val manager = context.getSystemService(AudioManager::class.java)
         val before = manager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        val sink = AndroidMediaSink(context, mediaTap = tap,
-            audioPlaybackSettings = AudioPlaybackSettings(navigationOutput = AudioOutputChannel.MEDIA,
-                navigationVolumePercent = 25, musicStream = 3, navigationStream = 14))
-        try {
-            for ((stream, type, payload) in listOf(
-                Triple(1, "default", 101), Triple(2, "media", 102),
-                Triple(3, "telephony", 100), Triple(4, "speechRecognition", 100),
-            )) {
-                val format = AudioFormat(AudioCodecKind.LPCM, 48000, 1, payload, type)
-                sink.onAudioStarted(stream, format, 0)
-                // RTP carries big-endian PCM. 10000, -10000 become little-endian after decoding.
-                sink.onAudioRtp(stream, format, ByteArray(12) + byteArrayOf(0x27, 0x10, 0xd8.toByte(), 0xf0.toByte()), 0)
+        for ((type, payload) in listOf("default" to 101, "media" to 102,
+            "telephony" to 100, "speechRecognition" to 100)) {
+            val received = AtomicReference<ByteArray>()
+            val done = CountDownLatch(1)
+            val bytesWritten = AtomicInteger(0)
+            val listener = ShadowAudioTrack.OnAudioDataWrittenListener { _, pcm, _ ->
+                if (pcm.size >= 4) received.set(pcm.takeLast(4).toByteArray())
+                if (bytesWritten.addAndGet(pcm.size) >= 2400) done.countDown()
             }
-            assertTrue("All audio workers must deliver PCM", done.await(10, TimeUnit.SECONDS))
-            assertArrayEquals(byteArrayOf(0xc4.toByte(), 0x09, 0x3c, 0xf6.toByte()), received[1])
-            for (stream in 2..4) assertArrayEquals(byteArrayOf(0x10, 0x27, 0xf0.toByte(), 0xd8.toByte()), received[stream])
-            assertEquals(before, manager.getStreamVolume(AudioManager.STREAM_MUSIC))
-        } finally { sink.close() }
+            ShadowAudioTrack.addAudioDataListener(listener)
+            val sink = AndroidMediaSink(context,
+                audioPlaybackSettings = AudioPlaybackSettings(navigationOutput = AudioOutputChannel.MEDIA,
+                    navigationVolumePercent = 25, musicStream = 3, navigationStream = 14))
+            try {
+                val format = AudioFormat(AudioCodecKind.LPCM, 48000, 1, payload, type)
+                sink.onAudioStarted(1, format, 0)
+                // Enough samples to observe PCM after the ordinary startup fade. RTP is big endian.
+                val pcm = ByteArray(2400) { index -> byteArrayOf(0x27, 0x10, 0xd8.toByte(), 0xf0.toByte())[index % 4] }
+                sink.onAudioRtp(1, format, ByteArray(12) + pcm, 0)
+                assertTrue("$type must reach the local AudioTrack", done.await(10, TimeUnit.SECONDS))
+                val expected = if (payload == 101) byteArrayOf(0xc4.toByte(), 0x09, 0x3c, 0xf6.toByte())
+                    else byteArrayOf(0x10, 0x27, 0xf0.toByte(), 0xd8.toByte())
+                assertArrayEquals(type, expected, received.get())
+                assertEquals(before, manager.getStreamVolume(AudioManager.STREAM_MUSIC))
+            } finally {
+                sink.close()
+                ShadowAudioTrack.removeAudioDataListener(listener)
+            }
+        }
     }
 }

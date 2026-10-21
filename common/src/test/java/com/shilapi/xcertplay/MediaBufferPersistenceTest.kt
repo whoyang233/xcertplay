@@ -23,7 +23,7 @@ class MediaBufferPersistenceTest {
         }
     }
     @Test fun lowLatencyAndIntermediatePresetsSurviveReloadExactly() {
-        for (value in listOf(20, 50, 100, 150, 200, 250, 300, 350, 1000)) {
+        for (value in listOf(0, 20, 50, 100, 150, 200, 250, 300, 350, 1000)) {
             AirPlayPersistence.saveMainMediaAudioBufferDurationMs(context, value)
             assertEquals(value, AirPlayPersistence.loadMainMediaAudioBufferDurationMs(context))
         }
