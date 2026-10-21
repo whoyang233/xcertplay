@@ -10,6 +10,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -58,8 +59,9 @@ val LocalCompactSettings = staticCompositionLocalOf { false }
 @Composable
 fun ProvideHomeUi(content: @Composable () -> Unit) {
     val window = LocalWindowDensity.current ?: LocalDensity.current
-    val configuration = LocalConfiguration.current
-    val scale = (minOf(configuration.screenWidthDp, configuration.screenHeightDp) / 720f).coerceIn(1f, 1.2f)
+    val size = LocalWindowInfo.current.containerSize
+    val shortEdgeDp = minOf(size.width, size.height) / window.density
+    val scale = (shortEdgeDp / 720f).coerceIn(1f, 1.2f)
     val density = remember(window.density, window.fontScale, scale) {
         Density(window.density * scale, window.fontScale)
     }

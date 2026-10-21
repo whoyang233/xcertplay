@@ -77,6 +77,7 @@ class HomeScreenTest {
 
     private fun render(fontScale: Float = 1f, failed: Boolean = false) {
         val timeline = HandshakeTimeline(true, 1)
+        timeline.phases.takeWhile { it.kind != PhaseKind.IAP2 }.forEach { it.state = State.DONE }
         timeline.phases.first { it.kind == PhaseKind.IAP2 }.state = State.ACTIVE
         timeline.links.first { it.kind == HandshakeTimeline.LinkKind.WIFI }.state = HandshakeTimeline.LinkState.UP
         timeline.links.first { it.kind == HandshakeTimeline.LinkKind.RFCOMM }.state = HandshakeTimeline.LinkState.UP

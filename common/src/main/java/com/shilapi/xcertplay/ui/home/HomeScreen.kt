@@ -104,7 +104,7 @@ fun HomeScreen(
                 Row(Modifier.fillMaxWidth().padding(horizontal = Space.s5, vertical = Space.s3),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
                     Column(Modifier.weight(1f)) {
-                        Text(tr("app.name"), style = MaterialTheme.typography.titleLarge, maxLines = 1,
+                        Text(tr("app.name"), style = MaterialTheme.typography.titleLarge, color = scheme.onSurface, maxLines = 1,
                             overflow = TextOverflow.Ellipsis)
                         if (versionName.isNotBlank()) Text(versionName, style = MaterialTheme.typography.labelMedium,
                             color = scheme.onSurfaceVariant)
