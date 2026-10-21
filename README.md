@@ -9,9 +9,9 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the verified 1.4.2B automotive APK ZIP (low-latency presets)](https://github.com/whoyang233/xcertplay/actions/runs/39354887281/artifacts/12235370209)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39354887281) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download the 1.4.2B automotive APK directly (BYD car icon)](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/xcertplay-personal-automotive-1.4.2B.apk)** · [SHA-256](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/SHA256SUMS.txt) · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Sign in to GitHub to download Actions artifacts. If the direct link fails, open the build page and select `personal-apks-<commit>` under **Artifacts**. Extract the ZIP and choose the APK for your device. Artifacts expire; use a later successful build or select `personal-dev` under **Android Build → Run workflow** to rebuild.
+The direct download is an installable APK. A [ZIP backup](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969) is available through Actions (GitHub sign-in required). This branch continues to build only the automotive variant.
 
 | APK | Target |
 | --- | --- |
@@ -34,7 +34,7 @@ The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **
 
 [Configuration audit, 0 ms implementation, Web removal and screenshot notes (Chinese)](docs/UI_BUFFER_SETTINGS.zh-CN.md).
 
-This UI update is source-only for now; the download above remains the previously verified low-latency build. Manual Actions runs support `validation_only`, which runs tests/lint and skips signing, APK packaging and APK uploads.
+The UI fixes, audio/video 0 ms modes and complete Web-rendering removal are now included in the BYD car-icon APK. Manual Actions runs support `validation_only`, which runs tests/lint and skips signing, APK packaging and APK uploads.
 
 The waiting page now shows a Chinese-friendly connection overview with four milestones and separate Wi-Fi/Bluetooth/CarPlay checks. Protocol exchanges and debug logs open through **Connection details**; **Connection settings** stays in the top toolbar. Wide windows use two columns, narrower windows scroll, and waiting-page typography avoids the old excessive enlargement. Failure guidance is readable; retry remains governed by the existing controller.
 
@@ -211,6 +211,8 @@ Signed release builds require the same fixed key:
 Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned debug inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
 
 ## Verification and feedback
+
+The [BYD car-icon build](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) from source `1f69a4a6e7a6adc242c5378ccd7ba2902d8e642b` passes **431 tests with no failures, errors or skips; lint has no errors (83 common / 3 automotive warnings)**. The sole automotive APK is signed and verified as 1.4.2B / 1402. Package, pinned certificate, providers and permissions match the previous personal build. BYD icon/home handling, bounded icon payloads and video buffering are present; removed usage-binding classes, Web rendering and vehicle JSON resources are absent. Size: 47,755,047 bytes; SHA-256: `8656d2c4c34376d97ff94a52e18077f2bb7dd25a2e84a7b2f97c442f7542f69e`. Vehicle launcher behavior and audio routes need device validation.
 
 The [screenshot-feedback validation](https://github.com/whoyang233/xcertplay/actions/runs/39567775549) from source `47d6c78538027ce20dd7389d7252677573bfa875` passes **421 tests with zero failures, errors or skips; lint has no errors and retains 82 common / 3 automotive warnings**. Coverage includes card separation, ADB button insets/actions, removed usage preference migration, numbered streams and navigation gain, plus existing audio/video/connection regressions. [Updated complete gallery](docs/SETTINGS_SCREENSHOTS.zh-CN.md) · [Reports](https://github.com/whoyang233/xcertplay/actions/runs/39567775549/artifacts/12331110976). Signing, APK assembly, verification and upload are skipped. Captures are test previews; vehicle routing and connections need device validation.
 

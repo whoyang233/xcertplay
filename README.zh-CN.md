@@ -9,9 +9,9 @@
 
 ## 下载与安装
 
-**[下载已验证的 1.4.2B automotive 车载包 ZIP（低延迟档位版）](https://github.com/whoyang233/xcertplay/actions/runs/39354887281/artifacts/12235370209)** · [查看对应构建](https://github.com/whoyang233/xcertplay/actions/runs/39354887281) · [查看个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[直接下载 1.4.2B automotive 车载 APK（BYD 车标版）](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/xcertplay-personal-automotive-1.4.2B.apk)** · [SHA-256](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/SHA256SUMS.txt) · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-下载 GitHub Actions 产物需要登录 GitHub。直链无法打开时，进入对应构建页面，在底部 **Artifacts** 点击 `personal-apks-<commit>`，解压后选择适合设备的 APK。产物有保留期限；过期后可从后续成功构建下载，或在 Actions 的 **Android Build → Run workflow** 中选择 `personal-dev` 重新构建。
+上方提供可直接安装的 APK，无需先解压 ZIP。备用下载为 [Actions 安装包产物](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969)（需登录 GitHub）。后续仍只构建 automotive 车载版。
 
 | 安装包 | 适用设备 |
 | --- | --- |
@@ -34,7 +34,7 @@
 
 [页面配置核对、0 ms 实现、Web 删除范围与截图说明](docs/UI_BUFFER_SETTINGS.zh-CN.md)。
 
-本轮界面改动先更新源码并执行测试，按要求暂不打包；上方下载链接仍是此前已验证的低延迟版本。Actions 手动运行时可选 `validation_only`，仅执行测试和 lint，跳过签名、APK 打包及 APK 上传。
+此前界面修复、音视频 0 ms、Web 渲染移除等源码更新，现已随 BYD 车标版一起打包。Actions 手动运行时可选 `validation_only`，仅执行测试和 lint，跳过签名、APK 打包及 APK 上传。
 
 等待页改为中文连接概览，显示当前步骤、四阶段进度和 Wi-Fi / 蓝牙 / CarPlay 数据通道检查。协议交换及调试日志默认收起，通过右上角「连接详情」查看；「连接设置」始终保留在顶部。大屏双栏、小窗口单栏滚动，字体跟随窗口并限制额外放大，避免旧的大色块和过大文字挤占 1080P 画面。连接失败时显示操作提示，仅在原有重试逻辑允许时提供重试按钮。
 
@@ -223,15 +223,17 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
+2026-10-21 的[BYD 车标版构建](https://github.com/whoyang233/xcertplay/actions/runs/39572068305)来自源码 `1f69a4a6e7a6adc242c5378ccd7ba2902d8e642b`：**431 项测试通过，无失败、错误或跳过；Lint 无错误（common 83、automotive 3 条警告）。** 已生成并校验唯一的 automotive APK：1.4.2B / 1402，包名、固定签名、Provider 与权限集合和旧个人版一致。确认内置 BYD 图标、返回桌面与图标缩放代码、视频缓冲均入包，旧用途绑定类、Web 渲染和车辆 JSON 资源缺席。包大小 47,755,047 字节，SHA-256 `8656d2c4c34376d97ff94a52e18077f2bb7dd25a2e84a7b2f97c442f7542f69e`。实车桌面切换和路由仍需验收。
+
 2026-10-21 的[截图反馈修正验证](https://github.com/whoyang233/xcertplay/actions/runs/39567775549)来自源码 `47d6c78538027ce20dd7389d7252677573bfa875`：**421 项测试通过，失败、错误、跳过均为 0；Lint 无错误，保留 common 82 / automotive 3 条警告。** 覆盖卡片分隔、ADB 按钮间距和点击、旧用途绑定清理、编号通道与导航增益，以及既有音视频缓冲和连接回归。[新版完整图库](docs/SETTINGS_SCREENSHOTS.zh-CN.md) · [完整报告](https://github.com/whoyang233/xcertplay/actions/runs/39567775549/artifacts/12331110976)。本次明确跳过签名、APK 打包、APK 校验与 APK 上传；截图来自测试环境，实车路由和连接仍需验收。
 
 2026-10-21 的[界面/缓冲仅验证任务](https://github.com/whoyang233/xcertplay/actions/runs/39561641865)来自源码 `3b228560ebb64c98b69d7d0fc72c24344102cfe6`：**418 项测试全部通过，无失败、错误或跳过；Lint 无错误，保留 common 82 / automotive 3 条警告。** 覆盖实际设置页、视频所有档位的草稿/保存/重载、音频 0 ms 首帧启动、解码输出追赶与静止帧保留、单帧队列背压及 Web 类/依赖缺席。签名、APK 打包、APK 校验和上传步骤均明确跳过。[页面截图与配置说明](docs/UI_BUFFER_SETTINGS.zh-CN.md) · [完整验证报告和截图](https://github.com/whoyang233/xcertplay/actions/runs/39561641865/artifacts/12328316122)。截图为 Android 13 / API 33 的 1080P 测试预览，不能替代实车延迟或固件兼容验证。
 
-以下为此前可下载 APK 的历史验证记录；本轮未生成新 APK。
+以下为此前构建的历史验证记录；当前 APK 与验证结果见本节开头。
 
 2026-10-20 的[已验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39354887281)来自提交 `5b319fa45bf87afd47b8b5646933492341aea95d`：**396 项单元测试通过，无失败、错误或跳过；Lint 无错误，仍有警告（common 83、automotive 3）。** 其中比亚迪来源/迁移 25 项，覆盖 CAN/CANFD、单位换算、非法/部分读数、固件目录缓存、失败恢复、时效、订阅、诊断隔离、退出取消及旧来源迁移；iAP2 测试核对了剩余电量与充电状态的实际参数编码。该轮新增 8 项执行用例，核对旧缓冲值保留、低档位保存/取消、大字体菜单、小容量启动及阻塞写入；既有通话弹窗、Opus、焦点和有线恢复回归继续通过。导航独立音量、音频绑定、麦克风、Wi-Fi 恢复及扫描抑制回归通过；设置布局测试覆盖多 DPI 的 1080P、150% 字体窄窗口和矮信道列表。[验证报告](https://github.com/whoyang233/xcertplay/actions/runs/39354887281/artifacts/12235570302)包含测试页面截图。实车 ADB、字段可用性、导航采用、安装和连接效果仍需验收。
 
-上述历史构建只生成 automotive APK，已核验个人包名、固定签名、Provider/自定义权限及版本 1.4.2B / 1402；包含启动尺寸策略、触控适配、编号音频绑定和比亚迪 ADB 后端。旧车辆 JSON 资源与解析/Android Car 属性后端不包含在包中；网页页面、服务器、证书实现和 NanoHTTPD/NanoWSD 仍排除。当时可选网页任务通过 88 项 common 测试。当前源码已经完整移除该模块与可选任务；本轮只测试和生成界面截图，暂不生成 APK。
+上述历史构建只生成 automotive APK，已核验个人包名、固定签名、Provider/自定义权限及版本 1.4.2B / 1402；包含启动尺寸策略、触控适配、编号音频绑定和比亚迪 ADB 后端。旧车辆 JSON 资源与解析/Android Car 属性后端不包含在包中；网页页面、服务器、证书实现和 NanoHTTPD/NanoWSD 仍排除。当时可选网页任务通过 88 项 common 测试。当前源码已经完整移除该模块与可选任务，已随 BYD 车标版打包。
 
 实机重点验证：非全屏快速切出/返回、分屏与旋转、设置保存/取消、首次热点失败后的恢复，以及不同信道与扫描抑制选项。反馈请附车机型号、Android/API、应用与 iOS 版本、热点模式、实际信道、复现步骤、断联时间及相关日志。
 
