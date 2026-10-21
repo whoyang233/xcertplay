@@ -157,8 +157,8 @@ class SettingsLayoutTest {
     private fun SettingsFixture() {
         SectionHeader("MFi 认证")
         SettingsGroup {
-            row { SelectRow("证书与签名目标", listOf(0 to "USB / CH341", 1 to "本地文件"), 0, {}) }
-            row { HelpText("使用 CH341 USB 转 I2C 桥接上的 MFi 协处理器。") }
+            row { SelectRow("认证方式", listOf(0 to "USB / CH341", 1 to "本地文件"), 0, {}) }
+            row { ExpandableHelp("使用 CH341 USB 转 I2C 桥接上的 MFi 协处理器。") }
         }
         SectionHeader("Wi-Fi 信道策略")
         SettingsGroup {
@@ -172,6 +172,9 @@ class SettingsLayoutTest {
             }
             row { SwitchRow("启动失败时重置 Wi-Fi", true, {}, "释放失败热点并重试；系统不允许开关 Wi-Fi 时仅重建热点。") }
             row { FieldRow("远程认证服务器地址", "https://example.invalid/mfi", {}) }
+        }
+        ExpandableSettingsSection("无线连接高级选项", "连接稳定性、Wi-Fi 恢复和 ADB 抗干扰设置") {
+            SettingsGroup { row { SwitchRow("Wi-Fi 高性能模式", true, {}) } }
         }
         repeat(10) { index ->
             SectionHeader("配置分组 ${index + 1}")

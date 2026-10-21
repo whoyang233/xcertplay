@@ -70,6 +70,12 @@ val SettingsTypography = Typography.copy(
     labelMedium = style(11, 16, Semi, 0.sp),
 )
 
+val HomeTypography = SettingsTypography.copy(
+    headlineSmall = style(24, 32, Semi, 0.sp),
+    titleLarge = style(20, 28, Semi, 0.sp),
+    bodyLarge = style(15, 22, Regular, 0.sp),
+)
+
 /** `code-medium` and `code-large`: log lines and copyable fields. */
 object LavenderCode {
     val medium = style(12, 18, Regular, 0.sp, LavenderMono)

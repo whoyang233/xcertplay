@@ -3231,6 +3231,33 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun ConnectionSettings() {
+        SectionHeader(tr("settings.connection.transport"))
+        SettingsGroup {
+            row {
+                SwitchRow(
+                    title = tr("settings.wireless"),
+                    support = tr("settings.wireless.support"),
+                    checked = wirelessEnabled,
+                    onCheckedChange = ::onWirelessChanged,
+                )
+            }
+            row {
+                SelectRow(
+                    title = tr("settings.wifi_session"),
+                    options = buildList {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            add(WirelessHotspotMode.WIFI_P2P to tr("settings.wifi_session.p2p"))
+                        }
+                        add(WirelessHotspotMode.LOCAL_ONLY_HOTSPOT to tr("settings.wifi_session.local_only"))
+                        add(WirelessHotspotMode.MANUAL to tr("settings.wifi_session.manual"))
+                    },
+                    selected = wirelessHotspotMode,
+                    onSelected = ::onHotspotModeSelected,
+                )
+            }
+        }
+
+
         SectionHeader(tr("settings.connection.mfi"))
         SettingsGroup {
             row {
@@ -3247,7 +3274,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 )
             }
             when (mfiTarget) {
-                MfiTarget.USB_CH341 -> row { HelpText(tr("settings.mfi.ch341_help")) }
+                MfiTarget.USB_CH341 -> row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.mfi.ch341_help")) }
                 MfiTarget.I2C -> row {
                     FieldRow(
                         label = tr("settings.mfi.i2c_path"),
@@ -3308,49 +3335,6 @@ class CarPlayHostActivity : ComponentActivity() {
             Banner(BannerKind.ERR, tr("settings.mfi.error_title"), body = it)
         }
 
-        SectionHeader(tr("settings.connection.transport"))
-        SettingsGroup {
-            row {
-                SwitchRow(
-                    title = tr("settings.wireless"),
-                    support = tr("settings.wireless.support"),
-                    checked = wirelessEnabled,
-                    onCheckedChange = ::onWirelessChanged,
-                )
-            }
-            row {
-                SwitchRow(
-                    title = tr("settings.wifi_high_performance"),
-                    support = tr("settings.wifi_high_performance.support"),
-                    checked = wifiHighPerformanceEnabled,
-                    onCheckedChange = { wifiHighPerformanceEnabled = it },
-                )
-            }
-            row {
-                SwitchRow(
-                    title = tr("settings.wifi_recovery"),
-                    support = tr("settings.wifi_recovery.support"),
-                    checked = wifiStartupRecoveryEnabled,
-                    onCheckedChange = { wifiStartupRecoveryEnabled = it },
-                    enabled = wirelessEnabled && wirelessHotspotMode != WirelessHotspotMode.MANUAL,
-                )
-            }
-            row {
-                SelectRow(
-                    title = tr("settings.wifi_session"),
-                    options = buildList {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            add(WirelessHotspotMode.WIFI_P2P to tr("settings.wifi_session.p2p"))
-                        }
-                        add(WirelessHotspotMode.LOCAL_ONLY_HOTSPOT to tr("settings.wifi_session.local_only"))
-                        add(WirelessHotspotMode.MANUAL to tr("settings.wifi_session.manual"))
-                    },
-                    selected = wirelessHotspotMode,
-                    onSelected = ::onHotspotModeSelected,
-                )
-            }
-        }
-
         SectionHeader(tr("settings.channel.section"))
         SettingsGroup {
             if (wirelessEnabled && wirelessHotspotMode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT >= 29) {
@@ -3387,7 +3371,7 @@ class CarPlayHostActivity : ComponentActivity() {
                         )
                     }
                 }
-                row { HelpText(tr("settings.channel.help")) }
+                row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.channel.help")) }
             } else {
                 row { HelpText(tr("settings.channel.other_mode")) }
             }
@@ -3398,26 +3382,54 @@ class CarPlayHostActivity : ComponentActivity() {
             }
         }
 
-        if (wirelessEnabled && wirelessHotspotMode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT >= 29) {
-            SectionHeader(tr("settings.scan_pause.section"))
-            SettingsGroup {
-                row {
-                    SwitchRow(
-                        title = tr("settings.scan_pause"),
-                        support = tr("settings.scan_pause.support"),
-                        checked = wifiDirectScanPauseEnabled,
-                        onCheckedChange = { wifiDirectScanPauseEnabled = it },
-                    )
-                }
-                row { HelpText(tr("settings.scan_pause.help")) }
-                row {
-                    Column(verticalArrangement = Arrangement.spacedBy(Space.s2)) {
-                        FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
-                            Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
-                        }
-                        scanAdbStatus?.let { HelpText(tr(it)) }
+        if (wirelessEnabled) {
+            com.shilapi.xcertplay.ui.settings.ExpandableSettingsSection(
+                tr("settings.connection.advanced"), tr("settings.connection.advanced.summary"),
+            ) {
+                SectionHeader(tr("settings.connection.stability"))
+                SettingsGroup {
+                    row {
+                        SwitchRow(
+                            title = tr("settings.wifi_high_performance"),
+                            support = tr("settings.wifi_high_performance.support"),
+                            checked = wifiHighPerformanceEnabled,
+                            onCheckedChange = { wifiHighPerformanceEnabled = it },
+                        )
+                    }
+                    row {
+                        SwitchRow(
+                            title = tr("settings.wifi_recovery"),
+                            support = tr("settings.wifi_recovery.support"),
+                            checked = wifiStartupRecoveryEnabled,
+                            onCheckedChange = { wifiStartupRecoveryEnabled = it },
+                            enabled = wirelessEnabled && wirelessHotspotMode != WirelessHotspotMode.MANUAL,
+                        )
                     }
                 }
+
+                if (wirelessEnabled && wirelessHotspotMode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT >= 29) {
+                    SectionHeader(tr("settings.scan_pause.section"))
+                    SettingsGroup {
+                        row {
+                            SwitchRow(
+                                title = tr("settings.scan_pause"),
+                                support = tr("settings.scan_pause.support"),
+                                checked = wifiDirectScanPauseEnabled,
+                                onCheckedChange = { wifiDirectScanPauseEnabled = it },
+                            )
+                        }
+                        row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.scan_pause.help")) }
+                        row {
+                            Column(verticalArrangement = Arrangement.spacedBy(Space.s2)) {
+                                FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
+                                    Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
+                                }
+                                scanAdbStatus?.let { HelpText(tr(it)) }
+                            }
+                        }
+                    }
+                }
+
             }
         }
 
@@ -3496,8 +3508,9 @@ class CarPlayHostActivity : ComponentActivity() {
             }
         }
 
-        SectionHeader(tr("settings.hotspot_status"))
-        SettingsGroup { row { HotspotStatusBlock() } }
+        com.shilapi.xcertplay.ui.settings.ExpandableSettingsSection(
+            tr("settings.connection.info"), tr("settings.connection.info.summary"),
+        ) { SettingsGroup { row { HotspotStatusBlock() } } }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             Spacer(Modifier.height(Space.s4))
@@ -3679,6 +3692,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     onChange = { mainMediaAudioBufferDurationMs = it },
                 )
             }
+            row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.audio.buffer.details")) }
             if (advancedAudioChannelMappingSupported) {
                 row {
                     SwitchRow(

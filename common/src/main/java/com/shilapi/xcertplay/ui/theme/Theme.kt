@@ -54,6 +54,20 @@ const val MAX_UI_SCALE = 2.2f
 private val LocalWindowDensity = staticCompositionLocalOf<Density?> { null }
 val LocalCompactSettings = staticCompositionLocalOf { false }
 
+/** Waiting content uses window density, avoiding the old phone-sized 2.2x hero enlargement. */
+@Composable
+fun ProvideHomeUi(content: @Composable () -> Unit) {
+    val window = LocalWindowDensity.current ?: LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val scale = (minOf(configuration.screenWidthDp, configuration.screenHeightDp) / 720f).coerceIn(1f, 1.2f)
+    val density = remember(window.density, window.fontScale, scale) {
+        Density(window.density * scale, window.fontScale)
+    }
+    CompositionLocalProvider(LocalDensity provides density) {
+        MaterialTheme(typography = HomeTypography, content = content)
+    }
+}
+
 /**
  * Proportional UI scaling: the larger the screen, the larger text, spacing and padding.
  * The font scale is locked to 1 and follows the same factor, so head units with unusual

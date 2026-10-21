@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -37,6 +36,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -55,7 +57,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -78,13 +79,8 @@ import com.shilapi.xcertplay.ui.components.LogLevel
 import com.shilapi.xcertplay.ui.components.LogLine
 import com.shilapi.xcertplay.ui.components.LvIcon
 import com.shilapi.xcertplay.ui.components.LvIconButton
-import com.shilapi.xcertplay.ui.components.PillKind
-import com.shilapi.xcertplay.ui.components.SmallTopBar
 import com.shilapi.xcertplay.ui.components.IconVectors
-import com.shilapi.xcertplay.ui.components.LoopLayer
-import com.shilapi.xcertplay.ui.components.RenderThreadLoop
 import com.shilapi.xcertplay.ui.components.StateGlyph
-import com.shilapi.xcertplay.ui.components.StatusPill
 import com.shilapi.xcertplay.ui.components.tabular
 import com.shilapi.xcertplay.ui.i18n.tr
 import com.shilapi.xcertplay.ui.i18n.trOr
@@ -96,222 +92,147 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Main screen while no CarPlay video is on screen: a hero status card (conclusion first:
- * phase, progress, links) next to, or above, the connection log.
- *
- * [revision] must change whenever [timeline] is mutated; the model itself is not observable.
- * A non-null [onRetry] means automatic retries ran out: the status glyph becomes a retry button.
- */
+/** Waiting UI stays separate from the protocol log; revisions only update presentation. */
 @Composable
 fun HomeScreen(
-    timeline: HandshakeTimeline?,
-    revision: Int,
-    status: String,
-    wireless: Boolean,
-    debugLogs: Boolean,
-    logLines: List<ScreenLogLine>,
-    onOpenSettings: () -> Unit,
-    onRetry: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-    versionName: String = "",
+    timeline: HandshakeTimeline?, revision: Int, status: String, wireless: Boolean,
+    debugLogs: Boolean, logLines: List<ScreenLogLine>, onOpenSettings: () -> Unit,
+    onRetry: (() -> Unit)? = null, modifier: Modifier = Modifier, versionName: String = "",
 ) {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(scheme.surface)
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        SmallTopBar(
-            title = listOf(tr("app.name"), versionName).filter { it.isNotBlank() }.joinToString(" · "),
-            actions = {
-                LvIconButton(
-                    icon = R.drawable.ic_ms_settings,
-                    description = tr("home.open_settings"),
-                    onClick = onOpenSettings,
-                    tint = scheme.onSecondaryContainer,
-                    container = scheme.secondaryContainer,
-                )
-            },
-        )
-        BoxWithConstraints(
-            Modifier
-                .fillMaxSize()
-                .padding(start = Space.marginCompact, end = Space.marginCompact, bottom = Space.marginCompact),
-        ) {
-            val wide = maxWidth > maxHeight * 1.2f
-            if (wide) {
-                val heroWidth = (maxWidth * 0.4f).coerceIn(300.dp, 440.dp).coerceAtMost(maxWidth / 2)
-                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Space.s3)) {
-                    Box(Modifier.width(heroWidth).fillMaxHeight().verticalScroll(rememberScrollState())) {
-                        HeroCard(timeline, revision, status, wireless, onRetry, Modifier.fillMaxWidth())
+    com.shilapi.xcertplay.ui.theme.ProvideHomeUi {
+        val scheme = MaterialTheme.colorScheme
+        var details by rememberSaveable { mutableStateOf(false) }
+        @Suppress("UNUSED_VARIABLE") val tick = revision
+        val presentation = ConnectionOverview.from(timeline, status, onRetry != null)
+        Column(modifier.fillMaxSize().background(scheme.surface).windowInsetsPadding(WindowInsets.safeDrawing)
+            .testTag("home-root")) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val compact = maxWidth < 600.dp
+                Row(Modifier.fillMaxWidth().padding(horizontal = Space.s5, vertical = Space.s3),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(tr("app.name"), style = MaterialTheme.typography.titleLarge, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis)
+                        if (versionName.isNotBlank()) Text(versionName, style = MaterialTheme.typography.labelMedium,
+                            color = scheme.onSurfaceVariant)
                     }
-                    LogPanel(timeline, revision, debugLogs, logLines, Modifier.weight(1f).fillMaxHeight())
-                }
-            } else {
-                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Space.s3)) {
-                    HeroCard(
-                        timeline, revision, status, wireless, onRetry,
-                        Modifier.fillMaxWidth().widthIn(max = 720.dp).align(Alignment.CenterHorizontally),
-                    )
-                    LogPanel(
-                        timeline, revision, debugLogs, logLines,
-                        Modifier.weight(1f).fillMaxWidth().widthIn(max = 720.dp).align(Alignment.CenterHorizontally),
-                    )
+                    TextButton(onClick = { details = !details }, modifier = Modifier.heightIn(min = 48.dp).testTag("home-details")) {
+                        LvIcon(if (details) R.drawable.ic_ms_arrow_back else R.drawable.ic_ms_receipt_long, size = 18.dp)
+                        Spacer(Modifier.width(Space.s1))
+                        Text(tr(if (details) "home.overview" else if (compact) "home.details_short" else "home.details"))
+                    }
+                    Button(onClick = onOpenSettings, modifier = Modifier.heightIn(min = 48.dp).testTag("home-settings")) {
+                        LvIcon(R.drawable.ic_ms_settings, size = 18.dp)
+                        Spacer(Modifier.width(Space.s1))
+                        Text(tr(if (compact) "home.settings_short" else "home.settings"))
+                    }
                 }
             }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-// Hero status card
-// ---------------------------------------------------------------------------------------------
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun HeroCard(
-    timeline: HandshakeTimeline?,
-    revision: Int,
-    status: String,
-    wireless: Boolean,
-    onRetry: (() -> Unit)?,
-    modifier: Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    @Suppress("UNUSED_VARIABLE") val tick = revision
-    val failure = timeline?.failure
-    val done = (timeline?.completedAtMillis ?: 0L) > 0L
-    val phase = timeline?.let(::currentPhase)
-    val glyph = when {
-        failure != null -> GlyphState.FAILED
-        done -> GlyphState.DONE
-        else -> GlyphState.ACTIVE
-    }
-    val title = when {
-        failure != null -> failure.title
-        done -> tr("home.connected")
-        phase != null -> phaseTitle(phase)
-        else -> tr("home.starting")
-    }
-    val subtitle = when {
-        timeline == null -> status
-        failure != null -> failure.detail
-        done -> tr("home.connected_detail")
-        else -> timeline.currentAwaiting()?.second?.text ?: status
-    }
-
-    // No size animation: each animated frame re-measured the log list below the card.
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(Radius.xl),
-        color = scheme.primaryContainer,
-        contentColor = scheme.onPrimaryContainer,
-    ) {
-        Column(Modifier.padding(Space.s6), verticalArrangement = Arrangement.spacedBy(Space.s4)) {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Space.s4)) {
-                if (onRetry != null) {
-                    LvIconButton(
-                        icon = R.drawable.ic_ms_replay,
-                        description = tr("home.retry"),
-                        onClick = onRetry,
-                        modifier = Modifier.size(40.dp),
-                        tint = scheme.onPrimary,
-                        container = scheme.primary,
-                    )
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = Space.s5, vertical = Space.s2)) {
+                if (details) {
+                    LogPanel(timeline, revision, debugLogs, logLines, Modifier.fillMaxSize().testTag("home-log"))
+                } else if (maxWidth >= 840.dp) {
+                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Space.s5)) {
+                        Box(Modifier.weight(1.45f).fillMaxHeight().verticalScroll(rememberScrollState())) {
+                            WaitingCard(presentation, wireless, onRetry, Modifier.fillMaxWidth())
+                        }
+                        Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(Space.s4)) {
+                            ConnectionChecks(timeline, wireless)
+                            WaitingHint(wireless)
+                        }
+                    }
                 } else {
-                    StateGlyph(glyph, size = 40.dp)
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(Space.s4)) {
+                        WaitingCard(presentation, wireless, onRetry, Modifier.fillMaxWidth())
+                        ConnectionChecks(timeline, wireless)
+                        WaitingHint(wireless)
+                    }
                 }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = if (failure != null) scheme.error else scheme.onPrimaryContainer,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    // Always two lines tall: a subtitle wrapping between one and two lines resized the
-                    // card, and with it re-measured the log list below, on every status update.
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        minLines = 2,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = Space.s1),
-                    )
-                }
-            }
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Space.s2),
-                verticalArrangement = Arrangement.spacedBy(Space.s2),
-            ) {
-                when {
-                    failure != null -> StatusPill(PillKind.ERR, R.drawable.ic_ms_error_fill, tr("home.state.failed"))
-                    done -> StatusPill(PillKind.OK, R.drawable.ic_ms_check_circle_fill, tr("home.state.connected"))
-                    else -> StatusPill(PillKind.IDLE, R.drawable.ic_ms_hourglass_empty, tr("home.state.connecting"))
-                }
-                StatusPill(
-                    PillKind.IDLE,
-                    if (wireless) R.drawable.ic_ms_wifi else R.drawable.ic_ms_usb,
-                    if (wireless) tr("home.transport.wireless") else tr("home.transport.wired"),
-                )
-            }
-
-            timeline?.previousFailure?.let { previous ->
-                StatusPill(
-                    PillKind.ERR,
-                    R.drawable.ic_ms_replay,
-                    tr("home.previous_failure", "reason" to previous.substringBefore(": ")),
-                )
-            }
-
-            if (timeline != null) {
-                PhaseTrack(timeline, revision)
-                LinkPills(timeline, revision)
             }
         }
     }
 }
 
 @Composable
-private fun PhaseTrack(timeline: HandshakeTimeline, revision: Int) {
-    @Suppress("UNUSED_VARIABLE") val tick = revision
+private fun WaitingCard(presentation: ConnectionOverview, wireless: Boolean,
+                        onRetry: (() -> Unit)?, modifier: Modifier) {
     val scheme = MaterialTheme.colorScheme
-    val phases = timeline.phases
-    val finished = phases.count { it.state == State.DONE || it.state == State.SKIPPED }
-    val current = currentPhase(timeline)
-    val position = ((current?.let { phases.indexOf(it) } ?: -1).takeIf { it >= 0 } ?: finished).coerceAtMost(phases.size - 1) + 1
-    Column(verticalArrangement = Arrangement.spacedBy(Space.s2)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                tr("home.step_of", "step" to position, "total" to phases.size),
-                style = MaterialTheme.typography.labelMedium.tabular,
-                color = scheme.primary,
-                modifier = Modifier.weight(1f),
-            )
-            if (current != null && timeline.completedAtMillis == 0L) {
-                Text(
-                    phaseShortLabel(current.kind, current.label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
-                )
+    Surface(modifier.testTag("home-status"), shape = RoundedCornerShape(Radius.lg),
+        color = scheme.surfaceContainerLow) {
+        Column(Modifier.padding(Space.s5), verticalArrangement = Arrangement.spacedBy(Space.s3)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
+                LvIcon(if (wireless) R.drawable.ic_ms_wifi else R.drawable.ic_ms_usb, size = 20.dp,
+                    tint = scheme.primary)
+                Text(tr(if (wireless) "home.mode_wireless" else "home.mode_wired"),
+                    style = MaterialTheme.typography.labelLarge, color = scheme.onSurfaceVariant)
+            }
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Space.s3)) {
+                StateGlyph(when {
+                    presentation.failed -> GlyphState.FAILED
+                    presentation.done -> GlyphState.DONE
+                    else -> GlyphState.ACTIVE
+                }, size = 32.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Space.s2)) {
+                    Text(tr(presentation.titleKey), style = MaterialTheme.typography.headlineSmall,
+                        color = if (presentation.failed) scheme.error else scheme.onSurface,
+                        modifier = Modifier.testTag("home-status-title"))
+                    Text(tr(presentation.bodyKey), style = MaterialTheme.typography.bodyLarge,
+                        color = scheme.onSurfaceVariant, modifier = Modifier.testTag("home-status-body"))
+                }
+            }
+            if (!presentation.failed) {
+                LinearMeter(presentation.fraction, track = scheme.surfaceContainerHighest)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Space.s1)) {
+                listOf("prepare", "phone", "session", "picture").forEachIndexed { index, stage ->
+                    val active = !presentation.done && !presentation.failed && index == presentation.stage
+                    val complete = presentation.done || index < presentation.stage
+                    Row(Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s3)) {
+                        LvIcon(if (complete) R.drawable.ic_ms_check_circle_fill else if (active) R.drawable.ic_ms_hourglass_empty
+                            else R.drawable.ic_ms_radio_button_unchecked,
+                            tint = if (active || complete) scheme.primary else scheme.onSurfaceVariant, size = 20.dp)
+                        Text(tr("home.stage.$stage"), style = MaterialTheme.typography.bodyLarge,
+                            color = if (active) scheme.primary else scheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        if (active) Text(tr("home.stage.current"), style = MaterialTheme.typography.labelSmall,
+                            color = scheme.primary)
+                    }
+                }
+            }
+            if (onRetry != null) Button(onClick = onRetry,
+                modifier = Modifier.fillMaxWidth().testTag("home-retry")) {
+                LvIcon(R.drawable.ic_ms_replay, size = 20.dp)
+                Spacer(Modifier.width(Space.s2))
+                Text(tr("home.retry"))
+            } else if (!presentation.failed) {
+                Text(tr("home.auto_enter"), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
             }
         }
-        LinearMeter(
-            fraction = if (phases.isEmpty()) 0f else finished / phases.size.toFloat(),
-            track = scheme.surfaceContainerLowest.copy(alpha = 0.6f),
-        )
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val count = phases.size.coerceAtLeast(1)
-            val gap = 6.dp
-            val node: Dp = ((maxWidth - gap * (count - 1)) / count).coerceIn(20.dp, 36.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                phases.forEach { phase ->
-                    PhaseNode(phase.kind, phase.state, timeline.failure != null, node, phaseShortLabel(phase.kind, phase.label))
+    }
+}
+
+@Composable
+private fun ConnectionChecks(timeline: HandshakeTimeline?, wireless: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    val kinds = if (wireless) listOf(LinkKind.WIFI, LinkKind.RFCOMM, LinkKind.AIRPLAY)
+        else listOf(LinkKind.USB, LinkKind.NCM, LinkKind.AIRPLAY)
+    Surface(Modifier.fillMaxWidth().testTag("home-checks"), shape = RoundedCornerShape(Radius.lg),
+        color = scheme.surfaceContainerLow) {
+        Column(Modifier.padding(Space.s5), verticalArrangement = Arrangement.spacedBy(Space.s4)) {
+            Text(tr("home.checks"), style = MaterialTheme.typography.titleMedium)
+            kinds.forEach { kind ->
+                val state = timeline?.links?.firstOrNull { it.kind == kind }?.state ?: LinkState.OFF
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Space.s3)) {
+                    LvIcon(linkIcon(kind), size = 20.dp, tint = scheme.onSurfaceVariant)
+                    Text(tr("home.check.${kind.name.lowercase(Locale.ROOT)}"),
+                        style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Text(tr("home.check_state.${state.name.lowercase(Locale.ROOT)}"),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (state == LinkState.FAILED) scheme.error else if (state in setOf(LinkState.UP, LinkState.ENCRYPTED))
+                            scheme.primary else scheme.onSurfaceVariant)
                 }
             }
         }
@@ -319,66 +240,12 @@ private fun PhaseTrack(timeline: HandshakeTimeline, revision: Int) {
 }
 
 @Composable
-private fun PhaseNode(kind: PhaseKind, state: State, failed: Boolean, size: Dp, label: String) {
+private fun WaitingHint(wireless: Boolean) {
     val scheme = MaterialTheme.colorScheme
-    if (state == State.ACTIVE && !failed) {
-        // Fill and ring breathe on the RenderThread, independent of main-thread composition.
-        Box(Modifier.size(size), contentAlignment = Alignment.Center) {
-            RenderThreadLoop(
-                listOf(
-                    LoopLayer(R.drawable.avd_phase_pulse_disc, scheme.surfaceContainerLowest),
-                    LoopLayer(R.drawable.avd_phase_pulse_ring, scheme.primary),
-                ),
-                // Larger than the node and centred: a view clips its drawing, a layer scale did not.
-                Modifier.requiredSize(size * PULSE_PEAK),
-            )
-            LvIcon(phaseIcon(kind), tint = scheme.primary, size = size * 0.56f, description = label)
-        }
-        return
-    }
-    val (container, content, ring) = when (state) {
-        State.DONE -> Triple(scheme.primary, scheme.onPrimary, Color.Transparent)
-        State.ACTIVE -> Triple(scheme.surfaceContainerLowest, scheme.primary, scheme.primary)
-        State.FAILED -> Triple(scheme.error, scheme.onError, Color.Transparent)
-        State.SKIPPED -> Triple(Color.Transparent, scheme.onPrimaryContainer.copy(alpha = 0.38f), scheme.onPrimaryContainer.copy(alpha = 0.24f))
-        State.IDLE -> Triple(scheme.onPrimaryContainer.copy(alpha = 0.08f), scheme.onPrimaryContainer.copy(alpha = 0.56f), Color.Transparent)
-    }
-    Box(
-        Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(container)
-            .border(if (ring == Color.Transparent) 0.dp else 2.dp, ring, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        LvIcon(phaseIcon(kind), tint = content, size = size * 0.56f, description = label)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun LinkPills(timeline: HandshakeTimeline, revision: Int) {
-    @Suppress("UNUSED_VARIABLE") val tick = revision
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Space.s2),
-        verticalArrangement = Arrangement.spacedBy(Space.s2),
-    ) {
-        timeline.links.forEach { link ->
-            val kind = when (link.state) {
-                LinkState.UP, LinkState.ENCRYPTED -> PillKind.OK
-                LinkState.LISTENING, LinkState.CONNECTING -> PillKind.INFO
-                LinkState.FAILED -> PillKind.ERR
-                LinkState.OFF, LinkState.RELEASED -> PillKind.IDLE
-            }
-            val icon = if (link.state == LinkState.ENCRYPTED) R.drawable.ic_ms_lock else linkIcon(link.kind)
-            val stateText = tr("link.state.${link.state.name.lowercase(Locale.ROOT)}")
-            val streams = if (link.kind == LinkKind.AIRPLAY && timeline.streamCount > 0) {
-                " · " + tr("home.streams", "count" to timeline.streamCount)
-            } else {
-                ""
-            }
-            StatusPill(kind, icon, "${link.label} · $stateText$streams")
-        }
+    Column(Modifier.padding(horizontal = Space.s2, vertical = Space.s2), verticalArrangement = Arrangement.spacedBy(Space.s2)) {
+        Text(tr("home.tip.title"), style = MaterialTheme.typography.titleSmall, color = scheme.onSurface)
+        Text(tr(if (wireless) "home.tip.wireless" else "home.tip.wired"),
+            style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
     }
 }
 
@@ -521,7 +388,6 @@ private fun ExchangeList(timeline: HandshakeTimeline?, revision: Int, modifier: 
     }
 }
 
-private const val PULSE_PEAK = 1.06f
 
 /** Every icon the home screen can show, for [IconVectors.preload]. */
 val HOME_SCREEN_ICONS = intArrayOf(
@@ -823,20 +689,6 @@ private const val MAX_OVERLAY_LINES = 14
 // Mapping helpers
 // ---------------------------------------------------------------------------------------------
 
-/** The failed phase, else the phase of the latest exchange while it runs, else the last running one. */
-private fun currentPhase(model: HandshakeTimeline): HandshakeTimeline.Phase? {
-    val latest = model.latestGroup?.phase
-    if (model.failure != null) return model.phases.firstOrNull { it.state == State.FAILED } ?: latest
-    if (latest?.state == State.ACTIVE) return latest
-    return model.phases.lastOrNull { it.state == State.ACTIVE } ?: latest
-}
-
-private fun phaseTitle(phase: HandshakeTimeline.Phase): String =
-    trOr("phase.${phase.kind.name.lowercase(Locale.ROOT)}.title", phase.title)
-
-private fun phaseShortLabel(kind: PhaseKind, fallback: String): String =
-    trOr("phase.${kind.name.lowercase(Locale.ROOT)}.label", fallback)
-
 private fun glyphOf(state: State): GlyphState = when (state) {
     State.IDLE -> GlyphState.IDLE
     State.ACTIVE -> GlyphState.ACTIVE
@@ -849,23 +701,6 @@ private fun directionLabel(direction: Direction): String = when (direction) {
     Direction.ACCESSORY_TO_PHONE -> tr("home.log.to_phone")
     Direction.PHONE_TO_ACCESSORY -> tr("home.log.from_phone")
     Direction.LOCAL -> tr("home.log.local")
-}
-
-@DrawableRes
-private fun phaseIcon(kind: PhaseKind): Int = when (kind) {
-    PhaseKind.MFI -> R.drawable.ic_ms_verified_user
-    PhaseKind.HOTSPOT -> R.drawable.ic_ms_wifi
-    PhaseKind.ADVERTISE -> R.drawable.ic_ms_cell_tower
-    PhaseKind.BLUETOOTH -> R.drawable.ic_ms_bluetooth
-    PhaseKind.USB -> R.drawable.ic_ms_usb
-    PhaseKind.USB_DATA -> R.drawable.ic_ms_layers
-    PhaseKind.LOCKDOWN -> R.drawable.ic_ms_lock
-    PhaseKind.NETWORK -> R.drawable.ic_ms_lan
-    PhaseKind.IAP2 -> R.drawable.ic_ms_link
-    PhaseKind.PAIR -> R.drawable.ic_ms_key
-    PhaseKind.SESSION -> R.drawable.ic_ms_airplay
-    PhaseKind.STREAMS -> R.drawable.ic_ms_play_circle
-    PhaseKind.HANDOFF -> R.drawable.ic_ms_sync_alt
 }
 
 @DrawableRes

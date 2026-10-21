@@ -71,7 +71,7 @@ internal fun SettingsScaffold(
             val compactActions = maxWidth.value / LocalDensity.current.fontScale < 600f
             val selected = destinations.firstOrNull { it.id == selectedId }
                 ?: if (twoPane) destinations.first() else null
-            val sidebarWidth = if (maxWidth < 1100.dp) 208.dp else 224.dp
+            val sidebarWidth = if (maxWidth < 1100.dp) 184.dp else 200.dp
             val overviewColumns = if (maxWidth >= 600.dp) 2 else 1
             SideEffect { onLayout(twoPane) }
             Column(Modifier.fillMaxSize()) {

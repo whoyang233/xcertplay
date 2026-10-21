@@ -16,5 +16,5 @@ internal fun BydCallPopupSettings(enabled: Boolean, onChange: (Boolean) -> Unit)
                 checked = enabled, onCheckedChange = onChange)
         }
     }
-    HelpText(tr("settings.call_popup.help"))
+    ExpandableHelp(tr("settings.call_popup.help"))
 }

@@ -28,6 +28,12 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 
 The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch builds only the automotive APK, following the upstream automotive variant. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
 
+## Connection overview and settings
+
+The waiting page now shows a Chinese-friendly connection overview with four milestones and separate Wi-Fi/Bluetooth/CarPlay checks. Protocol exchanges and debug logs open through **Connection details**; **Connection settings** stays in the top toolbar. Wide windows use two columns, narrower windows scroll, and waiting-page typography avoids the old excessive enlargement. Failure guidance is readable; retry remains governed by the existing controller.
+
+Connection settings prioritize transport, MFi authentication and channel policy. Performance/recovery/ADB scan suppression are under **Advanced wireless options**, hotspot information under **Connection diagnostics**, and long explanations expand on demand. Wide selectors put values on the right; narrow windows and large fonts stack them. The audio focus description explicitly states its immediate-save behavior. Restart/Exit remain fixed at the top right; validation, save/discard rules, defaults and stored connection/audio/ADB options are preserved. This UI is implemented in the personal fork.
+
 ## BYD vehicle data over ADB
 
 The personal vehicle backend now uses read-only local ADB/autoservice reads adapted from DiPlay 0.2.21. The old JSON import, standard Android Car backend and permissions are removed. Speed, gear, battery percentage, range, remaining energy and charging state feed the existing/extended CarPlay reporting. Four-wheel pressure/temperature are diagnostic only. Reporting is off by default; old source settings cannot silently enable the new backend. See the [fields, authorization, protocols, freshness and compatibility notes (Chinese)](docs/VEHICLE_PROFILES.zh-CN.md).
@@ -76,7 +82,7 @@ Startup recovery is enabled by default. On cancellation or exit, it attempts to 
 ## Usage
 
 1. For wireless CarPlay, pair the iPhone and head unit over Bluetooth.
-2. Before video starts, tap the lower-right Settings button or swipe down with three fingers.
+2. Before video starts, tap the top-right Connection settings button or swipe down with three fingers.
 3. Under Connection, configure the MFi target and wired/wireless mode, then adjust audio, display, and window settings. An additional edge gesture can be enabled under Startup & window.
 4. Tap **Restart CarPlay** at the top right to save and apply. There is no need to scroll to the bottom. Closing settings discards unsaved edits.
 5. Provide the hardware, files, or service required by your selected authentication method and wait for CarPlay to connect.
@@ -95,7 +101,7 @@ Generic high-quality music (102) and alternate guidance (101) streams are classi
 
 ## Wi-Fi scan suppression and channels
 
-These options are under Settings → Connection and apply after saving and restarting CarPlay. **Channel requests and scan suppression are limited to Wi-Fi Direct on Android 10+.** Android 9 uses LocalOnlyHotspot instead.
+Channel strategy is under Settings → Connection; ADB scan suppression is inside Advanced wireless options on that page. They apply after saving and restarting CarPlay. **Channel requests and scan suppression are limited to Wi-Fi Direct on Android 10+.** Android 9 uses LocalOnlyHotspot instead.
 
 ### Channel strategy
 

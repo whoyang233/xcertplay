@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -365,7 +366,7 @@ fun ListRow(
     val content = if (selected) scheme.onSecondaryContainer else scheme.onSurface
     val supportColor = if (selected) scheme.onSecondaryContainer else scheme.onSurfaceVariant
     val base = if (selected) {
-        modifier.clip(CircleShape).background(scheme.secondaryContainer)
+        modifier.clip(if (compact) RoundedCornerShape(Radius.md) else CircleShape).background(scheme.secondaryContainer)
     } else {
         modifier
     }
@@ -480,13 +481,17 @@ fun <T> SelectRow(
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     val current = options.firstOrNull { it.first == selected }?.second
-    ListRow(
-        headline = title,
-        support = support ?: current,
-        enabled = enabled,
-        onClick = { open = true },
-        trailing = { TrailingValue(if (support != null) current else null) },
-    )
+    BoxWithConstraints {
+        val inlineValue = LocalCompactSettings.current && maxWidth >= 560.dp &&
+            androidx.compose.ui.platform.LocalDensity.current.fontScale <= 1.3f
+        ListRow(
+            headline = title,
+            support = support ?: current.takeUnless { inlineValue },
+            enabled = enabled,
+            onClick = { open = true },
+            trailing = { TrailingValue(if (inlineValue || support != null) current else null) },
+        )
+    }
     if (open) {
         ChoiceDialog(
             title = title,
