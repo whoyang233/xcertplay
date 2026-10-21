@@ -42,7 +42,7 @@ Connection settings prioritize transport, MFi authentication and channel policy.
 
 ## CarPlay identity and appearance
 
-This page controls receiver information announced to iPhone: manufacturer/model (iAP2 identification and AirPlay `/info`), the return-to-car icon label (`oemIconLabel`), a custom square icon (`oemIcons`, with crop/preview/reset), and driving side (`rightHandDrive`, potentially affecting CarPlay sidebar placement). iPhone determines the display. It does not change the Android launcher icon, app theme or vehicle-data source. Save and reconnect with Restart CarPlay; closing settings restores unsaved edits, including icon changes.
+This page controls receiver information announced to iPhone: manufacturer/model (iAP2 identification and AirPlay `/info`), the return-to-car icon label (`oemIconLabel`), a custom square icon (`oemIcons`, with crop/preview/reset), and driving side (`rightHandDrive`, potentially affecting CarPlay sidebar placement). iPhone determines the display. It does not change the Android launcher icon, app theme or vehicle-data source. Save and reconnect with Restart CarPlay; closing settings restores unsaved edits, including icon changes. The icon and label are currently advertised metadata: the protocol forwards `requestUI`, but the host does not implement `onHostUiRequested`, so tapping the icon has no implemented route to the OEM launcher.
 
 ## BYD vehicle data over ADB
 
