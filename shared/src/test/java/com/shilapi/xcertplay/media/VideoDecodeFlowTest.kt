@@ -19,6 +19,29 @@ class VideoDecodeFlowTest {
     }
 
     @Test
+    fun oneFrameQueueBackpressuresTheProducerWithoutDiscardingReferences() {
+        val discarded = mutableListOf<String>()
+        val queue = VideoWorkQueue<String>(1, discarded::add)
+        val worker = java.util.concurrent.Executors.newSingleThreadExecutor()
+        try {
+            assertTrue(queue.frame("reference"))
+            val second = worker.submit<Boolean> { queue.frame("dependent") }
+            try {
+                second.get(100, java.util.concurrent.TimeUnit.MILLISECONDS)
+                org.junit.Assert.fail("The second compressed frame must wait for capacity")
+            } catch (_: java.util.concurrent.TimeoutException) { }
+            assertTrue(discarded.isEmpty())
+            assertEquals("reference", queue.poll(0))
+            assertTrue(second.get(1, java.util.concurrent.TimeUnit.SECONDS))
+            assertEquals("dependent", queue.poll(0))
+            assertTrue(discarded.isEmpty())
+        } finally {
+            queue.close()
+            worker.shutdownNow()
+        }
+    }
+
+    @Test
     fun pumpReleasesBufferOnlyAfterCodecAcceptsIt() {
         var attempts = 0
         var releases = 0

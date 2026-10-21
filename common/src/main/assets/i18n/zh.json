@@ -471,5 +471,6 @@
   "settings.video.buffer.compatibility": "兼容模式（原有行为）",
   "settings.video.buffer.immediate": "即时显示（0 ms）",
   "settings.video.buffer.details": "默认兼容模式保留原有 8 帧输入队列并显示全部解码输出。即时显示、20 和 50–300 ms 按协商帧率限制输入队列（最少一帧），仅在已有更新解码画面时跳过超时的旧画面；参考帧仍完整解码，最后一帧和静止画面始终显示，不主动等待。此值是排队预算，不是端到端延迟或声画同步偏移。较小值可能降低动态画面的流畅度；可先试 50 ms，再试 20 ms 或即时显示，不适时恢复兼容模式。",
-  "settings.audio.buffer.immediate": "即时播放（0 ms）"
+  "settings.audio.buffer.immediate": "即时播放（0 ms）",
+  "settings.display.latency": "播放延迟"
 }

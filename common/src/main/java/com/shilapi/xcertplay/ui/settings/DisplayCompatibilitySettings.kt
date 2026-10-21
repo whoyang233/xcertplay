@@ -26,7 +26,7 @@ internal fun DisplayCompatibilitySettings(
             checked = fastViewAreaSwitching,
             onCheckedChange = onFastViewAreaSwitching,
         ) }
-        row { HelpText(tr("settings.display.compatibility.support")) }
+        row { ExpandableHelp(tr("settings.display.compatibility.support")) }
         row { OutlinedButton(onClick = onReset) { Text(tr("settings.display.restore_defaults")) } }
     }
     HelpText(tr("settings.display.restore_defaults.support"))

@@ -22,6 +22,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
 
 /** The real host's settings composables, without onCreate or any CarPlay/ADB hardware startup. */
 @RunWith(RobolectricTestRunner::class)
@@ -52,6 +53,7 @@ class HostSettingsScreenTest {
         for ((category, file) in listOf("车辆数据" to "03-vehicle", "音频" to "04-audio-routing",
             "显示与视频" to "06-display", "启动与窗口" to "08-window", "诊断" to "09-diagnostics")) {
             select(category)
+            if (category == "音频") alignContentTo(I18n.text("settings.audio.routing"))
             snapshot(file)
         }
         select("音频")
@@ -111,6 +113,7 @@ class HostSettingsScreenTest {
         compose.onNode(hasText(option) and hasAnyAncestor(isDialog())).performScrollTo().performClick()
     }
     private fun alignContentTo(title: String) {
+        compose.onNodeWithText(title).performScrollTo()
         val target = compose.onNodeWithText(title, useUnmergedTree = true).getUnclippedBoundsInRoot()
         val content = compose.onNodeWithTag("settings-content").getUnclippedBoundsInRoot()
         compose.onNodeWithTag("settings-content").performSemanticsAction(SemanticsActions.ScrollBy) {
@@ -126,7 +129,10 @@ class HostSettingsScreenTest {
     private fun snapshot(name: String) {
         toolbar()
         compose.runOnIdle {
-            val view = compose.activity.findViewById<android.view.View>(android.R.id.content)
+            val dialog = ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }
+            val view = dialog?.window?.decorView
+                ?: compose.activity.findViewById<android.view.View>(android.R.id.content)
+            assertTrue(view.width > 0 && view.height > 0)
             val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
             view.draw(Canvas(bitmap))
             val file = File("build/reports/settings-layout/actual-$name.png").apply { parentFile.mkdirs() }

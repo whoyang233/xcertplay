@@ -470,5 +470,6 @@
   "settings.video.buffer.compatibility": "Compatibility (original behavior)",
   "settings.video.buffer.immediate": "Immediate (0 ms)",
   "settings.video.buffer.details": "Default compatibility keeps the original 8-frame input queue and renders every decoded output. Immediate, 20 and 50–300 ms limit the compressed queue using the negotiated frame rate (at least one frame), and skip expired decoded outputs only when newer outputs are already available. Reference frames are fully decoded; the final/static picture always renders. No extra waiting is added. This is a queue budget, not a promised end-to-end latency or A/V offset. Smaller values can make motion less smooth; try 50 ms, then 20 ms or Immediate, and restore Compatibility if needed.",
-  "settings.audio.buffer.immediate": "Immediate playback (0 ms)"
+  "settings.audio.buffer.immediate": "Immediate playback (0 ms)",
+  "settings.display.latency": "Playback latency"
 }

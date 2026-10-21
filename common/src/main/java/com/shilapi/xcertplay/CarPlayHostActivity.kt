@@ -3375,28 +3375,6 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun AudioSettings() {
-        AudioRoutingSettings(audioPlaybackSettings) { audioPlaybackSettings = it }
-        if (BydCallPopupAvailability.supported(this)) {
-            com.shilapi.xcertplay.ui.settings.BydCallPopupSettings(hideBydCallPopup) { hideBydCallPopup = it }
-            SettingsGroup {
-                row {
-                    FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
-                        Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
-                    }
-                }
-                scanAdbStatus?.let { row { HelpText(tr(if (it == "settings.scan_pause.ready") "settings.call_popup.adb_ready" else it)) } }
-            }
-        }
-        SettingsGroup {
-            row {
-                ListRow(
-                    headline = tr("settings.audio.quality"),
-                    support = tr("settings.audio.quality.summary"),
-                    onClick = ::openAudioQualitySettings,
-                    trailing = { TrailingValue(null) },
-                )
-            }
-        }
         SectionHeader(tr("settings.audio.playback"))
         SettingsGroup {
             row {
@@ -3422,6 +3400,29 @@ class CarPlayHostActivity : ComponentActivity() {
                     support = tr("settings.audio.focus.support"),
                     checked = audioFocusEnabled,
                     onCheckedChange = ::onAudioFocusEnabledChanged,
+                )
+            }
+        }
+
+        AudioRoutingSettings(audioPlaybackSettings) { audioPlaybackSettings = it }
+        if (BydCallPopupAvailability.supported(this)) {
+            com.shilapi.xcertplay.ui.settings.BydCallPopupSettings(hideBydCallPopup) { hideBydCallPopup = it }
+            SettingsGroup {
+                row {
+                    FilledTonalButton(onClick = ::authorizeScanAdb, enabled = !scanAdbBusy) {
+                        Text(tr(if (scanAdbBusy) "settings.scan_pause.waiting" else "settings.scan_pause.authorize"))
+                    }
+                }
+                scanAdbStatus?.let { row { HelpText(tr(if (it == "settings.scan_pause.ready") "settings.call_popup.adb_ready" else it)) } }
+            }
+        }
+        SettingsGroup {
+            row {
+                ListRow(
+                    headline = tr("settings.audio.quality"),
+                    support = tr("settings.audio.quality.summary"),
+                    onClick = ::openAudioQualitySettings,
+                    trailing = { TrailingValue(null) },
                 )
             }
         }
@@ -3687,6 +3688,16 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun DisplaySettings() {
+        SectionHeader(tr("settings.display.latency"))
+        SettingsGroup {
+            row {
+                com.shilapi.xcertplay.ui.settings.VideoBufferSetting(videoBufferDurationMs) {
+                    videoBufferDurationMs = it
+                }
+            }
+            row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.video.buffer.details")) }
+        }
+
         com.shilapi.xcertplay.ui.settings.DisplayCompatibilitySettings(
             fastViewAreaSwitching = fastViewAreaSwitching,
             dimensions = configSummary.firstOrNull { it.first == tr("summary.handshake") }?.second.orEmpty(),
@@ -3759,12 +3770,6 @@ class CarPlayHostActivity : ComponentActivity() {
 
         SectionHeader(tr("settings.display.video"))
         SettingsGroup {
-            row {
-                com.shilapi.xcertplay.ui.settings.VideoBufferSetting(videoBufferDurationMs) {
-                    videoBufferDurationMs = it
-                }
-            }
-            row { com.shilapi.xcertplay.ui.settings.ExpandableHelp(tr("settings.video.buffer.details")) }
             row {
                 SwitchRow(
                     title = tr("settings.display.hevc"),
