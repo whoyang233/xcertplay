@@ -1567,7 +1567,7 @@ class CarPlayHostActivity : ComponentActivity() {
             audioSupportedFormats = AudioQualityCapabilities.cached()?.allowedFormatBits,
             manufacturer = normalizedManufacturer(),
             model = normalizedModel(),
-            oemLabel = oemLabel,
+            oemLabel = oemLabel.ifBlank { AirPlayPersistence.DEFAULT_OEM_LABEL },
             icons = listOf(loadAirPlayIcon()),
         )
     }
@@ -1587,31 +1587,18 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun decodeAirPlayIcon(encoded: ByteArray): AirPlayIcon? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(encoded, 0, encoded.size, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0 ||
-            bounds.outWidth != bounds.outHeight
-        ) {
-            return null
-        }
-        return AirPlayIcon(bounds.outWidth, bounds.outHeight, encoded)
+        val (size, bytes) = AirPlayIconSizing.fit(encoded) ?: return null
+        return AirPlayIcon(size, size, bytes)
     }
 
     private fun defaultAirPlayIconBytes(): ByteArray =
-        resources.openRawResource(R.raw.placeholder_icon).use { it.readBytes() }
+        resources.openRawResource(R.raw.ic_car_home).use { it.readBytes() }
 
     private fun updateAirPlayIconPreview() {
-        val custom = AirPlayPersistence.loadCustomAirPlayIconFile(this)
-        var customBitmap: Bitmap? = null
-        if (custom != null) {
-            customBitmap = BitmapFactory.decodeFile(custom.absolutePath)
-            if (customBitmap == null) {
-                AirPlayPersistence.clearCustomAirPlayIcon(this)
-            }
-        }
-        val bitmap = customBitmap ?: BitmapFactory.decodeResource(resources, R.raw.placeholder_icon)
+        val icon = loadAirPlayIcon()
+        val bitmap = BitmapFactory.decodeByteArray(icon.data, 0, icon.data.size)
         airPlayIcon = bitmap?.asImageBitmap()
-        airPlayIconCustom = customBitmap != null
+        airPlayIconCustom = AirPlayPersistence.loadCustomAirPlayIconFile(this) != null
     }
 
     private fun currentActivitySize(): DisplaySize? {

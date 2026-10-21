@@ -201,7 +201,7 @@
   "settings.identity.appearance": "外观",
   "settings.identity.icon": "CarPlay 返回车机图标",
   "settings.identity.icon.custom": "自定义 1:1 图标",
-  "settings.identity.icon.default": "使用内置图标，可选择图片并裁剪为正方形",
+  "settings.identity.icon.default": "内置 BYD 车标，可选图替换并裁剪为正方形",
   "settings.identity.icon.choose": "选择",
   "settings.identity.icon.reset": "使用默认",
   "settings.identity.driving_side": "驾驶侧",
@@ -470,6 +470,6 @@
   "settings.identity.help": "设置 iPhone 看到的 CarPlay 接收端标识、返回车机图标和驾驶侧。修改后点击右上角“重启 CarPlay”应用。",
   "settings.identity.manufacturer.help": "发送给 iPhone 的厂商名称，留空使用 xcertplay。此项不读取或修改车辆信息。",
   "settings.identity.model.help": "发送给 iPhone 的型号标识，留空使用 xcertplay。此项不切换车辆数据配置。",
-  "settings.identity.oem_label.help": "CarPlay 中返回车机图标的名称，由 iPhone 决定具体显示效果。",
+  "settings.identity.oem_label.help": "CarPlay 车标入口的名称，留空使用 BYD。点击入口返回车机桌面，CarPlay 会话保持在后台；修改后重启 CarPlay 生效。",
   "settings.identity.driving_side.help": "向 iPhone 声明左舵或右舵，可能影响 CarPlay 侧栏布局，以 iPhone 实际显示为准。此页不修改应用主题或安卓桌面图标。"
 }

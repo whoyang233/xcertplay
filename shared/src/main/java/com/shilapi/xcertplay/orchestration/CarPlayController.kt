@@ -308,6 +308,15 @@ class CarPlayController(
         }
 
         override fun onHostUiRequested(session: AirPlaySession) {
+            if (closed || activeSession !== session) return
+            // Adapted from DiPlay: leave the running session alive while showing the car launcher.
+            debugLog("CarPlay requested the car UI; opening the head-unit home screen")
+            runCatching {
+                appContext.startActivity(
+                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }.onFailure { debugLog("Car home screen could not open: ${it.javaClass.simpleName}") }
             uiListener?.onHostUiRequested(session)
         }
 

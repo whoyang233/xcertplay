@@ -200,7 +200,7 @@
   "settings.identity.appearance": "Appearance",
   "settings.identity.icon": "CarPlay return-to-car icon",
   "settings.identity.icon.custom": "Custom 1:1 icon",
-  "settings.identity.icon.default": "Built-in icon; choose an image and crop it to a square",
+  "settings.identity.icon.default": "Built-in BYD icon; choose an image and crop it to a square",
   "settings.identity.icon.choose": "Choose",
   "settings.identity.icon.reset": "Use default",
   "settings.identity.driving_side": "Driving side",
@@ -469,6 +469,6 @@
   "settings.identity.help": "Set the CarPlay receiver identity, return-to-car icon and driving side announced to iPhone. Tap Restart CarPlay to apply changes.",
   "settings.identity.manufacturer.help": "Manufacturer announced to iPhone; blank uses xcertplay. Does not read or modify vehicle data.",
   "settings.identity.model.help": "Model identifier announced to iPhone; blank uses xcertplay. Does not select a vehicle data profile.",
-  "settings.identity.oem_label.help": "Label for the CarPlay return-to-car icon; iPhone determines how it is displayed.",
+  "settings.identity.oem_label.help": "Name of the car icon in CarPlay; blank uses BYD. Tap the icon to open the car launcher while CarPlay stays connected in the background. Restart CarPlay to apply edits.",
   "settings.identity.driving_side.help": "Announces left- or right-hand drive to iPhone, which may change CarPlay sidebar placement. Does not change the app theme or Android launcher icon."
 }
