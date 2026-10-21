@@ -9,9 +9,9 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download the 1.4.2B automotive APK directly (BYD car icon)](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/xcertplay-personal-automotive-1.4.2B.apk)** · [SHA-256](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/SHA256SUMS.txt) · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download 1.4.2B automotive APK ZIP (BYD car icon)](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-The direct download is an installable APK. A [ZIP backup](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969) is available through Actions (GitHub sign-in required). This branch continues to build only the automotive variant.
+Actions downloads require GitHub sign-in. The ZIP contains only the automotive APK and verification metadata. Version 1.4.2B / 1402 retains the pinned personal signer for updates. Release upload returned 401 through the current connection and 403 through CI, so no unverified Release link is advertised; the verified build artifact is available.
 
 | APK | Target |
 | --- | --- |

@@ -9,9 +9,9 @@
 
 ## 下载与安装
 
-**[直接下载 1.4.2B automotive 车载 APK（BYD 车标版）](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/xcertplay-personal-automotive-1.4.2B.apk)** · [SHA-256](https://github.com/whoyang233/xcertplay/releases/download/personal-1.4.2B-20261021-byd-icon/SHA256SUMS.txt) · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive 车载包（BYD 车标版，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-上方提供可直接安装的 APK，无需先解压 ZIP。备用下载为 [Actions 安装包产物](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969)（需登录 GitHub）。后续仍只构建 automotive 车载版。
+Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive 车载 APK 和校验信息。安装包为 1.4.2B / 1402，可覆盖此前同签名个人版。当前连接在 Release 附件上传时返回 401、CI 发布返回 403，因此此处不提供尚未成功的 Release 直链；已验证 APK 的构建产物可正常下载。
 
 | 安装包 | 适用设备 |
 | --- | --- |
