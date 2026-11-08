@@ -107,4 +107,20 @@ class BydCallPopupChannelTest {
         }
         assertTrue(runCatching { channel.exchange("STOP") }.isFailure)
     }
+
+    @Test fun setsidIsOptionalAndApkPathIsShellQuoted() {
+        var launch = ""
+        BydCallPopupChannel.prepare("/data/app/a'b/base.apk") { command -> launch = command; "0 READY" }
+        assertTrue(launch.contains("if test -x /system/bin/setsid; then session=/system/bin/setsid; fi"))
+        assertFalse(launch.contains("test -x /system/bin/nohup && test -x /system/bin/setsid"))
+        assertTrue(launch.contains("CLASSPATH='/data/app/a'\"'\"'b/base.apk'"))
+    }
+
+    @Test fun unsupportedToolsAndBusyHelpersHaveDistinctFailures() {
+        for ((reply, expected) in listOf("HELPER_NO_NOHUP" to "HELPER_NO_NOHUP", "0 ERROR BUSY" to "HELPER_BUSY")) {
+            assertEquals(expected, assertThrows(IOException::class.java) {
+                BydCallPopupChannel.prepare("/data/app/base.apk") { reply }
+            }.message)
+        }
+    }
 }

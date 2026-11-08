@@ -1,6 +1,6 @@
 package com.shilapi.xcertplay.media
 
-/** Software gain applied once to decoded navigation PCM, before local or web playback. */
+/** Software gain applied once to decoded navigation PCM, before local playback. */
 object NavigationVolume {
     const val MIN_PERCENT = 0
     const val MAX_PERCENT = 200

@@ -83,7 +83,18 @@ class BydCallPopupLeaseTest {
         val f = Fixture().apply { failHide = true }
         f.lease.accept("1 START")
         assertEquals(3, f.mode)
-        assertEquals("RESTORED", f.reports.last())
+        assertEquals("HIDE_FAILED", f.reports.last())
+    }
+
+    @Test fun aRefusedHideThatChangesNothingIsNotReportedAsSuccess() {
+        val reports = mutableListOf<String>()
+        val lease = BydCallPopupLease(object : BydCallPopupLease.Ops {
+            override fun query() = 3
+            override fun set(mode: Int) { throw SecurityException("firmware denied") }
+        }, { 0L }, { reports += it })
+        lease.accept("1 START")
+        assertTrue(lease.finished())
+        assertEquals(listOf("HIDE_FAILED"), reports)
     }
 
     @Test fun failedRestorationIsRetriedAndNeverReportedAsRestored() {

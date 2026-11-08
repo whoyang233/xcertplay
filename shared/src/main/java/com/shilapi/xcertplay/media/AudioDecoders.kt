@@ -26,6 +26,8 @@ object AudioDecoders {
         val mime = requireNotNull(mime(codec)) { "$codec 不需要解码器" }
         return MediaFormat.createAudioFormat(mime, sampleRate, channels).apply {
             setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, MAX_INPUT_SIZE)
+            // The sink consumes PCM16. Some vendor decoders otherwise select float output.
+            setInteger(MediaFormat.KEY_PCM_ENCODING, android.media.AudioFormat.ENCODING_PCM_16BIT)
             when (codec) {
                 AudioCodecKind.AAC_LC -> {
                     setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)

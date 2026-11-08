@@ -470,5 +470,22 @@
   "settings.identity.manufacturer.help": "Manufacturer announced to iPhone; blank uses xcertplay. Does not read or modify vehicle data.",
   "settings.identity.model.help": "Model identifier announced to iPhone; blank uses xcertplay. Does not select a vehicle data profile.",
   "settings.identity.oem_label.help": "Name of the car icon in CarPlay; blank uses BYD. Tap the icon to open the car launcher while CarPlay stays connected in the background. Restart CarPlay to apply edits.",
-  "settings.identity.driving_side.help": "Announces left- or right-hand drive to iPhone, which may change CarPlay sidebar placement. Does not change the app theme or Android launcher icon."
+  "settings.identity.driving_side.help": "Announces left- or right-hand drive to iPhone, which may change CarPlay sidebar placement. Does not change the app theme or Android launcher icon.",
+  "settings.call_popup.execution": "Execution status",
+  "settings.call_popup.last_failure": "Last execution problem",
+  "settings.call_popup.state.idle": "Waiting for a foreground CarPlay connection with saved settings",
+  "settings.call_popup.state.starting": "Checking local ADB and starting the popup helper",
+  "settings.call_popup.state.hidden": "Verified that the call component overlay permission is suspended",
+  "settings.call_popup.state.already_hidden": "Overlay permission was already suspended; no change made",
+  "settings.call_popup.state.restored": "Original permission restored; reapplied when connected CarPlay returns",
+  "settings.call_popup.state.retrying": "Attempt failed; waiting to retry automatically",
+  "settings.call_popup.state.adb_unreachable": "Local network ADB is unreachable or disconnected; check network debugging",
+  "settings.call_popup.state.not_approved": "Local ADB is not approved; use Authorize / check local ADB and approve on the head unit",
+  "settings.call_popup.state.adb_unsupported": "Paired wireless debugging is unsupported; local network ADB is required",
+  "settings.call_popup.state.unsupported": "The system or detached helper tools do not support this feature",
+  "settings.call_popup.state.busy": "The previous helper is still running or restoring permissions; retrying later",
+  "settings.call_popup.state.denied": "The helper could not read or change the call permission; ADB approval alone does not grant firmware support",
+  "settings.call_popup.state.restore_failed": "Restoration is unconfirmed; keep network ADB on and check the car call overlay permission",
+  "settings.call_popup.state.external_change": "The system or another app changed the permission; ownership released",
+  "settings.call_popup.state.helper_failed": "The helper is not ready or communication failed; reconnect and check execution status"
 }

@@ -16,7 +16,7 @@ public final class BydCallPopupLease {
     private final Consumer<String> report;
     private final long createdAt;
     private Integer original;
-    private boolean started, owned, stopping, done;
+    private boolean started, owned, stopping, done, hideFailed;
     private long sequence, heartbeatAt, queryAt, retryAt;
     private int restoreAttempts;
 
@@ -72,6 +72,7 @@ public final class BydCallPopupLease {
             heartbeatAt = queryAt = clock.getAsLong();
             report.accept("HIDDEN");
         } catch (Exception error) {
+            hideFailed = true;
             stop();
         }
     }
@@ -108,13 +109,14 @@ public final class BydCallPopupLease {
     private void restore() {
         restoreAttempts++;
         try {
-            if (ops.query() != 1) {
-                finish("EXTERNAL_CHANGE");
+            int current = ops.query();
+            if (current != 1) {
+                finish(hideFailed && current == original ? "HIDE_FAILED" : "EXTERNAL_CHANGE");
                 return;
             }
             ops.set(original);
             if (ops.query() != original) throw new IllegalStateException();
-            finish("RESTORED");
+            finish(hideFailed ? "HIDE_FAILED" : "RESTORED");
         } catch (Exception error) {
             if (restoreAttempts >= 4) finish("ERROR RESTORE_FAILED");
             else retryAt = clock.getAsLong() + (1L << (restoreAttempts - 1)) * 1_000;

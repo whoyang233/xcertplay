@@ -471,5 +471,22 @@
   "settings.identity.manufacturer.help": "发送给 iPhone 的厂商名称，留空使用 xcertplay。此项不读取或修改车辆信息。",
   "settings.identity.model.help": "发送给 iPhone 的型号标识，留空使用 xcertplay。此项不切换车辆数据配置。",
   "settings.identity.oem_label.help": "CarPlay 车标入口的名称，留空使用 BYD。点击入口返回车机桌面，CarPlay 会话保持在后台；修改后重启 CarPlay 生效。",
-  "settings.identity.driving_side.help": "向 iPhone 声明左舵或右舵，可能影响 CarPlay 侧栏布局，以 iPhone 实际显示为准。此页不修改应用主题或安卓桌面图标。"
+  "settings.identity.driving_side.help": "向 iPhone 声明左舵或右舵，可能影响 CarPlay 侧栏布局，以 iPhone 实际显示为准。此页不修改应用主题或安卓桌面图标。",
+  "settings.call_popup.execution": "执行状态",
+  "settings.call_popup.last_failure": "最近一次执行问题",
+  "settings.call_popup.state.idle": "等待已保存配置的 CarPlay 前台连接",
+  "settings.call_popup.state.starting": "正在检查本机 ADB 并启动隐藏辅助进程",
+  "settings.call_popup.state.hidden": "已验证通话组件的悬浮窗权限处于暂停状态",
+  "settings.call_popup.state.already_hidden": "悬浮窗权限原本已暂停，应用未修改",
+  "settings.call_popup.state.restored": "已恢复原权限；返回已连接的 CarPlay 后重新应用",
+  "settings.call_popup.state.retrying": "执行未成功，正在等待自动重试",
+  "settings.call_popup.state.adb_unreachable": "本机网络 ADB 不可达或连接中断，请检查车机网络调试开关",
+  "settings.call_popup.state.not_approved": "本机 ADB 尚未批准，请点击“授权 / 检查本机 ADB”并在车机确认",
+  "settings.call_popup.state.adb_unsupported": "当前是配对式无线调试，本功能需要本机网络 ADB",
+  "settings.call_popup.state.unsupported": "系统版本或后台辅助工具不支持此功能",
+  "settings.call_popup.state.busy": "上一辅助进程仍在运行或恢复权限，稍后重试",
+  "settings.call_popup.state.denied": "辅助进程无法读取或修改通话组件权限；ADB 授权成功不代表固件允许隐藏",
+  "settings.call_popup.state.restore_failed": "未确认恢复原权限，请保持网络 ADB 开启并检查车机通话悬浮窗权限",
+  "settings.call_popup.state.external_change": "权限已被系统或其他应用更改，已停止接管",
+  "settings.call_popup.state.helper_failed": "辅助进程未就绪或通信异常，请重新连接后查看执行状态"
 }

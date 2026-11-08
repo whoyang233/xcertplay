@@ -20,7 +20,7 @@ import java.util.List;
 
 /** Detached shell helper: one fixed package/op, sequenced commands, ten-second recovery lease. */
 public final class BydCallPopupTool {
-    static final String DIRECTORY = "/data/local/tmp/diplay-call-popup";
+    static final String DIRECTORY = "/data/local/tmp/xcertplay-personal-call-popup";
     static final String PACKAGE = "com.byd.bluetoothcall";
     private final String base;
     private BydCallPopupLease lease;

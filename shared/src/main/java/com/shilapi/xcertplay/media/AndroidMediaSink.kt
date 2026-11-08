@@ -121,14 +121,21 @@ class AndroidMediaSink(
     }
 
 
+    @Synchronized
     override fun onAudioStarted(type: Int, format: AudioFormat, firstSample: Int) {
+        if (closed.get()) return
         audioRenderer(type, format).start()
     }
 
+    @Synchronized
     override fun onAudioRtp(type: Int, format: AudioFormat, rtp: ByteArray, sample: Int) {
-        audioRenderer(type, format).submit(rtp, sample)
+        if (closed.get()) return
+        // A late packet from a stopped/replaced stream must never recreate an output track.
+        val renderer = audioRenderers[type] ?: return
+        if (renderer.format == format) renderer.submit(rtp, sample)
     }
 
+    @Synchronized
     override fun onAudioStopped(type: Int) {
         audioRenderers.remove(type)?.close()
     }
@@ -144,6 +151,7 @@ class AndroidMediaSink(
         microphoneUplinks.remove(type)?.close()
     }
 
+    @Synchronized
     fun close() {
         if (!closed.compareAndSet(false, true)) return
         videoDecoders.values.forEach(VideoDecoder::close)
@@ -777,12 +785,18 @@ private class AudioRenderer(
     @Volatile private var running = true
     @Volatile private var started = false
     private var codec: MediaCodec? = null
-    private var track: AudioTrack? = null
+    @Volatile private var track: AudioTrack? = null
+    private val playbackGate = Any()
+    private val packetOrder = AudioPacketOrder()
     private var pcm = ByteArray(64 * 1024)
     private var playbackStarted = false
     private var prebufferBytes = 0
     private var startThresholdBytes = 0
-    private var fadeApplied = false
+    private val startupEnvelope = PcmPlaybackEnvelope(format.sampleRate, minOf(format.channels, 2))
+    private var lastPcmWriteNs = 0L
+    private var decodedPcmEncoding = DecodedPcm.PCM_16BIT
+    private var decodedFormatSupported = true
+    private var invalidPcmLogged = false
     private var droppedPacketsLogged = false
     private var firstAacPayloadLogged = false
     private var firstOpusShortPacketLogged = false
@@ -812,6 +826,7 @@ private class AudioRenderer(
     }
 
     fun submit(rtp: ByteArray, sample: Int) {
+        if (!running || !packetOrder.accept(rtp)) return
         if (!started || !queue.offer(AudioPacket(rtp, sample))) {
             if (started && !droppedPacketsLogged) {
                 droppedPacketsLogged = true
@@ -825,7 +840,16 @@ private class AudioRenderer(
     }
 
     override fun close() {
-        running = false
+        synchronized(playbackGate) {
+            running = false
+            // A replacement stream can start before this worker's decoder has finished stopping.
+            // Flush the old track now so its buffered audio cannot overlap the new stream.
+            track?.let { output ->
+                runCatching { output.pause() }
+                runCatching { output.flush() }
+            }
+        }
+        queue.clear()
         thread.interrupt()
     }
 
@@ -837,7 +861,13 @@ private class AudioRenderer(
                 AudioCodecKind.LPCM -> Unit
             }
             createTrack()
-            while (running) handle(queue.take())
+            while (running) {
+                val packet = queue.poll(AUDIO_DRAIN_INTERVAL_MS, TimeUnit.MILLISECONDS)
+                if (packet != null && running) handle(packet)
+                // A decoder may produce its final PCM after the last RTP packet was submitted.
+                // Waiting indefinitely for another packet stalls that output until the next prompt.
+                if (running) codec?.let(::drainCodec)
+            }
         } catch (_: InterruptedException) {
             // Worker shut down.
         } catch (error: Exception) {
@@ -1030,7 +1060,14 @@ private class AudioRenderer(
 
     private fun feedCodec(payload: ByteArray, presentationTimeUs: Long) {
         val codec = codec ?: return
-        val index = codec.dequeueInputBuffer(INPUT_TIMEOUT_US)
+        drainCodec(codec)
+        var index = codec.dequeueInputBuffer(INPUT_TIMEOUT_US)
+        val deadlineNs = System.nanoTime() + INPUT_RETRY_TIMEOUT_NS
+        while (index < 0 && running && System.nanoTime() < deadlineNs) {
+            drainCodec(codec)
+            index = codec.dequeueInputBuffer(INPUT_TIMEOUT_US)
+        }
+        if (!running) return
         if (index < 0) {
             inputDropped++
             if (inputDropped == 1) {
@@ -1069,7 +1106,18 @@ private class AudioRenderer(
             val index = codec.dequeueOutputBuffer(info, 0)
             when {
                 index == MediaCodec.INFO_TRY_AGAIN_LATER -> return
-                index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> Unit
+                index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                    val output = codec.outputFormat
+                    decodedPcmEncoding = output.intOrNull(MediaFormat.KEY_PCM_ENCODING) ?: DecodedPcm.PCM_16BIT
+                    val rate = output.intOrNull(MediaFormat.KEY_SAMPLE_RATE) ?: format.sampleRate
+                    val channels = output.intOrNull(MediaFormat.KEY_CHANNEL_COUNT) ?: format.channels
+                    decodedFormatSupported = DecodedPcm.supports(decodedPcmEncoding) &&
+                        rate == format.sampleRate && channels == minOf(format.channels, 2)
+                    Log.i(TAG, "audio decoded PCM encoding=$decodedPcmEncoding rate=$rate channels=$channels supported=$decodedFormatSupported")
+                    if (!decodedFormatSupported) {
+                        Log.e(TAG, "audio decoder output does not match the PCM track; refusing to play misinterpreted samples")
+                    }
+                }
                 index >= 0 -> {
                     val size = info.size
                     if (size > 0) {
@@ -1083,17 +1131,27 @@ private class AudioRenderer(
                             )
                         }
                     }
-                    if (size > 0) {
-                        val output = codec.getOutputBuffer(index)
-                        if (output != null) {
-                            if (size > pcm.size) pcm = ByteArray(size)
-                            output.position(info.offset)
-                            output.limit(info.offset + size)
-                            output.get(pcm, 0, size)
-                            writePcm(pcm, 0, size)
+                    try {
+                        if (size > 0 && decodedFormatSupported &&
+                            info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
+                            val output = codec.getOutputBuffer(index)
+                            if (output != null) {
+                                output.limit(info.offset + size)
+                                output.position(info.offset)
+                                val pcmLength = try {
+                                    DecodedPcm.pcm16Length(size, decodedPcmEncoding, minOf(format.channels, 2))
+                                } catch (_: IllegalArgumentException) {
+                                    logInvalidPcm(size)
+                                    continue
+                                }
+                                if (pcmLength > pcm.size) pcm = ByteArray(pcmLength)
+                                DecodedPcm.copyToPcm16(output, decodedPcmEncoding, minOf(format.channels, 2), pcm)
+                                writePcm(pcm, 0, pcmLength)
+                            }
                         }
+                    } finally {
+                        codec.releaseOutputBuffer(index, false)
                     }
-                    codec.releaseOutputBuffer(index, false)
                     if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
                 }
                 else -> return
@@ -1102,10 +1160,22 @@ private class AudioRenderer(
     }
 
     private fun writePcm(data: ByteArray, offset: Int = 0, length: Int = data.size) {
+        if (!running || length == 0) return
+        val track = track ?: return
+        if (length % trackBytesPerFrame != 0) {
+            logInvalidPcm(length)
+            return
+        }
         NavigationVolume.applyPcm16InPlace(
             data, offset, length, selection, playbackSettings.navigationVolumePercent,
         )
-        val track = track ?: return
+        val nowNs = System.nanoTime()
+        if (selection.channel == AudioChannel.NAVIGATION && lastPcmWriteNs != 0L &&
+            nowNs - lastPcmWriteNs >= NAVIGATION_IDLE_FADE_NS) {
+            startupEnvelope.restart()
+        }
+        startupEnvelope.apply(data, offset, length)
+        lastPcmWriteNs = nowNs
         if (!firstPcmLogged && length > 0) {
             firstPcmLogged = true
             val end = minOf(data.size, offset + minOf(length, 16))
@@ -1114,10 +1184,6 @@ private class AudioRenderer(
                 "audio first PCM type=${format.payloadType} bytes=$length " +
                     "head=${data.copyOfRange(offset, end).toHexString()}",
             )
-        }
-        if (!fadeApplied) {
-            applyFadeIn(data, offset, length)
-            fadeApplied = true
         }
         var written = 0
         while (written < length && running) {
@@ -1145,9 +1211,13 @@ private class AudioRenderer(
             if (!playbackStarted) {
                 prebufferBytes += count
                 if (prebufferBytes >= startThresholdBytes) {
-                    track.play()
-                    playbackStarted = true
-                    Log.i(TAG, "audio playback started type=${format.payloadType}")
+                    synchronized(playbackGate) {
+                        if (running) {
+                            track.play()
+                            playbackStarted = true
+                            Log.i(TAG, "audio playback started type=${format.payloadType}")
+                        }
+                    }
                 }
             }
         }
@@ -1195,16 +1265,10 @@ private class AudioRenderer(
         ).also { latestOutputLatencyMs = it }
     }
 
-    private fun applyFadeIn(data: ByteArray, offset: Int, length: Int) {
-        val samples = (length - length % 2) / 2
-        val fadeSamples = minOf(samples, maxOf(1, format.sampleRate / 100))
-        for (index in 0 until fadeSamples) {
-            val position = offset + index * 2
-            val sample = (data[position].toInt() and 0xff) or (data[position + 1].toInt() shl 8)
-            val scaled = (sample.toLong() * (index + 1) / fadeSamples).toInt()
-            data[position] = scaled.toByte()
-            data[position + 1] = (scaled shr 8).toByte()
-        }
+    private fun logInvalidPcm(length: Int) {
+        if (invalidPcmLogged) return
+        invalidPcmLogged = true
+        Log.w(TAG, "audio dropping incomplete PCM frame type=${format.payloadType} bytes=$length encoding=$decodedPcmEncoding")
     }
 
     private fun byteSwapS16(source: ByteArray): ByteArray {
@@ -1218,6 +1282,14 @@ private class AudioRenderer(
 
     @Synchronized
     private fun release() {
+        // Silence queued output before waiting for a vendor codec's potentially slow stop().
+        val track = track
+        this.track = null
+        if (track != null) {
+            runCatching { track.pause() }
+            runCatching { track.flush() }
+            runCatching { track.release() }
+        }
         val codec = codec
         this.codec = null
         if (codec != null) {
@@ -1232,31 +1304,15 @@ private class AudioRenderer(
                 // Best effort.
             }
         }
-        val track = track
-        this.track = null
-        if (track != null) {
-            try {
-                track.pause()
-            } catch (_: Exception) {
-                // Best effort.
-            }
-            try {
-                track.flush()
-            } catch (_: Exception) {
-                // Best effort.
-            }
-            try {
-                track.release()
-            } catch (_: Exception) {
-                // Best effort.
-            }
-        }
     }
 
     private companion object {
         const val TAG = "xcertplay-usb"
         const val MIN_OPUS_PACKET_BYTES = 4
         const val INPUT_TIMEOUT_US = 10_000L
+        const val INPUT_RETRY_TIMEOUT_NS = 500_000_000L
+        const val AUDIO_DRAIN_INTERVAL_MS = 10L
+        const val NAVIGATION_IDLE_FADE_NS = 250_000_000L
         const val MAX_QUEUED_PACKETS = 64
         const val MIN_TRACK_BUFFER_BYTES = 16 * 1024
         const val DECODED_BUFFER_LOG_INTERVAL = 50

@@ -19,6 +19,56 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class NavigationAudioPipelineTest {
+    @Test fun everyShortStereoPacketIsAttenuatedFromTheFirstWriteAndUsesOneEnvelope() {
+        val received = java.util.Collections.synchronizedList(mutableListOf<ByteArray>())
+        val bytesWritten = AtomicInteger()
+        val done = CountDownLatch(1)
+        val listener = ShadowAudioTrack.OnAudioDataWrittenListener { _, data, _ ->
+            received += data.copyOf()
+            if (bytesWritten.addAndGet(data.size) >= 3840) done.countDown()
+        }
+        ShadowAudioTrack.addAudioDataListener(listener)
+        val sink = AndroidMediaSink(RuntimeEnvironment.getApplication(),
+            audioPlaybackSettings = AudioPlaybackSettings(navigationVolumePercent = 60))
+        val format = AudioFormat(AudioCodecKind.LPCM, 48000, 2, 101, "default")
+        try {
+            sink.onAudioStarted(101, format, 0)
+            repeat(20) { sequence ->
+                val packet = ByteArray(12 + 192)
+                packet[3] = sequence.toByte()
+                for (i in 12 until packet.size step 2) { packet[i] = 0x27; packet[i + 1] = 0x10 }
+                sink.onAudioRtp(101, format, packet, sequence * 48)
+            }
+            assertTrue(done.await(10, TimeUnit.SECONDS))
+            val output = synchronized(received) { received.flatMap { it.toList() }.toByteArray() }
+            val samples = output.indices.step(2).map { (output[it].toInt() and 0xff) or (output[it + 1].toInt() shl 8) }
+            assertTrue(samples.all { it in 0..6000 })
+            assertEquals(12, samples.first())
+            assertEquals(6000, samples.last())
+            for (i in samples.indices step 2) assertEquals(samples[i], samples[i + 1])
+        } finally {
+            sink.close()
+            ShadowAudioTrack.removeAudioDataListener(listener)
+        }
+    }
+
+    @Test fun latePacketsAndStartCallbacksCannotRecreateAStoppedOrClosedSink() {
+        val sink = AndroidMediaSink(RuntimeEnvironment.getApplication())
+        val format = AudioFormat(AudioCodecKind.LPCM, 48000, 1, 101, "navigation")
+        val packet = ByteArray(14)
+        try {
+            sink.onAudioStarted(101, format, 0)
+            sink.onAudioStopped(101)
+            sink.onAudioRtp(101, format, packet, 0)
+            val field = AndroidMediaSink::class.java.getDeclaredField("audioRenderers").apply { isAccessible = true }
+            assertTrue((field.get(sink) as Map<*, *>).isEmpty())
+            sink.close()
+            sink.onAudioStarted(101, format, 0)
+            sink.onAudioRtp(101, format, packet, 0)
+            assertTrue((field.get(sink) as Map<*, *>).isEmpty())
+        } finally { sink.close() }
+    }
+
     @Test fun decodedNavigationGainReachesLocalAudioTrackWithoutAffectingOtherStreams() {
         val context: Context = RuntimeEnvironment.getApplication()
         val manager = context.getSystemService(AudioManager::class.java)

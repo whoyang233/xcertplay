@@ -107,6 +107,10 @@ The Music channel binding and Navigation channel binding usage selectors have be
 
 Navigation volume ranges from 0% to 200% in 5% steps: 0% mutes and 100% preserves the original signal; boosting can clip. Gain is applied to decoded navigation/alert PCM before local playback, without calling system volume APIs. Selecting stream 3 for navigation still changes only guidance, preserving music, calls, Siri, and the separate microphone gain. Tap Restart CarPlay to save and apply; closing settings discards edits.
 
+The saved navigation gain applies from the first PCM frame. A continuous 10 ms frame-based fade spans packet boundaries with equal stereo gains and restarts after a 250 ms navigation idle gap. Float decoder output is converted to PCM16; incomplete frames, duplicate/out-of-order packets and late packets from stopped streams are discarded. Old tracks are paused and flushed before replacement, and decoder output continues draining after the final input packet.
+
+The optional BYD call-popup guard now retries transient local ADB startup failures without requesting background approval. The detached helper no longer requires `setsid`, and Audio settings show execution status separately from ADB authorization, including denied changes and unconfirmed restoration. Original package overlay permissions are restored on background/disconnect or lease expiry. Firmware dialogs that bypass overlay permission still require vehicle validation; Bluetooth audio and the phone component remain enabled.
+
 Generic high-quality music (102) and alternate guidance (101) streams are classified as music and navigation respectively; explicit roles, calls, and Siri take precedence. The existing AAOS Advanced channel mapping option still determines how ordinary default/compatibility streams are classified. Guidance already mixed into music by the phone cannot be separated. Vehicle checks should play music alongside guidance at 0%, 50%, and 100%, also after selecting a numbered stream for guidance, while checking calls and Siri remain unaffected.
 
 ## Wi-Fi scan suppression and channels
