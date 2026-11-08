@@ -18,6 +18,15 @@ class AudioPacketOrderTest {
         assertTrue(order.accept(packet(0)))
     }
 
+    @Test fun aNewRtpSourceMayRestartItsSequenceButLateOldSourcePacketsStayRetired() {
+        val order = AudioPacketOrder()
+        fun source(sequence: Int, ssrc: Int) = packet(sequence).also { it[11] = ssrc.toByte() }
+        assertTrue(order.accept(source(1200, 1)))
+        assertTrue(order.accept(source(0, 2)))
+        assertFalse(order.accept(source(1201, 1)))
+        assertTrue(order.accept(source(1, 2)))
+    }
+
     private fun packet(sequence: Int): ByteArray = ByteArray(14).also {
         it[2] = (sequence ushr 8).toByte(); it[3] = sequence.toByte()
     }
