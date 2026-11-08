@@ -227,6 +227,8 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
+2026-11-08 的[音频稳定性与通话弹窗仅验证任务](https://github.com/whoyang233/xcertplay/actions/runs/42492880258)来自源码 `5ae9d26df101cb8229e411d0332fbddc46eb5b0c`：**451 项测试通过（shared 349、common 102），无失败、错误或跳过；Lint 无错误，保留 common 83 / automotive 3 条警告。** 新增覆盖首包 60% 导航增益、连续短包/双声道淡入、浮点 PCM 转换、异常帧和重复/迟到 RTP、音源序号重置、关闭后的回调、ADB 有界重试、隐藏失败与恢复状态及设置文案。[完整报告](https://github.com/whoyang233/xcertplay/actions/runs/42492880258/artifacts/13621859626)包含 1080P 与 150% 字体窄窗口的通话设置截图。固定签名读取、APK 打包、校验和上传均明确跳过；本次没有生成新 APK。自动化测试不能替代目标车机的实际音频与悬浮窗验证。
+
 2026-10-21 的[BYD 车标版构建](https://github.com/whoyang233/xcertplay/actions/runs/39572068305)来自源码 `1f69a4a6e7a6adc242c5378ccd7ba2902d8e642b`：**431 项测试通过，无失败、错误或跳过；Lint 无错误（common 83、automotive 3 条警告）。** 已生成并校验唯一的 automotive APK：1.4.2B / 1402，包名、固定签名、Provider 与权限集合和旧个人版一致。确认内置 BYD 图标、返回桌面与图标缩放代码、视频缓冲均入包，旧用途绑定类、Web 渲染和车辆 JSON 资源缺席。包大小 47,755,047 字节，SHA-256 `8656d2c4c34376d97ff94a52e18077f2bb7dd25a2e84a7b2f97c442f7542f69e`。实车桌面切换和路由仍需验收。
 
 2026-10-21 的[截图反馈修正验证](https://github.com/whoyang233/xcertplay/actions/runs/39567775549)来自源码 `47d6c78538027ce20dd7389d7252677573bfa875`：**421 项测试通过，失败、错误、跳过均为 0；Lint 无错误，保留 common 82 / automotive 3 条警告。** 覆盖卡片分隔、ADB 按钮间距和点击、旧用途绑定清理、编号通道与导航增益，以及既有音视频缓冲和连接回归。[新版完整图库](docs/SETTINGS_SCREENSHOTS.zh-CN.md) · [完整报告](https://github.com/whoyang233/xcertplay/actions/runs/39567775549/artifacts/12331110976)。本次明确跳过签名、APK 打包、APK 校验与 APK 上传；截图来自测试环境，实车路由和连接仍需验收。
