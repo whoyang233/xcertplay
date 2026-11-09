@@ -9,9 +9,9 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download 1.4.2B automotive APK ZIP (BYD car icon)](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download 1.4.2B automotive release APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/42549230810/artifacts/13644148956)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/42549230810) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions downloads require GitHub sign-in. The ZIP contains only the automotive APK and verification metadata. Version 1.4.2B / 1402 retains the pinned personal signer for updates. Release upload returned 401 through the current connection and 403 through CI, so no unverified Release link is advertised; the verified build artifact is available.
+Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 1402 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
 
 | APK | Target |
 | --- | --- |
@@ -215,6 +215,8 @@ Signed release builds require the same fixed key:
 Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned build inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
 
 ## Verification and feedback
+
+The [automotive release build](https://github.com/whoyang233/xcertplay/actions/runs/42549230810), source `47e038c080e1c20823033b1a643a8ae76dea4fba`, passes **451 tests with no failures, errors or skips; release lint has no errors (83 common / 3 automotive warnings)**. The 36,927,568-byte APK is verified as release, non-debuggable, `com.whoyang233.xcertplay`, 1.4.2B / 1402 with the unchanged pinned signing certificate. It contains the audio stability and BYD popup ADB fixes; removed Web/vehicle JSON code remains absent. APK SHA-256: `0bf3e0ecfe0e1bb597c77656708bd204417e3593bd54571be32905c20f4187f4`. Vehicle validation remains necessary.
 
 Personal automotive deliveries now use the **release** build type with `debuggable=false`, version `1.4.2B` / 1402 and the same pinned signing certificate. The `B` identifies the personal version and does not imply a debug build. Earlier APK deliveries were fixed-key-signed debug builds; future workflow packages default to release.
 

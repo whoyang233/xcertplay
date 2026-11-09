@@ -9,9 +9,9 @@
 
 ## 下载与安装
 
-**[下载 1.4.2B automotive 车载包（BYD 车标版，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/39572068305/artifacts/12331569969)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/39572068305) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive Release 车载包（ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42549230810/artifacts/13644148956)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42549230810) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive 车载 APK 和校验信息。安装包为 1.4.2B / 1402，可覆盖此前同签名个人版。当前连接在 Release 附件上传时返回 401、CI 发布返回 403，因此此处不提供尚未成功的 Release 直链；已验证 APK 的构建产物可正常下载。
+Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 1402，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
 
 | 安装包 | 适用设备 |
 | --- | --- |
@@ -24,7 +24,7 @@ Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive 车载 AP
 | 桌面名称 | xcertplay 个人版 |
 | 应用包名 | `com.whoyang233.xcertplay` |
 | 当前上游基础版本 / versionCode | `1.4.2` / `1402` |
-| 当前测试版显示版本 | `1.4.2B` |
+| 当前个人版显示版本 | `1.4.2B` |
 
 个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。个人分支今后只构建 automotive APK，与上游 automotive 变体对应。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
 
@@ -226,6 +226,8 @@ Windows PowerShell：
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名构建输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
+
+[automotive Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42549230810)来自源码 `47e038c080e1c20823033b1a643a8ae76dea4fba`：**451 项测试通过，无失败、错误或跳过；Release Lint 无错误（common 83 / automotive 3 条警告）**。安装包为 36,927,568 字节，已确认 release、不可调试、包名 `com.whoyang233.xcertplay`、版本 1.4.2B / 1402 及原固定签名；包含音频稳定性和比亚迪通话弹窗 ADB 修复，仍排除已移除的 Web/车辆 JSON 代码。APK SHA-256：`0bf3e0ecfe0e1bb597c77656708bd204417e3593bd54571be32905c20f4187f4`。实车效果仍需验收。
 
 个人版车载安装包现统一使用 **release** 构建，`debuggable=false`，保留版本 `1.4.2B` / 1402 和原固定签名。`B` 表示个人版，与 debug/release 构建类型无关。此前交付包是固定签名的 debug 构建；后续工作流默认生成 release 包。
 
