@@ -39,10 +39,14 @@ android {
             } else null
         }
         release {
+            versionNameSuffix = "B"
+            isDebuggable = false
             optimization {
                 enable = false
             }
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (providers.environmentVariable("ANDROID_KEYSTORE_PATH").isPresent) {
+                signingConfigs.getByName("release")
+            } else null
         }
     }
     compileOptions {

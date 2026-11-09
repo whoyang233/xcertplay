@@ -15,7 +15,7 @@ Actions downloads require GitHub sign-in. The ZIP contains only the automotive A
 
 | APK | Target |
 | --- | --- |
-| `automotive-debug.apk` | Automotive variant, matching the upstream automotive release. |
+| `automotive-release.apk` | Automotive variant, matching the upstream automotive release. |
 
 Requires **Android 9 (API 28)** or newer and a configured MFi authentication source: CH341, native I2C, local certificate files, or a remote service.
 
@@ -24,7 +24,7 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 | Launcher name | xcertplay 个人版 |
 | Application ID | `com.whoyang233.xcertplay` |
 | Current upstream base version / versionCode | `1.4.2` / `1402` |
-| Current debug version name | `1.4.2B` |
+| Current personal version name | `1.4.2B` |
 
 The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch builds only the automotive APK, following the upstream automotive variant. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
 
@@ -179,9 +179,9 @@ Select `personal-dev` under **Android Build → Run workflow**, leaving `bootstr
 
 | Artifact | Contents |
 | --- | --- |
-| `personal-apks-<commit>` | Signed automotive APK and package/signature verification metadata. |
+| `personal-apks-automotive-release-<commit>` | Signed automotive APK and package/signature verification metadata. |
 | `validation-reports-<commit>` | Unit test, lint, and settings-layout screenshot reports. |
-| `unsigned-apks-<commit>` | Unsigned inputs for explicit bootstrap or PR validation without a key; not installable. |
+| `unsigned-apks-automotive-release-<commit>` | Unsigned inputs for explicit bootstrap or PR validation without a key; not installable. |
 
 ### Local builds
 
@@ -197,13 +197,13 @@ Set these environment variables to the original PKCS#12 key from the offline bac
 macOS / Linux:
 
 ```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintRelease :automotive:lintRelease :automotive:assembleRelease
 ```
 
 Windows PowerShell:
 
 ```powershell
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintRelease :automotive:lintRelease :automotive:assembleRelease
 ```
 
 Signed release builds require the same fixed key:
@@ -212,9 +212,11 @@ Signed release builds require the same fixed key:
 ./gradlew :automotive:assembleRelease
 ```
 
-Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned debug inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
+Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned build inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
 
 ## Verification and feedback
+
+Personal automotive deliveries now use the **release** build type with `debuggable=false`, version `1.4.2B` / 1402 and the same pinned signing certificate. The `B` identifies the personal version and does not imply a debug build. Earlier APK deliveries were fixed-key-signed debug builds; future workflow packages default to release.
 
 The [2026-11-08 audio/popup source validation](https://github.com/whoyang233/xcertplay/actions/runs/42492880258), source `5ae9d26df101cb8229e411d0332fbddc46eb5b0c`, passes **451 tests (349 shared, 102 common), with no failures, errors or skips; lint has no errors and retains 83 common / 3 automotive warnings**. Coverage includes first-write 60% navigation gain, short-packet/stereo fade continuity, float PCM conversion, malformed frames and duplicate/late RTP, source sequence resets, closed-sink callbacks, bounded ADB retries, failed-hide/restoration states and settings text. [Reports](https://github.com/whoyang233/xcertplay/actions/runs/42492880258/artifacts/13621859626) include Full-HD and narrow 150% font popup settings captures. Signing-key access, APK assembly, APK verification and APK upload are skipped. No new APK was produced; head-unit audio and overlay behavior still need vehicle validation.
 

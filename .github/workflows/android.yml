@@ -62,25 +62,25 @@ jobs:
           ./gradlew
           :shared:testDebugUnitTest
           :common:testDebugUnitTest
-          :common:lintDebug
-          :automotive:lintDebug
+          :common:lintRelease
+          :automotive:lintRelease
           --stacktrace
 
-      - name: Build personal automotive APK
+      - name: Build personal automotive release APK
         if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
-        run: ./gradlew :automotive:assembleDebug $UNSIGNED_BUILD_ARGUMENT --stacktrace
+        run: ./gradlew :automotive:assembleRelease $UNSIGNED_BUILD_ARGUMENT --stacktrace
 
       - name: Verify personal package and signing identity
         if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
-        run: python3 ci/verify-personal-apks.py
+        run: python3 ci/verify-personal-apks.py release
 
       - name: Upload personal automotive APK
         if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.signing.outputs.artifact_prefix }}-${{ github.sha }}
+          name: ${{ steps.signing.outputs.artifact_prefix }}-automotive-release-${{ github.sha }}
           path: |
-            automotive/build/outputs/apk/debug/*.apk
+            automotive/build/outputs/apk/release/*.apk
             personal-apk-verification.json
           if-no-files-found: error
 

@@ -4,21 +4,28 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import zipfile
 
 sdk = Path(os.environ['ANDROID_HOME']) / 'build-tools' / '36.0.0'
 expected = Path('signing/personal-certificate.sha256').read_text().strip()
 metadata = []
+build_type = sys.argv[1] if len(sys.argv) > 1 else 'release'
+if build_type not in ('debug', 'release'):
+    raise SystemExit('Expected APK build type: debug or release')
 signed = bool(os.environ.get('ANDROID_KEYSTORE_PATH'))
 build_config = Path('automotive/build.gradle.kts').read_text()
 expected_version = re.search(r'versionName\s*=\s*"([^"]+)"', build_config).group(1) + 'B'
 expected_code = re.search(r'versionCode\s*=\s*(\d+)', build_config).group(1)
 for module in ('automotive',):
-    files = list(Path(f'{module}/build/outputs/apk/debug').glob('*.apk'))
+    files = list(Path(f'{module}/build/outputs/apk/{build_type}').glob('*.apk'))
     if len(files) != 1:
         raise SystemExit(f'Expected one {module} APK; got {len(files)}')
     apk = files[0]
     badging = subprocess.check_output([str(sdk / 'aapt'), 'dump', 'badging', str(apk)], text=True)
+    debuggable = bool(re.search(r'^application-debuggable(?:\s|$)', badging, re.M))
+    if debuggable != (build_type == 'debug'):
+        raise SystemExit(f'Unexpected debuggable flag for {build_type} APK: {debuggable}')
     package = re.search(r"^package: name='([^']+)'", badging, re.M).group(1)
     if package != 'com.whoyang233.xcertplay':
         raise SystemExit(f'Wrong application ID: {package}')
@@ -56,7 +63,8 @@ for module in ('automotive',):
     else:
         if subprocess.run([str(sdk / 'apksigner'), 'verify', str(apk)], capture_output=True).returncode == 0:
             raise SystemExit('Bootstrap APK unexpectedly signed; refusing unpinned signatures')
-    metadata.append({'file': str(apk), 'package': package, 'version_name': version_name,
+    metadata.append({'file': str(apk), 'build_type': build_type, 'debuggable': debuggable,
+                     'package': package, 'version_name': version_name,
                      'version_code': int(version_code), 'signed': signed,
                      'web_display_enabled': False,
                      'certificate_sha256': expected if signed else None})

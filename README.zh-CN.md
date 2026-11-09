@@ -15,7 +15,7 @@ Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive 车载 AP
 
 | 安装包 | 适用设备 |
 | --- | --- |
-| `automotive-debug.apk` | 车载 automotive 变体，对应上游 automotive 发布包。 |
+| `automotive-release.apk` | 车载 automotive 变体，对应上游 automotive 发布包。 |
 
 最低要求为 **Android 9（API 28）**。MFi 认证需配置 CH341、原生 I2C、本地证书文件或远程服务中的一种。
 
@@ -190,9 +190,9 @@ APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
 
 | 产物 | 内容 |
 | --- | --- |
-| `personal-apks-<commit>` | 已签名 automotive APK 和包名/签名验证信息。 |
+| `personal-apks-automotive-release-<commit>` | 已签名 automotive APK 和包名/签名验证信息。 |
 | `validation-reports-<commit>` | 单元测试、Lint 报告和设置布局截图。 |
-| `unsigned-apks-<commit>` | 仅供显式初始化或无密钥 PR 验证的未签名输入，不能直接安装。 |
+| `unsigned-apks-automotive-release-<commit>` | 仅供显式初始化或无密钥 PR 验证的未签名输入，不能直接安装。 |
 
 ### 本地构建
 
@@ -208,13 +208,13 @@ APK 签名私钥与下文 MFi 认证私钥用途不同，不能混用。
 macOS / Linux：
 
 ```bash
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
+./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintRelease :automotive:lintRelease :automotive:assembleRelease
 ```
 
 Windows PowerShell：
 
 ```powershell
-.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintDebug :automotive:lintDebug :automotive:assembleDebug
+.\gradlew.bat :shared:testDebugUnitTest :common:testDebugUnitTest :common:lintRelease :automotive:lintRelease :automotive:assembleRelease
 ```
 
 签名 release 构建同样需要上述固定私钥：
@@ -223,9 +223,11 @@ Windows PowerShell：
 ./gradlew :automotive:assembleRelease
 ```
 
-无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名 debug 输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
+无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名构建输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
+
+个人版车载安装包现统一使用 **release** 构建，`debuggable=false`，保留版本 `1.4.2B` / 1402 和原固定签名。`B` 表示个人版，与 debug/release 构建类型无关。此前交付包是固定签名的 debug 构建；后续工作流默认生成 release 包。
 
 2026-11-08 的[音频稳定性与通话弹窗仅验证任务](https://github.com/whoyang233/xcertplay/actions/runs/42492880258)来自源码 `5ae9d26df101cb8229e411d0332fbddc46eb5b0c`：**451 项测试通过（shared 349、common 102），无失败、错误或跳过；Lint 无错误，保留 common 83 / automotive 3 条警告。** 新增覆盖首包 60% 导航增益、连续短包/双声道淡入、浮点 PCM 转换、异常帧和重复/迟到 RTP、音源序号重置、关闭后的回调、ADB 有界重试、隐藏失败与恢复状态及设置文案。[完整报告](https://github.com/whoyang233/xcertplay/actions/runs/42492880258/artifacts/13621859626)包含 1080P 与 150% 字体窄窗口的通话设置截图。固定签名读取、APK 打包、校验和上传均明确跳过；本次没有生成新 APK。自动化测试不能替代目标车机的实际音频与悬浮窗验证。
 
