@@ -16,7 +16,10 @@ if build_type not in ('debug', 'release'):
 signed = bool(os.environ.get('ANDROID_KEYSTORE_PATH'))
 build_config = Path('automotive/build.gradle.kts').read_text()
 expected_version = re.search(r'versionName\s*=\s*"([^"]+)"', build_config).group(1) + 'B'
-expected_code = re.search(r'versionCode\s*=\s*(\d+)', build_config).group(1)
+build_id = os.environ.get('PERSONAL_BUILD_ID') or (sys.argv[2] if len(sys.argv) > 2 else None)
+if not build_id or not re.fullmatch(r'[0-9]{10}', build_id):
+    raise SystemExit('PERSONAL_BUILD_ID is required for version and filename verification')
+expected_code = build_id
 for module in ('automotive',):
     files = list(Path(f'{module}/build/outputs/apk/{build_type}').glob('*.apk'))
     if len(files) != 1:
@@ -63,7 +66,11 @@ for module in ('automotive',):
     else:
         if subprocess.run([str(sdk / 'apksigner'), 'verify', str(apk)], capture_output=True).returncode == 0:
             raise SystemExit('Bootstrap APK unexpectedly signed; refusing unpinned signatures')
-    metadata.append({'file': str(apk), 'build_type': build_type, 'debuggable': debuggable,
+    canonical = apk.with_name(f'xcertplay-{version_name}-release-{build_id}.apk')
+    if build_type == 'release' and canonical != apk:
+        apk.rename(canonical)
+        apk = canonical
+    metadata.append({'file': str(apk), 'build_type': build_type, 'build_id': build_id, 'debuggable': debuggable,
                      'package': package, 'version_name': version_name,
                      'version_code': int(version_code), 'signed': signed,
                      'web_display_enabled': False,

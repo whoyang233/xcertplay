@@ -77,6 +77,7 @@ import androidx.compose.material3.Surface as M3Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -217,6 +218,31 @@ class CarPlayHostActivity : ComponentActivity() {
     private val appVersionName: String by lazy {
         @Suppress("DEPRECATION")
         packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+    }
+    private val appUpdater by lazy {
+        com.shilapi.xcertplay.update.AppUpdater(applicationContext, lifecycleScope)
+    }
+    private var updateCheckOnResume = true
+    private var updateUiResumed by mutableStateOf(false)
+    private val updateInstallerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        appUpdater.installerReturned { launchUpdateInstaller() }
+    }
+
+    private fun launchUpdateInstaller() {
+        lifecycleScope.launch {
+            val installIntent = appUpdater.installVerifiedFile() ?: return@launch
+            try { updateInstallerLauncher.launch(installIntent) }
+            catch (_: Exception) { appUpdater.installerFailed() }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if ((intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) ||
+            intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED) {
+            if (updateUiResumed) appUpdater.check(automatic = true) else updateCheckOnResume = true
+        }
     }
 
     // CH341 USB\VID_1A86&PID_5512&REV_0304 is the deployment-supplied bridge identity.
@@ -855,6 +881,11 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        updateUiResumed = true
+        if (updateCheckOnResume) {
+            updateCheckOnResume = false
+            appUpdater.check(automatic = true)
+        }
         popupHostResumed = true
         updateCallPopupGuard()
         displayResizeGate.setResumed(true)
@@ -875,12 +906,22 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        updateUiResumed = false
         popupHostResumed = false
         updateCallPopupGuard()
         localTouchSequence.reset()
         displayResizeGate.setResumed(false)
         cancelPendingDisplayResize()
         super.onPause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!externalActivityInProgress && appUpdater.state.value.phase !in setOf(
+                com.shilapi.xcertplay.update.UpdatePhase.INSTALLING,
+                com.shilapi.xcertplay.update.UpdatePhase.INSTALL_PERMISSION)) {
+            updateCheckOnResume = true
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -2870,7 +2911,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 safeAreaEditorActive -> SafeAreaEditorChrome()
                 menuOpen -> SettingsScreen()
                 homeVisible -> HomeScreen(
-                    versionName = appVersionName,
+                    versionName = appVersionName + (appUpdater.installed.buildId?.let { " · $it" } ?: ""),
                     timeline = handshakeTimeline,
                     revision = timelineRevision,
                     status = connectionStatus,
@@ -2883,6 +2924,12 @@ class CarPlayHostActivity : ComponentActivity() {
                     modifier = Modifier.graphicsLayer { alpha = homeAlpha.value },
                 )
                 debugLogsEnabled -> StreamingLogOverlay(screenLogs, Modifier.align(Alignment.BottomStart))
+            }
+            if (updateUiResumed) {
+                val updateState by appUpdater.state.collectAsState()
+                com.shilapi.xcertplay.ui.settings.AppUpdatePrompt(updateState, appUpdater::dismissPrompt) {
+                    appUpdater.downloadAndInstall { launchUpdateInstaller() }
+                }
             }
         }
     }
@@ -4039,10 +4086,15 @@ class CarPlayHostActivity : ComponentActivity() {
 
     @Composable
     private fun AboutSettings() {
+        val updateState by appUpdater.state.collectAsState()
         SectionHeader(tr("settings.category.about"))
         SettingsGroup {
             row {
                 ListRow(headline = tr("settings.app_version"), support = appVersionName)
+            }
+            row {
+                ListRow(headline = tr("settings.update.build"),
+                    support = appUpdater.installed.buildId ?: tr("settings.update.build.unknown"))
             }
             row {
                 ListRow(
@@ -4051,6 +4103,11 @@ class CarPlayHostActivity : ComponentActivity() {
                 )
             }
         }
+        com.shilapi.xcertplay.ui.settings.AppUpdateSettings(updateState,
+            onAutomatic = appUpdater::setAutomatic,
+            onCheck = { appUpdater.check() },
+            onDownload = { appUpdater.downloadAndInstall { launchUpdateInstaller() } },
+            onInstall = { appUpdater.retryInstall { launchUpdateInstaller() } })
     }
 
     /** Title and Save/Cancel over the safe-area editor; the editor view below takes the drags. */

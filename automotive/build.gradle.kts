@@ -1,7 +1,19 @@
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+val personalBuildId = providers.environmentVariable("PERSONAL_BUILD_ID")
+    .orElse(providers.gradleProperty("xcertplay.buildId")).orNull
+val personalVersionCode = personalBuildId?.let {
+    require(it.matches(Regex("[0-9]{10}")) && it.takeLast(2).toInt() in 1..99)
+    LocalDate.parse(it.take(8), DateTimeFormatter.BASIC_ISO_DATE)
+    require(it.toLong() in 2000010101L..2100000000L)
+    it.toInt()
+} ?: 1402 // Source-only tests/lint need no allocated installable build.
 
 android {
     namespace = "com.shilapi.xcertplay"
@@ -13,7 +25,7 @@ android {
         applicationId = "com.whoyang233.xcertplay"
         minSdk = 28
         targetSdk = 37
-        versionCode = 1402
+        versionCode = personalVersionCode
         versionName = "1.4.2"
 
     }
@@ -77,4 +89,12 @@ dependencies {
 // Pin all packaged personal APKs to the same private key, including local builds.
 tasks.matching { it.name == "packageDebug" || it.name == "packageRelease" }.configureEach {
     dependsOn(rootProject.tasks.named("verifyPersonalSigning"))
+    dependsOn("verifyPersonalBuildId")
+}
+
+tasks.register("verifyPersonalBuildId") {
+    val buildId = personalBuildId
+    doLast {
+        check(buildId != null) { "Set PERSONAL_BUILD_ID or -Pxcertplay.buildId=YYYYMMDDNN before packaging." }
+    }
 }

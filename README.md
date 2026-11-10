@@ -23,7 +23,7 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 | --- | --- |
 | Launcher name | xcertplay 个人版 |
 | Application ID | `com.whoyang233.xcertplay` |
-| Current upstream base version / versionCode | `1.4.2` / `1402` |
+| Current upstream base version / versionCode | `1.4.2` / `YYYYMMDDNN` |
 | Current personal version name | `1.4.2B` |
 
 The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch builds only the automotive APK, following the upstream automotive variant. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
@@ -88,6 +88,14 @@ The upstream base remains 1.4.2. This update adds an opt-in BYD call-popup guard
 | Installation and updates | Independent package and fixed APK signing identity for coexistence and subsequent personal updates. |
 
 Startup recovery is enabled by default. On cancellation or exit, it attempts to restore Wi-Fi that it disabled, and the next hotspot startup waits for restoration. Android and firmware permissions determine whether switching is allowed. Connection stability and RF behavior still require vehicle testing.
+
+## Updates and dated builds
+
+The fixed update directory is `https://apk.frp.whoyang.cn/xcertplay/release/`. Generated filenames follow `xcertplay-1.4.2B-release-2026111002.apk`: the Shanghai build date plus a two-digit daily sequence. CI uses workflow order and existing artifacts/server files, allowing gaps for failed or validation runs, with a daily maximum of 99. The visible base version remains `1.4.2B`; Android versionCode is the full ten-digit build ID so subsequent builds can replace earlier ones.
+
+Opening the app checks the directory in the background and offers available updates. About shows the unformatted build ID, a persistent automatic-check switch and a manual Check for updates action. Disabling automatic checks leaves manual updates available. Downloading/installing requires choosing the update; Android handles installation and its initial permission screen. The app verifies package, base version, build ID, release flag and the pinned existing signer. Network failures are reported separately from an up-to-date result.
+
+The Dufs JSON directory is read directly, with an HTML directory fallback; no latest.json is required. Upload generated APKs to the directory under their original names. Do not merely rename an old APK: its embedded versionCode must match. The directory is publicly read-only; the client does not publish files. Local packaging requires `PERSONAL_BUILD_ID=YYYYMMDDNN` or `-Pxcertplay.buildId=YYYYMMDDNN`; source-only tests/lint do not require allocation.
 
 ## Usage
 

@@ -20,6 +20,11 @@ on:
 
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: personal-automotive-builds
+  cancel-in-progress: false
 
 jobs:
   dev:
@@ -48,6 +53,15 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Allocate dated personal build identifier
+        id: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 ci/prepare-build-id.py
+
+      - name: Check build-number allocation
+        run: python3 -m unittest discover -s ci -p 'test_*.py'
 
       - name: Prepare fixed personal signing key
         if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
@@ -78,7 +92,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || !inputs.validation_only
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.signing.outputs.artifact_prefix }}-automotive-release-${{ github.sha }}
+          name: ${{ steps.signing.outputs.artifact_prefix }}-automotive-release-${{ steps.build.outputs.build_id }}-${{ github.sha }}
           path: |
             automotive/build/outputs/apk/release/*.apk
             personal-apk-verification.json
@@ -103,6 +117,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: write
+      actions: read
 
     steps:
       - name: Check out repository
@@ -126,6 +141,15 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Allocate dated personal build identifier
+        id: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 ci/prepare-build-id.py
+
+      - name: Check build-number allocation
+        run: python3 -m unittest discover -s ci -p 'test_*.py'
+
       - name: Prepare fixed personal signing key
         env:
           PERSONAL_ANDROID_SIGNING: ${{ secrets.PERSONAL_ANDROID_SIGNING }}
@@ -135,6 +159,7 @@ jobs:
         run: >-
           ./gradlew
           :shared:testDebugUnitTest
+          :common:testDebugUnitTest
           :common:lintRelease
           :automotive:lintRelease
           :automotive:assembleRelease
@@ -145,7 +170,7 @@ jobs:
           set -euo pipefail
 
           mkdir -p release
-          safe_tag="${GITHUB_REF_NAME//\//-}"
+          python3 ci/verify-personal-apks.py release
           automotive_apk="$(find automotive/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "${automotive_apk}"
 
@@ -157,7 +182,7 @@ jobs:
             test "${actual_cert,,}" = "${expected_cert,,}"
           done
 
-          cp "${automotive_apk}" "release/xcertplay-automotive-${safe_tag}.apk"
+          cp "${automotive_apk}" "release/$(basename "${automotive_apk}")"
 
       - name: Upload APKs to the tag release
         env:
