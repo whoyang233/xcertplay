@@ -915,15 +915,6 @@ class CarPlayHostActivity : ComponentActivity() {
         super.onPause()
     }
 
-    override fun onStop() {
-        super.onStop()
-        if (!externalActivityInProgress && appUpdater.state.value.phase !in setOf(
-                com.shilapi.xcertplay.update.UpdatePhase.INSTALLING,
-                com.shilapi.xcertplay.update.UpdatePhase.INSTALL_PERMISSION)) {
-            updateCheckOnResume = true
-        }
-    }
-
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         displayResizeGate.setFocused(hasFocus)
@@ -939,6 +930,11 @@ class CarPlayHostActivity : ComponentActivity() {
         stopMicrophoneGainTest()
         // The controller, USB/iAP2 link, and VPN attachment intentionally outlive the UI.
         super.onStop()
+        if (!externalActivityInProgress && appUpdater.state.value.phase !in setOf(
+                com.shilapi.xcertplay.update.UpdatePhase.INSTALLING,
+                com.shilapi.xcertplay.update.UpdatePhase.INSTALL_PERMISSION)) {
+            updateCheckOnResume = true
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

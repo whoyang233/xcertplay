@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -57,34 +58,35 @@ internal class AppUpdater(
         prefs.edit().putBoolean("automatic", value).apply()
         if (!value && automaticOperation) {
             operation?.cancel()
-            mutable.value = mutable.value.copy(phase = UpdatePhase.IDLE, showPrompt = false)
+            mutable.update { it.copy(phase = UpdatePhase.IDLE, showPrompt = false) }
         }
-        mutable.value = mutable.value.copy(automatic = value)
+        mutable.update { it.copy(automatic = value) }
     }
 
     fun check(automatic: Boolean = false) {
         if (automatic && !mutable.value.automatic) return
+        if (automatic && mutable.value.phase in setOf(UpdatePhase.INSTALLING, UpdatePhase.INSTALL_PERMISSION)) return
         if (operation?.isActive == true) return
         automaticOperation = automatic
         verifiedFile = null
-        mutable.value = mutable.value.copy(phase = UpdatePhase.CHECKING, showPrompt = false, progress = null)
+        mutable.update { it.copy(phase = UpdatePhase.CHECKING, showPrompt = false, progress = null) }
         operation = scope.launch {
             try {
                 val release = withContext(Dispatchers.IO) { UpdateCatalog.latest(http.catalog(), installed.name, installed.code) }
-                mutable.value = mutable.value.copy(phase = if (release == null) UpdatePhase.CURRENT else UpdatePhase.AVAILABLE,
-                    release = release, showPrompt = release != null)
+                mutable.update { it.copy(phase = if (release == null) UpdatePhase.CURRENT else UpdatePhase.AVAILABLE,
+                    release = release, showPrompt = release != null) }
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: Exception) { mutable.value = mutable.value.copy(phase = UpdatePhase.NETWORK_ERROR, showPrompt = false) }
+            catch (_: Exception) { mutable.update { it.copy(phase = UpdatePhase.NETWORK_ERROR, showPrompt = false) } }
         }
     }
 
-    fun dismissPrompt() { mutable.value = mutable.value.copy(showPrompt = false) }
+    fun dismissPrompt() { mutable.update { it.copy(showPrompt = false) } }
 
     fun downloadAndInstall(install: (File) -> Unit) {
         if (operation?.isActive == true) return
         val release = mutable.value.release ?: return
         automaticOperation = false
-        mutable.value = mutable.value.copy(phase = UpdatePhase.DOWNLOADING, showPrompt = false, progress = null)
+        mutable.update { it.copy(phase = UpdatePhase.DOWNLOADING, showPrompt = false, progress = null) }
         operation = scope.launch {
             var file: File? = null
             var downloading = true
@@ -98,7 +100,7 @@ internal class AppUpdater(
                         coroutine.ensureActive()
                         if (previous != percent) {
                             previous = percent
-                            mutable.value = mutable.value.copy(progress = percent)
+                            mutable.update { it.copy(progress = percent) }
                         }
                     }
                 }
@@ -106,13 +108,13 @@ internal class AppUpdater(
                 downloading = false
                 withContext(Dispatchers.IO) { UpdateApkVerifier.verify(context, downloaded, release, installed) }
                 verifiedFile = downloaded
-                mutable.value = mutable.value.copy(phase = UpdatePhase.READY, progress = 100)
+                mutable.update { it.copy(phase = UpdatePhase.READY, progress = 100) }
                 install(downloaded)
             } catch (cancelled: CancellationException) { file?.delete(); throw cancelled }
             catch (_: Exception) {
                 file?.delete()
                 verifiedFile = null
-                mutable.value = mutable.value.copy(phase = if (downloading) UpdatePhase.NETWORK_ERROR else UpdatePhase.INVALID_APK)
+                mutable.update { it.copy(phase = if (downloading) UpdatePhase.NETWORK_ERROR else UpdatePhase.INVALID_APK) }
             }
         }
     }
@@ -120,34 +122,34 @@ internal class AppUpdater(
     suspend fun installVerifiedFile(): Intent? = withContext(Dispatchers.IO) {
         val file = verifiedFile ?: return@withContext null
         val release = mutable.value.release ?: return@withContext null
-        mutable.value = mutable.value.copy(phase = UpdatePhase.INSTALLING)
+        mutable.update { it.copy(phase = UpdatePhase.INSTALLING) }
         try {
             // Recheck after returning from permission settings or choosing another installer.
             UpdateApkVerifier.verify(context, file, release, installed)
             if (!context.packageManager.canRequestPackageInstalls()) {
                 waitingForPermission = true
-                mutable.value = mutable.value.copy(phase = UpdatePhase.INSTALL_PERMISSION)
+                mutable.update { it.copy(phase = UpdatePhase.INSTALL_PERMISSION) }
                 Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
             } else {
                 waitingForPermission = false
-                mutable.value = mutable.value.copy(phase = UpdatePhase.INSTALLING)
+                mutable.update { it.copy(phase = UpdatePhase.INSTALLING) }
                 Intent(Intent.ACTION_VIEW).setDataAndType(
                     FileProvider.getUriForFile(context, context.packageName + ".updates", file),
                     "application/vnd.android.package-archive",
                 ).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
         } catch (_: Exception) {
-            mutable.value = mutable.value.copy(phase = UpdatePhase.INVALID_APK)
+            mutable.update { it.copy(phase = UpdatePhase.INVALID_APK) }
             null
         }
     }
 
-    fun installerFailed() { mutable.value = mutable.value.copy(phase = UpdatePhase.INSTALL_ERROR) }
+    fun installerFailed() { mutable.update { it.copy(phase = UpdatePhase.INSTALL_ERROR) } }
     fun installerReturned(install: (File) -> Unit) {
         if (waitingForPermission) {
             waitingForPermission = false
             if (context.packageManager.canRequestPackageInstalls()) verifiedFile?.let(install)
-        } else if (mutable.value.phase == UpdatePhase.INSTALLING) mutable.value = mutable.value.copy(phase = UpdatePhase.READY)
+        } else if (mutable.value.phase == UpdatePhase.INSTALLING) mutable.update { it.copy(phase = UpdatePhase.READY) }
     }
     fun retryInstall(install: (File) -> Unit) {
         verifiedFile?.let(install) ?: downloadAndInstall(install)
