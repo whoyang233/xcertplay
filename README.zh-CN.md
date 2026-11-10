@@ -9,13 +9,13 @@
 
 ## 下载与安装
 
-**[下载 1.4.2B automotive Release 车载包（开口保护修正版，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42730778538/artifacts/13725071939)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42730778538) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive Release 车载包（内置更新，2026111003，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42751342568/artifacts/13733074615)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42751342568) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 1402，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
+Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111003，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
 
 | 安装包 | 适用设备 |
 | --- | --- |
-| `automotive-release.apk` | 车载 automotive 变体，对应上游 automotive 发布包。 |
+| `xcertplay-1.4.2B-release-YYYYMMDDNN.apk` | 车载 automotive 变体，对应上游 automotive 发布包。 |
 
 最低要求为 **Android 9（API 28）**。MFi 认证需配置 CH341、原生 I2C、本地证书文件或远程服务中的一种。
 
@@ -109,6 +109,8 @@ Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复�
 每次打开应用会在后台读取目录，发现新版时提示，点击“下载并安装”后才下载安装包并打开 Android 安装界面。“设置 → 关于”显示构建编号，并提供“启动时自动检查更新”开关和“检查更新”按钮；开关立即保存，关闭后手动检查仍可用。检查失败会明确提示，不会误报已是最新版。检查不会等待网络而阻塞 CarPlay 启动。
 
 当前服务器使用 Dufs，客户端直接读取目录 JSON，并支持普通目录页面回退，无需额外维护 latest.json。安装前检查个人包名、文件名对应版本/构建编号、release 标记及固定签名；旧基础版本、旧构建、其他应用或不同签名均不安装。Android 首次安装授权仍由系统界面确认。
+
+旧版本需先手动安装一次本次带更新功能的 APK，后续才可自动检查。
 
 **发布方式：将 CI 生成的 APK 按原文件名上传到该目录，不要仅重命名旧包。** APK 内部构建编号必须与文件名一致。目录当前为公开只读，客户端不会上传或改写服务端文件。开发者本地打包需设置 `PERSONAL_BUILD_ID=YYYYMMDDNN` 或传入 `-Pxcertplay.buildId=YYYYMMDDNN`；源码测试和 Lint 不要求分配可安装构建编号。
 
@@ -237,11 +239,13 @@ Windows PowerShell：
 
 ## 验证状态与问题反馈
 
+[内置更新 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42751342568)来自源码 `7464a1af6498c02e0c0a59a2a102b6ba5676cbc9`：**473 项 Android 测试及 6 项构建编号测试通过，无失败；Release Lint 无错误（common 85 / automotive 3 条警告）**。新增覆盖目录解析、版本排序、自动/手动开关、取消、断网/不完整下载、跳转限制、包名/构建编号及签名校验。唯一 automotive APK 为 36,994,464 字节，release、不可调试，版本 `1.4.2B` / `2026111003`，固定签名不变。为安装更新仅新增安装包权限与私有缓存 FileProvider，原有身份及已删除 Web/车辆 JSON 排除项均已核对。SHA-256：`3c5eebb97abfbaea22a71d25391f267671ca9d1e5cdf289db3881f7e843ee82e`。车机上的完整下载、授权、安装流程仍需实车验收。
+
 [导航开口保护 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42730778538)来自源码 `df66bae8eef59139bd9d04eb56468d5819ab6bd2`：**457 项测试通过，无失败、错误或跳过；Release Lint 无错误（common 83 / automotive 3 条警告）**。新增覆盖前导静音 RTP 后的开口、连续静音流中的多次播报、拆包一致性、双声道和 8–48 kHz 采样率。APK 为 36,943,952 字节，已核验 release、`debuggable=false`、原包名/版本/固定签名及会话日志峰值诊断。SHA-256：`555b9f85b5e3379248571a5e1f4d2eca9fed9ddf29ddf57ec783d05d5a3c9ae9`。此修复解决静音提前耗尽导航淡入的代码缺陷，自动化测试尚不能确认用户实车突响的全部原因。
 
 [automotive Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42549230810)来自源码 `47e038c080e1c20823033b1a643a8ae76dea4fba`：**451 项测试通过，无失败、错误或跳过；Release Lint 无错误（common 83 / automotive 3 条警告）**。安装包为 36,927,568 字节，已确认 release、不可调试、包名 `com.whoyang233.xcertplay`、版本 1.4.2B / 1402 及原固定签名；包含音频稳定性和比亚迪通话弹窗 ADB 修复，仍排除已移除的 Web/车辆 JSON 代码。APK SHA-256：`0bf3e0ecfe0e1bb597c77656708bd204417e3593bd54571be32905c20f4187f4`。实车效果仍需验收。
 
-个人版车载安装包现统一使用 **release** 构建，`debuggable=false`，保留版本 `1.4.2B` / 1402 和原固定签名。`B` 表示个人版，与 debug/release 构建类型无关。此前交付包是固定签名的 debug 构建；后续工作流默认生成 release 包。
+个人版车载安装包现统一使用 **release** 构建，`debuggable=false`，保留版本 `1.4.2B`，versionCode 改用 `YYYYMMDDNN`，沿用原固定签名。`B` 表示个人版，与 debug/release 构建类型无关。此前交付包是固定签名的 debug 构建；后续工作流默认生成 release 包。
 
 2026-11-08 的[音频稳定性与通话弹窗仅验证任务](https://github.com/whoyang233/xcertplay/actions/runs/42492880258)来自源码 `5ae9d26df101cb8229e411d0332fbddc46eb5b0c`：**451 项测试通过（shared 349、common 102），无失败、错误或跳过；Lint 无错误，保留 common 83 / automotive 3 条警告。** 新增覆盖首包 60% 导航增益、连续短包/双声道淡入、浮点 PCM 转换、异常帧和重复/迟到 RTP、音源序号重置、关闭后的回调、ADB 有界重试、隐藏失败与恢复状态及设置文案。[完整报告](https://github.com/whoyang233/xcertplay/actions/runs/42492880258/artifacts/13621859626)包含 1080P 与 150% 字体窄窗口的通话设置截图。固定签名读取、APK 打包、校验和上传均明确跳过；本次没有生成新 APK。自动化测试不能替代目标车机的实际音频与悬浮窗验证。
 

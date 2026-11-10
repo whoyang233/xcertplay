@@ -9,13 +9,13 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download 1.4.2B automotive release APK ZIP (navigation onset fix)](https://github.com/whoyang233/xcertplay/actions/runs/42730778538/artifacts/13725071939)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/42730778538) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download 1.4.2B automotive release APK ZIP (updates enabled, 2026111003)](https://github.com/whoyang233/xcertplay/actions/runs/42751342568/artifacts/13733074615)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/42751342568) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 1402 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
+Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 2026111003 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
 
 | APK | Target |
 | --- | --- |
-| `automotive-release.apk` | Automotive variant, matching the upstream automotive release. |
+| `xcertplay-1.4.2B-release-YYYYMMDDNN.apk` | Automotive variant, matching the upstream automotive release. |
 
 Requires **Android 9 (API 28)** or newer and a configured MFi authentication source: CH341, native I2C, local certificate files, or a remote service.
 
@@ -94,6 +94,8 @@ Startup recovery is enabled by default. On cancellation or exit, it attempts to 
 The fixed update directory is `https://apk.frp.whoyang.cn/xcertplay/release/`. Generated filenames follow `xcertplay-1.4.2B-release-2026111002.apk`: the Shanghai build date plus a two-digit daily sequence. CI uses workflow order and existing artifacts/server files, allowing gaps for failed or validation runs, with a daily maximum of 99. The visible base version remains `1.4.2B`; Android versionCode is the full ten-digit build ID so subsequent builds can replace earlier ones.
 
 Opening the app checks the directory in the background and offers available updates. About shows the unformatted build ID, a persistent automatic-check switch and a manual Check for updates action. Disabling automatic checks leaves manual updates available. Downloading/installing requires choosing the update; Android handles installation and its initial permission screen. The app verifies package, base version, build ID, release flag and the pinned existing signer. Network failures are reported separately from an up-to-date result.
+
+Existing installations need this first updater-enabled APK installed once before they can check automatically.
 
 The Dufs JSON directory is read directly, with an HTML directory fallback; no latest.json is required. Upload generated APKs to the directory under their original names. Do not merely rename an old APK: its embedded versionCode must match. The directory is publicly read-only; the client does not publish files. Local packaging requires `PERSONAL_BUILD_ID=YYYYMMDDNN` or `-Pxcertplay.buildId=YYYYMMDDNN`; source-only tests/lint do not require allocation.
 
@@ -224,11 +226,13 @@ Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce u
 
 ## Verification and feedback
 
+The [updater release build](https://github.com/whoyang233/xcertplay/actions/runs/42751342568), source `7464a1af6498c02e0c0a59a2a102b6ba5676cbc9`, passes **473 Android tests and 6 build-number tests with no failures; release lint has no errors (85 common / 3 automotive warnings)**. New coverage checks directory parsing, version ordering, automatic/manual controls, cancellation, failed or partial downloads, redirect restrictions, package/build matching and pinned signatures. The 36,994,464-byte automotive APK is release, non-debuggable, version `1.4.2B` / `2026111003` and signed with the unchanged personal certificate. Installation intentionally adds only the install-packages permission and a private cache FileProvider; existing identity and removed Web/vehicle JSON exclusions are preserved. SHA-256: `3c5eebb97abfbaea22a71d25391f267671ca9d1e5cdf289db3881f7e843ee82e`. End-to-end installation on the head unit remains to be checked.
+
 The [navigation onset release build](https://github.com/whoyang233/xcertplay/actions/runs/42730778538), source `df66bae8eef59139bd9d04eb56468d5819ab6bd2`, passes **457 tests with no failures, errors or skips; release lint has no errors (83 common / 3 automotive warnings)**. Regression coverage includes leading silent RTP before speech, successive prompts in a continuous quiet stream, packet splits, stereo balance and 8–48 kHz rates. The 36,943,952-byte release APK has `debuggable=false`, unchanged package/version/signer and exported first-voiced-frame peak diagnostics. SHA-256: `555b9f85b5e3379248571a5e1f4d2eca9fed9ddf29ddf57ec783d05d5a3c9ae9`. This fixes silence consuming navigation attack protection; the reported in-car loudness cause is not confirmed by these tests.
 
 The [automotive release build](https://github.com/whoyang233/xcertplay/actions/runs/42549230810), source `47e038c080e1c20823033b1a643a8ae76dea4fba`, passes **451 tests with no failures, errors or skips; release lint has no errors (83 common / 3 automotive warnings)**. The 36,927,568-byte APK is verified as release, non-debuggable, `com.whoyang233.xcertplay`, 1.4.2B / 1402 with the unchanged pinned signing certificate. It contains the audio stability and BYD popup ADB fixes; removed Web/vehicle JSON code remains absent. APK SHA-256: `0bf3e0ecfe0e1bb597c77656708bd204417e3593bd54571be32905c20f4187f4`. Vehicle validation remains necessary.
 
-Personal automotive deliveries now use the **release** build type with `debuggable=false`, version `1.4.2B` / 1402 and the same pinned signing certificate. The `B` identifies the personal version and does not imply a debug build. Earlier APK deliveries were fixed-key-signed debug builds; future workflow packages default to release.
+Personal automotive deliveries now use the **release** build type with `debuggable=false`, version `1.4.2B` with dated `YYYYMMDDNN` versionCode and the same pinned signing certificate. The `B` identifies the personal version and does not imply a debug build. Earlier APK deliveries were fixed-key-signed debug builds; future workflow packages default to release.
 
 The [2026-11-08 audio/popup source validation](https://github.com/whoyang233/xcertplay/actions/runs/42492880258), source `5ae9d26df101cb8229e411d0332fbddc46eb5b0c`, passes **451 tests (349 shared, 102 common), with no failures, errors or skips; lint has no errors and retains 83 common / 3 automotive warnings**. Coverage includes first-write 60% navigation gain, short-packet/stereo fade continuity, float PCM conversion, malformed frames and duplicate/late RTP, source sequence resets, closed-sink callbacks, bounded ADB retries, failed-hide/restoration states and settings text. [Reports](https://github.com/whoyang233/xcertplay/actions/runs/42492880258/artifacts/13621859626) include Full-HD and narrow 150% font popup settings captures. Signing-key access, APK assembly, APK verification and APK upload are skipped. No new APK was produced; head-unit audio and overlay behavior still need vehicle validation.
 
