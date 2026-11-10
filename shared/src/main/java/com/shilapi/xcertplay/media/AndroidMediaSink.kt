@@ -53,6 +53,7 @@ class AndroidMediaSink(
     private val audioPlaybackSettings: AudioPlaybackSettings = AudioPlaybackSettings(),
     private val videoBufferDurationMs: Int = VideoBufferPolicy.DEFAULT_DURATION_MS,
     private val videoFps: Int = 60,
+    private val audioDiagnosticLog: ((String) -> Unit)? = null,
 ) : MediaSink {
     private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val defaultSurface = surface
@@ -191,6 +192,7 @@ class AndroidMediaSink(
             mainMediaAudioBufferDurationMs,
             mediaMetricsMonitor,
             audioPlaybackSettings,
+            audioDiagnosticLog,
         ).also {
             audioRenderers[type] = it
         }
@@ -770,6 +772,7 @@ private class AudioRenderer(
     private val mainMediaAudioBufferDurationMs: Int,
     mediaMetricsMonitor: MediaMetricsMonitor?,
     private val playbackSettings: AudioPlaybackSettings,
+    private val audioDiagnosticLog: ((String) -> Unit)?,
 ) : Closeable {
     private data class AudioPacket(val rtp: ByteArray, val sample: Int)
 
@@ -792,7 +795,9 @@ private class AudioRenderer(
     private var playbackStarted = false
     private var prebufferBytes = 0
     private var startThresholdBytes = 0
-    private val startupEnvelope = PcmPlaybackEnvelope(format.sampleRate, minOf(format.channels, 2))
+    private val startupEnvelope = PcmPlaybackEnvelope(format.sampleRate, minOf(format.channels, 2),
+        detectSpeechOnsets = selection.channel == AudioChannel.NAVIGATION)
+    private var navigationOnsetsLogged = 0L
     private var lastPcmWriteNs = 0L
     private var decodedPcmEncoding = DecodedPcm.PCM_16BIT
     private var decodedFormatSupported = true
@@ -953,6 +958,9 @@ private class AudioRenderer(
         )
         // AudioTrack consumes 16-bit PCM, so frame size follows the channel mask configured above.
         trackBytesPerFrame = trackChannelCount * BYTES_PER_PCM_16_SAMPLE
+        reportAudioDiagnostic("audio playback route type=${format.payloadType} audioType=${format.audioType} " +
+            "role=${selection.channel} gain=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% " +
+            "stream=$stream codec=${format.codec}")
         if (configuredMainMediaBuffer && MainMediaAudioBuffer.sanitizeDurationMs(mainMediaAudioBufferDurationMs) == 0 &&
             Build.VERSION.SDK_INT >= 31) {
             runCatching { track?.setStartThresholdInFrames(1) }
@@ -1175,6 +1183,15 @@ private class AudioRenderer(
             startupEnvelope.restart()
         }
         startupEnvelope.apply(data, offset, length)
+        if (startupEnvelope.onsetCount != navigationOnsetsLogged) {
+            navigationOnsetsLogged = startupEnvelope.onsetCount
+            reportAudioDiagnostic("audio navigation onset=$navigationOnsetsLogged " +
+                "gain=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% " +
+                "postGainPeak=${startupEnvelope.inputPeak} outputPeak=${startupEnvelope.outputPeak} " +
+                "firstInputPeak=${startupEnvelope.firstSpeechInputPeak} firstOutputPeak=${startupEnvelope.firstSpeechOutputPeak} " +
+                "type=${format.payloadType} audioType=${format.audioType} " +
+                "stream=${AudioChannelMapper.streamOverride(selection, playbackSettings)}")
+        }
         lastPcmWriteNs = nowNs
         if (!firstPcmLogged && length > 0) {
             firstPcmLogged = true
@@ -1269,6 +1286,12 @@ private class AudioRenderer(
         if (invalidPcmLogged) return
         invalidPcmLogged = true
         Log.w(TAG, "audio dropping incomplete PCM frame type=${format.payloadType} bytes=$length encoding=$decodedPcmEncoding")
+    }
+
+    private fun reportAudioDiagnostic(line: String) {
+        Log.i(TAG, line)
+        runCatching { audioDiagnosticLog?.invoke(line) }
+            .onFailure { Log.w(TAG, "Audio diagnostic report could not be written", it) }
     }
 
     private fun byteSwapS16(source: ByteArray): ByteArray {

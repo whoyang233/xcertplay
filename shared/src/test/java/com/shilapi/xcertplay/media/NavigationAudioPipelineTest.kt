@@ -43,9 +43,52 @@ class NavigationAudioPipelineTest {
             val output = synchronized(received) { received.flatMap { it.toList() }.toByteArray() }
             val samples = output.indices.step(2).map { (output[it].toInt() and 0xff) or (output[it + 1].toInt() shl 8) }
             assertTrue(samples.all { it in 0..6000 })
-            assertEquals(12, samples.first())
+            assertEquals(6, samples.first())
             assertEquals(6000, samples.last())
             for (i in samples.indices step 2) assertEquals(samples[i], samples[i + 1])
+        } finally {
+            sink.close()
+            ShadowAudioTrack.removeAudioDataListener(listener)
+        }
+    }
+
+    @Test fun leadingSilentRtpDoesNotExposeAnUnprotectedNavigationPlosive() {
+        val diagnostics = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val received = java.util.Collections.synchronizedList(mutableListOf<ByteArray>())
+        val done = CountDownLatch(1)
+        val bytesWritten = AtomicInteger()
+        val silenceFrames = 4800
+        val speechFrames = 1440
+        val expectedBytes = (silenceFrames + speechFrames) * 2
+        val listener = ShadowAudioTrack.OnAudioDataWrittenListener { _, data, _ ->
+            received += data.copyOf()
+            if (bytesWritten.addAndGet(data.size) >= expectedBytes) done.countDown()
+        }
+        ShadowAudioTrack.addAudioDataListener(listener)
+        val sink = AndroidMediaSink(RuntimeEnvironment.getApplication(),
+            audioPlaybackSettings = AudioPlaybackSettings(navigationVolumePercent = 60),
+            audioDiagnosticLog = { diagnostics += it })
+        val format = AudioFormat(AudioCodecKind.LPCM, 48000, 1, 101, "navigation")
+        try {
+            sink.onAudioStarted(101, format, 0)
+            repeat(5) { sequence ->
+                val silence = ByteArray(12 + 960 * 2)
+                silence[3] = sequence.toByte()
+                sink.onAudioRtp(101, format, silence, sequence * 960)
+            }
+            val speech = ByteArray(12 + speechFrames * 2)
+            speech[3] = 5
+            for (i in 12 until speech.size step 2) { speech[i] = 0x75; speech[i + 1] = 0x30 }
+            sink.onAudioRtp(101, format, speech, silenceFrames)
+            assertTrue(done.await(10, TimeUnit.SECONDS))
+            val out = synchronized(received) { received.flatMap { it.toList() }.toByteArray() }
+            val onset = silenceFrames * 2
+            fun sample(offset: Int) = (out[offset].toInt() and 0xff) or (out[offset + 1].toInt() shl 8)
+            assertEquals(18, sample(onset)) // 30000 * 60% / 960 attack frames.
+            assertEquals(18000, sample(out.size - 2))
+            assertTrue((onset until out.size step 2).all { sample(it) in 0..18000 })
+            assertTrue(diagnostics.any { it.contains("role=NAVIGATION") && it.contains("gain=60%") })
+            assertTrue(diagnostics.any { it.contains("audio navigation onset=1") && it.contains("firstOutputPeak=18") })
         } finally {
             sink.close()
             ShadowAudioTrack.removeAudioDataListener(listener)

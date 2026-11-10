@@ -4,6 +4,91 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PcmPlaybackEnvelopeTest {
+    @Test fun navigationLeadingSilenceDoesNotSpendTheAttackBeforeAPlosive() {
+        for (rate in listOf(8000, 16000, 24000, 44100, 48000)) {
+            for (channels in 1..2) {
+                val envelope = PcmPlaybackEnvelope(rate, channels, detectSpeechOnsets = true)
+                val silence = ByteArray(rate * channels * 2) // A second of packets before speaking.
+                envelope.apply(silence, 0, silence.size)
+                val burst = pcm(IntArray(rate / 20 * channels) { if (it % 2 == 0) 30000 else -30000 })
+                envelope.apply(burst, 0, burst.size)
+                val output = samples(burst)
+                assertEquals("rate=$rate channels=$channels", 30000 / (rate * 20 / 1000), output.first())
+                assertEquals(1L, envelope.onsetCount)
+                assertEquals(30000, envelope.firstSpeechInputPeak)
+                assertEquals(output.first(), envelope.firstSpeechOutputPeak)
+                assertEquals(30000, kotlin.math.abs(output.last()))
+            }
+        }
+    }
+
+    @Test fun otherAudioKeepsTheOriginalStartupAndDoesNotRearmOnSilentPcm() {
+        val envelope = PcmPlaybackEnvelope(48000, 1)
+        val silence = ByteArray(48000)
+        envelope.apply(silence, 0, silence.size)
+        val music = pcm(intArrayOf(24000, -24000))
+        envelope.apply(music, 0, music.size)
+        assertEquals(listOf(24000, -24000), samples(music))
+        assertEquals(0L, envelope.onsetCount)
+    }
+
+    @Test fun everyPromptInAContinuouslySilentNavigationStreamGetsANewAttack() {
+        val envelope = PcmPlaybackEnvelope(48000, 2, detectSpeechOnsets = true)
+        repeat(3) { prompt ->
+            // Deliberately nonzero noise floor, provided as one-millisecond PCM packets.
+            repeat(300) {
+                val quiet = pcm(IntArray(96) { if (it % 2 == 0) 8 else -8 })
+                envelope.apply(quiet, 0, quiet.size)
+            }
+            val speech = pcm(IntArray(1920) { 24000 })
+            envelope.apply(speech, 0, speech.size)
+            assertEquals(25, samples(speech).first())
+            assertEquals(24000, samples(speech).last())
+            assertEquals(prompt + 1L, envelope.onsetCount)
+        }
+    }
+
+    @Test fun navigationOnsetIsIndependentOfPacketSplitsAndLinkedAcrossStereo() {
+        val input = pcm(IntArray(24000) { index ->
+            val frame = index / 2
+            if (frame < 2000 || frame in 4000..4999) 0 else if (index % 2 == 0) 28000 else -14000
+        })
+        val whole = input.copyOf()
+        PcmPlaybackEnvelope(48000, 2, true).apply(whole, 0, whole.size)
+        val split = input.copyOf()
+        val envelope = PcmPlaybackEnvelope(48000, 2, true)
+        var offset = 0
+        var packet = 1
+        while (offset < split.size) {
+            val length = minOf(split.size - offset, (packet % 137 + 1) * 4)
+            envelope.apply(split, offset, length)
+            offset += length
+            packet++
+        }
+        assertArrayEquals(whole, split)
+        assertEquals(1L, envelope.onsetCount) // A 20 ms word gap must not restart the fade.
+    }
+
+    @Test fun restartAndShortZerosNeverBypassTheSavedGainOrInvertASample() {
+        val nav = AudioChannelSelection(AudioChannel.NAVIGATION, AudioContentType.SPEECH)
+        for (gain in listOf(0, 40, 60, 100, 200)) {
+            val envelope = PcmPlaybackEnvelope(48000, 1, true)
+            repeat(2) {
+                envelope.restart()
+                val silence = ByteArray(800)
+                envelope.apply(silence, 0, silence.size)
+                val block = pcm(IntArray(2000) { if (it % 2 == 0) 32767 else -32768 })
+                NavigationVolume.applyPcm16InPlace(block, 0, block.size, nav, gain)
+                val before = samples(block)
+                envelope.apply(block, 0, block.size)
+                val after = samples(block)
+                assertTrue(after.indices.all { i -> kotlin.math.abs(after[i]) <= kotlin.math.abs(before[i]) &&
+                    (after[i] == 0 || (after[i] > 0) == (before[i] > 0)) })
+                assertEquals(before.last(), after.last())
+            }
+        }
+    }
+
     @Test fun shortPacketsHaveTheSameTenMillisecondAttackAsOneBuffer() {
         for (channels in 1..2) {
             val frames = 960

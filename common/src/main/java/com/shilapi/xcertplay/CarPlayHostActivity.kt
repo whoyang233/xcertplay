@@ -1732,6 +1732,9 @@ class CarPlayHostActivity : ComponentActivity() {
             preferSoftwareHevcDecoder = hevcSoftwareDecoderEnabled,
             advancedAudioChannelMapping = advancedAudioChannelMapping,
             audioPlaybackSettings = audioPlaybackSettings,
+            audioDiagnosticLog = { line ->
+                CarPlayBackgroundSession.log.appendTimestamped(line, System.currentTimeMillis())
+            },
             mainMediaAudioBufferDurationMs = mainMediaAudioBufferDurationMs,
             microphoneGainPercent = microphoneGainPercent,
             mediaMetricsMonitor = mediaMetricsMonitor,
