@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-**[下载 1.4.2B automotive Release 车载包（ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42549230810/artifacts/13644148956)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42549230810) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive Release 车载包（开口保护修正版，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42730778538/artifacts/13725071939)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42730778538) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
 Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 1402，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
 
@@ -226,6 +226,8 @@ Windows PowerShell：
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名构建输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
+
+[导航开口保护 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42730778538)来自源码 `df66bae8eef59139bd9d04eb56468d5819ab6bd2`：**457 项测试通过，无失败、错误或跳过；Release Lint 无错误（common 83 / automotive 3 条警告）**。新增覆盖前导静音 RTP 后的开口、连续静音流中的多次播报、拆包一致性、双声道和 8–48 kHz 采样率。APK 为 36,943,952 字节，已核验 release、`debuggable=false`、原包名/版本/固定签名及会话日志峰值诊断。SHA-256：`555b9f85b5e3379248571a5e1f4d2eca9fed9ddf29ddf57ec783d05d5a3c9ae9`。此修复解决静音提前耗尽导航淡入的代码缺陷，自动化测试尚不能确认用户实车突响的全部原因。
 
 [automotive Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42549230810)来自源码 `47e038c080e1c20823033b1a643a8ae76dea4fba`：**451 项测试通过，无失败、错误或跳过；Release Lint 无错误（common 83 / automotive 3 条警告）**。安装包为 36,927,568 字节，已确认 release、不可调试、包名 `com.whoyang233.xcertplay`、版本 1.4.2B / 1402 及原固定签名；包含音频稳定性和比亚迪通话弹窗 ADB 修复，仍排除已移除的 Web/车辆 JSON 代码。APK SHA-256：`0bf3e0ecfe0e1bb597c77656708bd204417e3593bd54571be32905c20f4187f4`。实车效果仍需验收。
 
