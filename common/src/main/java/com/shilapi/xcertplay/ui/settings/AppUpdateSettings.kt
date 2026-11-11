@@ -19,7 +19,8 @@ import com.shilapi.xcertplay.update.UpdatePhase
 
 @Composable
 internal fun AppUpdateSettings(state: AppUpdateState, onAutomatic: (Boolean) -> Unit,
-    onCheck: () -> Unit, onDownload: () -> Unit, onInstall: () -> Unit) {
+    onCheck: () -> Unit, onDownload: () -> Unit, onInstall: () -> Unit,
+    onDownloads: () -> Unit = {}, onBrowser: () -> Unit = {}) {
     val busy = state.phase in setOf(UpdatePhase.CHECKING, UpdatePhase.DOWNLOADING, UpdatePhase.INSTALLING)
     SectionHeader(tr("settings.update.section"))
     SettingsGroup {
@@ -28,6 +29,7 @@ internal fun AppUpdateSettings(state: AppUpdateState, onAutomatic: (Boolean) -> 
         row { ListRow(headline = tr("settings.update.check"), enabled = !busy, onClick = onCheck) }
     }
     HelpText(tr("settings.update.state." + state.phase.name.lowercase()))
+    state.downloadReason?.let { HelpText(tr("settings.update.download_reason") + " $it") }
     val release = state.release
     if (release != null && state.phase != UpdatePhase.CURRENT) {
         SettingsGroup {
@@ -36,6 +38,10 @@ internal fun AppUpdateSettings(state: AppUpdateState, onAutomatic: (Boolean) -> 
                 val ready = state.phase in setOf(UpdatePhase.READY, UpdatePhase.INSTALL_PERMISSION, UpdatePhase.INSTALL_ERROR)
                 ListRow(headline = tr(if (ready) "settings.update.install" else "settings.update.download"),
                     enabled = !busy, onClick = if (ready) onInstall else onDownload)
+            }
+            row { ListRow(headline = tr("settings.update.system_downloads"), onClick = onDownloads) }
+            if (state.phase == UpdatePhase.DOWNLOAD_ERROR) {
+                row { ListRow(headline = tr("settings.update.browser_download"), onClick = onBrowser) }
             }
         }
     }

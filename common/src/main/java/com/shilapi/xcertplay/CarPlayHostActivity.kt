@@ -220,9 +220,8 @@ class CarPlayHostActivity : ComponentActivity() {
         packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
     }
     private val appUpdater by lazy {
-        com.shilapi.xcertplay.update.AppUpdater(applicationContext, lifecycleScope)
+        com.shilapi.xcertplay.update.ProcessAppUpdater.get(applicationContext)
     }
-    private var updateCheckOnResume = true
     private var updateUiResumed by mutableStateOf(false)
     private val updateInstallerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         appUpdater.installerReturned { launchUpdateInstaller() }
@@ -236,13 +235,17 @@ class CarPlayHostActivity : ComponentActivity() {
         }
     }
 
+    private fun openUpdateDownloadUi(intent: Intent = com.shilapi.xcertplay.update.SystemUpdateDownloads.listIntent()) {
+        try { startActivity(intent) }
+        catch (_: Exception) {
+            Toast.makeText(this, tr("settings.update.native_ui_unavailable"), Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if ((intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) ||
-            intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-            if (updateUiResumed) appUpdater.check(automatic = true) else updateCheckOnResume = true
-        }
+
     }
 
     // CH341 USB\VID_1A86&PID_5512&REV_0304 is the deployment-supplied bridge identity.
@@ -882,10 +885,8 @@ class CarPlayHostActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updateUiResumed = true
-        if (updateCheckOnResume) {
-            updateCheckOnResume = false
-            appUpdater.check(automatic = true)
-        }
+        appUpdater.onHostResumed()
+        appUpdater.check(automatic = true)
         popupHostResumed = true
         updateCallPopupGuard()
         displayResizeGate.setResumed(true)
@@ -907,6 +908,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onPause() {
         updateUiResumed = false
+        appUpdater.onHostPaused()
         popupHostResumed = false
         updateCallPopupGuard()
         localTouchSequence.reset()
@@ -930,11 +932,7 @@ class CarPlayHostActivity : ComponentActivity() {
         stopMicrophoneGainTest()
         // The controller, USB/iAP2 link, and VPN attachment intentionally outlive the UI.
         super.onStop()
-        if (!externalActivityInProgress && appUpdater.state.value.phase !in setOf(
-                com.shilapi.xcertplay.update.UpdatePhase.INSTALLING,
-                com.shilapi.xcertplay.update.UpdatePhase.INSTALL_PERMISSION)) {
-            updateCheckOnResume = true
-        }
+
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -2924,7 +2922,7 @@ class CarPlayHostActivity : ComponentActivity() {
             if (updateUiResumed) {
                 val updateState by appUpdater.state.collectAsState()
                 com.shilapi.xcertplay.ui.settings.AppUpdatePrompt(updateState, appUpdater::dismissPrompt) {
-                    appUpdater.downloadAndInstall { launchUpdateInstaller() }
+                    appUpdater.startSystemDownload()
                 }
             }
         }
@@ -4102,8 +4100,12 @@ class CarPlayHostActivity : ComponentActivity() {
         com.shilapi.xcertplay.ui.settings.AppUpdateSettings(updateState,
             onAutomatic = appUpdater::setAutomatic,
             onCheck = { appUpdater.check() },
-            onDownload = { appUpdater.downloadAndInstall { launchUpdateInstaller() } },
-            onInstall = { appUpdater.retryInstall { launchUpdateInstaller() } })
+            onDownload = { appUpdater.startSystemDownload() },
+            onInstall = { appUpdater.retryInstall { launchUpdateInstaller() } },
+            onDownloads = { openUpdateDownloadUi() },
+            onBrowser = { appUpdater.state.value.release?.let {
+                openUpdateDownloadUi(com.shilapi.xcertplay.update.SystemUpdateDownloads.browserIntent(it))
+            } })
     }
 
     /** Title and Save/Cancel over the safe-area editor; the editor view below takes the drags. */

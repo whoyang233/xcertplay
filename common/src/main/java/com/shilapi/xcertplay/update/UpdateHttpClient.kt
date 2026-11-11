@@ -1,7 +1,6 @@
 package com.shilapi.xcertplay.update
 
 import java.io.ByteArrayOutputStream
-import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
@@ -9,7 +8,6 @@ import java.net.URL
 
 internal interface UpdateTransport {
     fun catalog(): List<UpdateRelease>
-    fun download(release: UpdateRelease, directory: File, progress: (Int?) -> Unit): File
 }
 
 internal class UpdateHttpClient(
@@ -20,42 +18,6 @@ internal class UpdateHttpClient(
         catch (first: Exception) {
             try { UpdateCatalog.parse(readText(UpdateCatalog.BASE_URL + "?noscript")) }
             catch (second: Exception) { throw IOException("Update catalog unavailable", second) }
-        }
-    }
-
-    override fun download(release: UpdateRelease, directory: File, progress: (Int?) -> Unit): File {
-        require(UpdateCatalog.release(release.fileName) != null)
-        check(directory.isDirectory || directory.mkdirs())
-        val target = File(directory, release.fileName)
-        val partial = File(directory, release.fileName + ".part")
-        val connection = open(release.url)
-        try {
-            val length = connection.contentLengthLong
-            if (length > UpdateCatalog.MAX_APK_BYTES || length == 0L) throw IOException("Invalid APK length")
-            if (release.size != null && length > 0 && length != release.size) throw IOException("APK length changed")
-            var received = 0L
-            partial.outputStream().buffered().use { out ->
-                connection.inputStream.use { input ->
-                    val buffer = ByteArray(16384)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        received += count
-                        if (received > UpdateCatalog.MAX_APK_BYTES) throw IOException("APK too large")
-                        val percent = if (length > 0) (received * 100 / length).coerceAtMost(100).toInt() else -1
-                        // The callback also checks cancellation, even when the percentage is unchanged.
-                        progress(if (percent >= 0) percent else null)
-                        out.write(buffer, 0, count)
-                    }
-                }
-            }
-            if (received <= 0 || (length > 0 && received != length) || (release.size != null && received != release.size)) throw IOException("Incomplete APK")
-            if (target.exists() && !target.delete()) throw IOException("Could not replace cached APK")
-            if (!partial.renameTo(target)) throw IOException("Could not complete APK download")
-            return target
-        } finally {
-            connection.disconnect()
-            partial.delete()
         }
     }
 

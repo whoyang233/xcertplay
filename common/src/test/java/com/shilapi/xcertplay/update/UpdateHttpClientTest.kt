@@ -1,14 +1,10 @@
 package com.shilapi.xcertplay.update
 
 import java.io.ByteArrayInputStream
-import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlinx.coroutines.CancellationException
 import org.junit.Assert.*
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -16,7 +12,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], manifest = Config.NONE)
 class UpdateHttpClientTest {
-    @get:Rule val temp = TemporaryFolder()
     private val release = UpdateCatalog.release("xcertplay-1.4.2B-release-2026111002.apk")!!
     private class Connection(val bytes: ByteArray, val length: Long = bytes.size.toLong(), val code: Int = 200,
         val location: String? = null) : HttpURLConnection(URL(UpdateCatalog.BASE_URL)) {
@@ -30,37 +25,28 @@ class UpdateHttpClientTest {
         override fun connect() = Unit
     }
 
-    @Test fun downloadCompletesOnlyAfterMatchingLengthAndClosesTheConnection() {
-        val connection = Connection(byteArrayOf(1, 2, 3, 4))
-        val out = UpdateHttpClient { connection }.download(release.copy(size = 4), temp.root) {}
-        assertArrayEquals(connection.bytes, out.readBytes())
+    @Test fun readsOnlyTheVersionCatalogAndClosesItsConnection() {
+        val body = "{\"paths\":[{\"path_type\":\"File\",\"name\":\"${release.fileName}\"}]}"
+        val connection = Connection(body.toByteArray())
+        assertEquals(listOf(release), UpdateHttpClient { connection }.catalog())
         assertTrue(connection.closed)
-        assertFalse(File(temp.root, release.fileName + ".part").exists())
     }
 
-    @Test fun oversizedTruncatedAndCancelledDownloadsNeverLeaveAnInstallableFile() {
-        for (connection in listOf(Connection(byteArrayOf(1), UpdateCatalog.MAX_APK_BYTES + 1),
-            Connection(byteArrayOf(1), 10), Connection(ByteArray(40000)))) {
-            val dir = temp.newFolder()
-            assertThrows(Exception::class.java) {
-                UpdateHttpClient { connection }.download(release, dir) {
-                    if (connection.bytes.size == 40000) throw CancellationException()
-                }
-            }
+    @Test fun oversizedOrIncompleteCatalogsAreRejectedInsteadOfReportingCurrent() {
+        for (connection in listOf(Connection(ByteArray(1), (UpdateCatalog.MAX_CATALOG_BYTES + 1).toLong()),
+            Connection(ByteArray(UpdateCatalog.MAX_CATALOG_BYTES + 1)), Connection("{\"paths\":".toByteArray()))) {
+            assertThrows(Exception::class.java) { UpdateHttpClient { connection }.catalog() }
             assertTrue(connection.closed)
-            assertTrue(dir.listFiles()!!.isEmpty())
         }
     }
 
-    @Test fun redirectsCannotDowngradeHttpsChangeHostsOrEscapeTheReleaseDirectory() {
-        for (url in listOf("http://apk.frp.whoyang.cn/xcertplay/release/x.apk", "https://evil.example/x.apk",
-            UpdateCatalog.BASE_URL + "../secret.apk", UpdateCatalog.BASE_URL + "%2e%2e/secret.apk")) {
+    @Test fun catalogRedirectsCannotDowngradeHttpsChangeHostsOrEscapeTheReleaseDirectory() {
+        for (url in listOf("http://apk.frp.whoyang.cn/xcertplay/release/?json", "https://evil.example/",
+            UpdateCatalog.BASE_URL + "../secret", UpdateCatalog.BASE_URL + "%2e%2e/secret")) {
             var opens = 0
             val connection = Connection(ByteArray(0), code = 302, location = url)
-            assertThrows(Exception::class.java) {
-                UpdateHttpClient { opens++; connection }.download(release, temp.newFolder()) {}
-            }
-            assertEquals(1, opens)
+            assertThrows(Exception::class.java) { UpdateHttpClient { opens++; connection }.catalog() }
+            assertEquals(2, opens)
             assertTrue(connection.closed)
         }
     }

@@ -2,6 +2,8 @@ package com.shilapi.xcertplay.ui.settings
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -32,7 +34,7 @@ class AppUpdateSettingsTest {
         var checks = 0
         var downloads = 0
         var installs = 0
-        compose.setContent { XcertplayTheme { Column { AppUpdateSettings(state,
+        compose.setContent { XcertplayTheme { Column(androidx.compose.ui.Modifier.verticalScroll(rememberScrollState())) { AppUpdateSettings(state,
             { state = state.copy(automatic = it) }, { checks++ }, { downloads++ }, { installs++ }) } } }
         compose.onNodeWithText("启动时自动检查更新").performClick()
         compose.runOnIdle { assertFalse(state.automatic) }
@@ -43,9 +45,9 @@ class AppUpdateSettingsTest {
                 release = UpdateCatalog.release("xcertplay-1.4.2B-release-2026111003.apk"))
         }
         compose.onNodeWithText("1.4.2B · 2026111003").assertExists()
-        compose.onNodeWithText("下载并安装").performClick()
+        compose.onNodeWithText("使用系统下载").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, downloads); state = state.copy(phase = UpdatePhase.READY) }
-        compose.onNodeWithText("安装更新").performClick()
+        compose.onNodeWithText("安装更新").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, installs); state = state.copy(phase = UpdatePhase.CHECKING) }
         compose.onNodeWithText("检查更新").assertIsNotEnabled()
     }
@@ -61,5 +63,22 @@ class AppUpdateSettingsTest {
         compose.onNodeWithText("稍后").performClick()
         compose.onNodeWithText("发现新版本").assertDoesNotExist()
         compose.runOnIdle { assertEquals(0, downloads) }
+    }
+
+    @Test fun systemDownloadsRemainAccessibleDuringTransferAndBrowserFallbackIsExplicit() {
+        I18n.init(ApplicationProvider.getApplicationContext<Context>())
+        var state by mutableStateOf(AppUpdateState(phase = UpdatePhase.DOWNLOADING, downloadId = 42,
+            release = UpdateCatalog.release("xcertplay-1.4.2B-release-2026111103.apk")))
+        var lists = 0
+        var browsers = 0
+        compose.setContent { XcertplayTheme { Column(androidx.compose.ui.Modifier.verticalScroll(rememberScrollState())) {
+            AppUpdateSettings(state, {}, {}, { fail("No second native transfer") }, {},
+                onDownloads = { lists++ }, onBrowser = { browsers++ })
+        } } }
+        compose.onNodeWithText("查看系统下载列表").performScrollTo().performClick()
+        compose.onNodeWithText("使用系统下载").assertIsNotEnabled()
+        compose.runOnIdle { assertEquals(1, lists); state = state.copy(phase = UpdatePhase.DOWNLOAD_ERROR) }
+        compose.onNodeWithText("使用系统浏览器下载").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(1, browsers) }
     }
 }
