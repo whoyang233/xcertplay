@@ -275,7 +275,7 @@
   "settings.audio.quality.check_failed_reason": "原因：{reason}",
   "settings.audio.routing": "音乐与导航声道",
   "settings.audio.navigation_volume": "导航音量（应用内）",
-  "settings.audio.navigation_volume.support": "0% 静音，100% 原始音量，最高 200%；不修改系统音量，超过 100% 可能失真",
+  "settings.audio.navigation_volume.support": "0% 静音，100% 标准增益，最高 200%；尖峰保护开启时压低瞬态，不修改系统音量",
   "settings.audio.routing.help": "点击右上角“重启 CarPlay”保存并应用。编号 0 按音频用途路由：音乐使用媒体用途，导航使用导航用途；其他编号请求车机指定通道。导航音量仅调节已识别的导航/提示音，不影响音乐、通话或 Siri。实际输出由车机固件决定；手机已混入音乐的播报无法独立调节。",
   "settings.restart": "重启 CarPlay",
   "settings.restart_short": "重启",
@@ -510,5 +510,7 @@
   "settings.update.state.installing": "已请求系统安装更新。",
   "settings.update.state.network_error": "无法连接更新服务器或下载未完成，请稍后重试。",
   "settings.update.state.invalid_apk": "安装包校验失败，未安装。请重新检查并下载。",
-  "settings.update.state.install_error": "无法打开系统安装界面，请检查车机的安装权限。"
+  "settings.update.state.install_error": "无法打开系统安装界面，请检查车机的安装权限。",
+  "settings.audio.navigation_peak_protection": "导航尖峰保护",
+  "settings.audio.navigation_peak_protection.support": "默认开启。压低爆破音等瞬时尖峰，不增加缓冲等待。保存并重启 CarPlay 后生效。"
 }

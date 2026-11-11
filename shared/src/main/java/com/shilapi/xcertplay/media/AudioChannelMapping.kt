@@ -6,6 +6,7 @@ data class AudioPlaybackSettings(
     val navigationVolumePercent: Int = NavigationVolume.DEFAULT_PERCENT,
     val musicStream: Int = 0,
     val navigationStream: Int = 0,
+    val navigationPeakProtection: Boolean = true,
 )
 
 /** Matches DiPlay's 0 = usage routing, 1..20 = ROM legacy stream override. */

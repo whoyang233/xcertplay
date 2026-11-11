@@ -274,7 +274,7 @@
   "settings.audio.quality.check_failed_reason": "Reason: {reason}",
   "settings.audio.routing": "Music and navigation channels",
   "settings.audio.navigation_volume": "Navigation volume (in app)",
-  "settings.audio.navigation_volume.support": "0% mute, 100% original, up to 200%; leaves system volume unchanged; boosting may distort",
+  "settings.audio.navigation_volume.support": "0% mutes, 100% is unity gain, up to 200%; peak protection attenuates transients without changing system volume",
   "settings.audio.routing.help": "Tap Restart CarPlay to save and apply. Channel 0 routes music by media usage and navigation by navigation usage; other numbers request a firmware stream override. Gain affects identified navigation/alerts only, leaving music, calls and Siri unchanged. Firmware decides the physical output. Guidance mixed into music by the phone cannot be adjusted separately.",
   "settings.restart": "Restart CarPlay",
   "settings.restart_short": "Restart",
@@ -509,5 +509,7 @@
   "settings.update.state.installing": "Android has been asked to install the update.",
   "settings.update.state.network_error": "The update server is unavailable or the download did not finish. Try again later.",
   "settings.update.state.invalid_apk": "APK verification failed; nothing was installed. Check and download again.",
-  "settings.update.state.install_error": "Could not open the installer. Check the head unit’s installation permissions."
+  "settings.update.state.install_error": "Could not open the installer. Check the head unit’s installation permissions.",
+  "settings.audio.navigation_peak_protection": "Navigation peak protection",
+  "settings.audio.navigation_peak_protection.support": "On by default. Reduces sudden peaks without buffering. Save and restart CarPlay to apply."
 }

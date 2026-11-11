@@ -9,6 +9,7 @@ import com.shilapi.xcertplay.ui.components.SectionHeader
 import com.shilapi.xcertplay.ui.components.SelectRow
 import com.shilapi.xcertplay.ui.components.SettingsGroup
 import com.shilapi.xcertplay.ui.components.SliderRow
+import com.shilapi.xcertplay.ui.components.SwitchRow
 import com.shilapi.xcertplay.ui.i18n.tr
 
 @Composable
@@ -46,6 +47,12 @@ internal fun AudioRoutingSettings(
                 count = NavigationVolume.STEP_COUNT,
                 onIndexChange = { onChange(settings.copy(navigationVolumePercent = NavigationVolume.percentForStep(it))) },
             )
+        }
+        row {
+            SwitchRow(title = tr("settings.audio.navigation_peak_protection"),
+                support = tr("settings.audio.navigation_peak_protection.support"),
+                checked = settings.navigationPeakProtection,
+                onCheckedChange = { onChange(settings.copy(navigationPeakProtection = it)) })
         }
     }
     HelpText(tr("settings.audio.routing.help"))

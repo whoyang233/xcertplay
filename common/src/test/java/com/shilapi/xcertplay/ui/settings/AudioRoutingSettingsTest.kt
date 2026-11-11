@@ -56,6 +56,14 @@ class AudioRoutingSettingsTest {
         slider.performSemanticsAction(SemanticsActions.SetProgress) { it(10f) }
         compose.onNodeWithText("50%").assertIsDisplayed()
         compose.runOnIdle { assertEquals(50, settings.navigationVolumePercent) }
+        compose.onNodeWithText("导航尖峰保护").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertFalse(settings.navigationPeakProtection)
+            assertEquals(50, settings.navigationVolumePercent)
+            assertEquals(14, settings.navigationStream)
+        }
+        compose.onNodeWithText("导航尖峰保护").performClick()
+        compose.runOnIdle { assertTrue(settings.navigationPeakProtection) }
         compose.onNodeWithTag("settings-restart").assertIsDisplayed()
         compose.onNodeWithTag("settings-exit").assertIsDisplayed()
         compose.runOnIdle {

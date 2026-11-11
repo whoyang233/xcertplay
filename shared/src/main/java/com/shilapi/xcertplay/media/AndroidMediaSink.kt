@@ -796,8 +796,12 @@ private class AudioRenderer(
     private var prebufferBytes = 0
     private var startThresholdBytes = 0
     private val startupEnvelope = PcmPlaybackEnvelope(format.sampleRate, minOf(format.channels, 2),
-        detectSpeechOnsets = selection.channel == AudioChannel.NAVIGATION)
+        detectSpeechOnsets = selection.channel == AudioChannel.NAVIGATION,
+        protectNavigationPeaks = playbackSettings.navigationPeakProtection)
+    private val onsetProbe = NavigationOnsetProbe(format.sampleRate, minOf(format.channels, 2))
     private var navigationOnsetsLogged = 0L
+    private var lastLimiterReportNs = 0L
+    private var actualStreamBinding = 0
     private var lastPcmWriteNs = 0L
     private var decodedPcmEncoding = DecodedPcm.PCM_16BIT
     private var decodedFormatSupported = true
@@ -943,6 +947,7 @@ private class AudioRenderer(
                 .setTransferMode(AudioTrack.MODE_STREAM)
                 .build()
         val stream = AudioChannelMapper.streamOverride(selection, playbackSettings)
+        actualStreamBinding = stream
         track = if (stream == 0) usageTrack() else AudioStreamFallback.build(
             create = {
                 Log.i(TAG, "audio stream binding role=${selection.channel} stream=$stream")
@@ -952,6 +957,7 @@ private class AudioRenderer(
             initialized = { it.state == AudioTrack.STATE_INITIALIZED },
             release = { it.release() },
             fallback = {
+                actualStreamBinding = 0
                 Log.w(TAG, "audio stream $stream unavailable; falling back to usage routing")
                 usageTrack()
             },
@@ -960,7 +966,8 @@ private class AudioRenderer(
         trackBytesPerFrame = trackChannelCount * BYTES_PER_PCM_16_SAMPLE
         reportAudioDiagnostic("audio playback route type=${format.payloadType} audioType=${format.audioType} " +
             "role=${selection.channel} gain=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% " +
-            "stream=$stream codec=${format.codec}")
+            "stream=$stream actualStream=$actualStreamBinding codec=${format.codec} " +
+            "peakProtection=${playbackSettings.navigationPeakProtection}")
         if (configuredMainMediaBuffer && MainMediaAudioBuffer.sanitizeDurationMs(mainMediaAudioBufferDurationMs) == 0 &&
             Build.VERSION.SDK_INT >= 31) {
             runCatching { track?.setStartThresholdInFrames(1) }
@@ -1174,23 +1181,41 @@ private class AudioRenderer(
             logInvalidPcm(length)
             return
         }
-        NavigationVolume.applyPcm16InPlace(
-            data, offset, length, selection, playbackSettings.navigationVolumePercent,
-        )
         val nowNs = System.nanoTime()
         if (selection.channel == AudioChannel.NAVIGATION && lastPcmWriteNs != 0L &&
             nowNs - lastPcmWriteNs >= NAVIGATION_IDLE_FADE_NS) {
+            onsetProbe.finish()?.let(::reportOnsetWindow)
             startupEnvelope.restart()
         }
+        // Detect silence and cap transients at the source level, BEFORE volume. Otherwise
+        // quiet saved gains can turn actual speech into 'silence', and boosting can clip first.
+        val previousLimitedFrames = startupEnvelope.limitedFrames
         startupEnvelope.apply(data, offset, length)
+        NavigationVolume.applyPcm16InPlace(
+            data, offset, length, selection, playbackSettings.navigationVolumePercent,
+        )
+        val onsetOffset = startupEnvelope.firstSpeechFrameOffset
         if (startupEnvelope.onsetCount != navigationOnsetsLogged) {
             navigationOnsetsLogged = startupEnvelope.onsetCount
+            onsetProbe.finish()?.let(::reportOnsetWindow)
+            onsetProbe.begin(navigationOnsetsLogged)
             reportAudioDiagnostic("audio navigation onset=$navigationOnsetsLogged " +
                 "gain=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% " +
-                "postGainPeak=${startupEnvelope.inputPeak} outputPeak=${startupEnvelope.outputPeak} " +
-                "firstInputPeak=${startupEnvelope.firstSpeechInputPeak} firstOutputPeak=${startupEnvelope.firstSpeechOutputPeak} " +
+                "sourcePeak=${startupEnvelope.inputPeak} outputPeak=${pcmPeak(data, offset, length)} " +
+                "firstInputPeak=${startupEnvelope.firstSpeechInputPeak} " +
+                "firstOutputPeak=${onsetOffset?.let { pcmPeak(data, it, trackBytesPerFrame) } ?: 0} " +
+                "peakProtection=${playbackSettings.navigationPeakProtection} " +
+                "limiterMinGain=${startupEnvelope.minimumGainPercent}% " +
+                "underruns=${runCatching { track.underrunCount }.getOrDefault(-1)} " +
                 "type=${format.payloadType} audioType=${format.audioType} " +
-                "stream=${AudioChannelMapper.streamOverride(selection, playbackSettings)}")
+                "stream=${AudioChannelMapper.streamOverride(selection, playbackSettings)} actualStream=$actualStreamBinding")
+        }
+        if (startupEnvelope.limitedFrames > previousLimitedFrames &&
+            (lastLimiterReportNs == 0L || nowNs - lastLimiterReportNs >= 1_000_000_000L)) {
+            lastLimiterReportNs = nowNs
+            reportAudioDiagnostic("audio navigation peak limiter sourcePeak=${startupEnvelope.inputPeak} " +
+                "outputPeak=${pcmPeak(data, offset, length)} minGain=${startupEnvelope.minimumGainPercent}% " +
+                "gain=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% actualStream=$actualStreamBinding")
         }
         lastPcmWriteNs = nowNs
         if (!firstPcmLogged && length > 0) {
@@ -1211,6 +1236,12 @@ private class AudioRenderer(
             }
             val count = track.write(data, offset + written, writeLength, AudioTrack.WRITE_BLOCKING)
             if (count <= 0) break
+            // Count only samples accepted by AudioTrack, not merely a decoder buffer's first frame.
+            val captureStart = maxOf(offset + written, onsetOffset ?: (offset + written))
+            val captureEnd = offset + written + count
+            if (captureStart < captureEnd) {
+                onsetProbe.append(data, captureStart, captureEnd - captureStart)?.let(::reportOnsetWindow)
+            }
             written += count
             totalBytesWritten += count
             val monitor = mediaMetricsMonitor
@@ -1288,6 +1319,23 @@ private class AudioRenderer(
         Log.w(TAG, "audio dropping incomplete PCM frame type=${format.payloadType} bytes=$length encoding=$decodedPcmEncoding")
     }
 
+    private fun pcmPeak(data: ByteArray, offset: Int, length: Int): Int {
+        var peak = 0
+        for (position in offset until offset + length step 2) {
+            val sample = (data[position].toInt() and 255) or (data[position + 1].toInt() shl 8)
+            peak = maxOf(peak, kotlin.math.abs(sample))
+        }
+        return peak
+    }
+
+    private fun reportOnsetWindow(levels: NavigationOnsetProbe.Levels) {
+        reportAudioDiagnostic("audio navigation onset window=${levels.onset} " +
+            "durationMs=${levels.frames.toLong() * 1000 / format.sampleRate} " +
+            "outputPeak=${levels.peak} outputRms=${levels.rms} " +
+            "gain=${NavigationVolume.sanitize(playbackSettings.navigationVolumePercent)}% " +
+            "peakProtection=${playbackSettings.navigationPeakProtection} actualStream=$actualStreamBinding")
+    }
+
     private fun reportAudioDiagnostic(line: String) {
         Log.i(TAG, line)
         runCatching { audioDiagnosticLog?.invoke(line) }
@@ -1305,6 +1353,7 @@ private class AudioRenderer(
 
     @Synchronized
     private fun release() {
+        onsetProbe.finish()?.let(::reportOnsetWindow)
         // Silence queued output before waiting for a vendor codec's potentially slow stop().
         val track = track
         this.track = null

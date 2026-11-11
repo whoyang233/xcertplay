@@ -48,6 +48,7 @@ object AirPlayPersistence {
     private const val KEY_MUSIC_OUTPUT = "music_output_channel"
     private const val KEY_NAVIGATION_OUTPUT = "navigation_output_channel"
     private const val KEY_NAVIGATION_VOLUME = "navigation_volume_percent"
+    private const val KEY_NAVIGATION_PEAK_PROTECTION = "navigation_peak_protection"
     private const val KEY_AUDIO_FOCUS_ENABLED = "audio_focus_enabled"
     private const val KEY_MAIN_MEDIA_AUDIO_BUFFER_DURATION_MS = "main_media_audio_buffer_duration_ms"
     private const val KEY_MICROPHONE_GAIN_PERCENT = "microphone_gain_percent"
@@ -211,6 +212,9 @@ object AirPlayPersistence {
             navigationStream = com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(runCatching {
                 prefs.getInt("navigation_stream_binding", 0)
             }.getOrDefault(0)),
+            navigationPeakProtection = runCatching {
+                prefs.getBoolean(KEY_NAVIGATION_PEAK_PROTECTION, true)
+            }.getOrDefault(true),
         )
     }
 
@@ -221,6 +225,7 @@ object AirPlayPersistence {
             .putInt(KEY_NAVIGATION_VOLUME, NavigationVolume.sanitize(settings.navigationVolumePercent))
             .putInt("music_stream_binding", com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(settings.musicStream))
             .putInt("navigation_stream_binding", com.shilapi.xcertplay.media.AudioStreamBinding.sanitize(settings.navigationStream))
+            .putBoolean(KEY_NAVIGATION_PEAK_PROTECTION, settings.navigationPeakProtection)
             .apply()
     }
 

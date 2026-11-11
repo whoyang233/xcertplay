@@ -67,4 +67,13 @@ class AudioPlaybackPersistenceTest {
         assertEquals(0, AirPlayPersistence.loadAudioPlaybackSettings(context).musicStream)
         assertEquals(0, AirPlayPersistence.loadAudioPlaybackSettings(context).navigationStream)
     }
+
+    @Test fun navigationPeakProtectionDefaultsOnAndCanBeDisabledWithoutChangingSavedGainOrRoute() {
+        assertTrue(AirPlayPersistence.loadAudioPlaybackSettings(context).navigationPeakProtection)
+        val settings = AudioPlaybackSettings(navigationVolumePercent = 60, navigationStream = 17, navigationPeakProtection = false)
+        AirPlayPersistence.saveAudioPlaybackSettings(context, settings)
+        assertEquals(settings, AirPlayPersistence.loadAudioPlaybackSettings(context))
+        prefs.edit().putString("navigation_peak_protection", "broken").commit()
+        assertEquals(settings.copy(navigationPeakProtection = true), AirPlayPersistence.loadAudioPlaybackSettings(context))
+    }
 }

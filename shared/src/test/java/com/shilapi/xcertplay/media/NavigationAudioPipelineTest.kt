@@ -84,15 +84,46 @@ class NavigationAudioPipelineTest {
             val out = synchronized(received) { received.flatMap { it.toList() }.toByteArray() }
             val onset = silenceFrames * 2
             fun sample(offset: Int) = (out[offset].toInt() and 0xff) or (out[offset + 1].toInt() shl 8)
-            assertEquals(18, sample(onset)) // 30000 * 60% / 960 attack frames.
-            assertEquals(18000, sample(out.size - 2))
-            assertTrue((onset until out.size step 2).all { sample(it) in 0..18000 })
+            assertEquals(7, sample(onset)) // Peak protection, then the attack and 60% saved gain.
+            assertEquals(6975, sample(out.size - 2))
+            assertTrue((onset until out.size step 2).all { sample(it) in 0..6975 })
             assertTrue(diagnostics.any { it.contains("role=NAVIGATION") && it.contains("gain=60%") })
-            assertTrue(diagnostics.any { it.contains("audio navigation onset=1") && it.contains("firstOutputPeak=18") })
+            assertTrue(diagnostics.any { it.contains("audio navigation onset=1") && it.contains("firstOutputPeak=7") })
         } finally {
             sink.close()
             ShadowAudioTrack.removeAudioDataListener(listener)
         }
+    }
+
+    @Test fun firstWordProbeReportsActualLimitedPcmAtSavedGainOnAVendorRoute() {
+        val received = java.util.Collections.synchronizedList(mutableListOf<ByteArray>())
+        val diagnostics = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val done = CountDownLatch(1)
+        val listener = ShadowAudioTrack.OnAudioDataWrittenListener { _, data, _ -> received += data.copyOf() }
+        ShadowAudioTrack.addAudioDataListener(listener)
+        val sink = AndroidMediaSink(RuntimeEnvironment.getApplication(),
+            audioPlaybackSettings = AudioPlaybackSettings(navigationVolumePercent = 60, navigationStream = 14),
+            audioDiagnosticLog = { line -> diagnostics += line; if (line.contains("audio navigation onset window=")) done.countDown() })
+        val format = AudioFormat(AudioCodecKind.LPCM, 48000, 1, 101, "navigation")
+        try {
+            sink.onAudioStarted(101, format, 0)
+            val packet = ByteArray(12 + 12000 * 2)
+            for (frame in 0 until 12000) {
+                val value = if (frame in 1920..3840) 30000 else 7000
+                packet[12 + frame * 2] = (value shr 8).toByte()
+                packet[13 + frame * 2] = value.toByte()
+            }
+            sink.onAudioRtp(101, format, packet, 0)
+            assertTrue(done.await(10, TimeUnit.SECONDS))
+            val accepted = synchronized(received) { received.flatMap { it.toList() }.toByteArray() }
+            val levels = (0 until 9600).map { frame ->
+                kotlin.math.abs((accepted[frame * 2].toInt() and 255) or (accepted[frame * 2 + 1].toInt() shl 8))
+            }
+            val peak = levels.max()
+            assertTrue(peak <= 6975)
+            assertTrue(diagnostics.any { it.contains("durationMs=200") && it.contains("outputPeak=$peak") && it.contains("gain=60%") })
+            assertTrue(diagnostics.any { it.contains("audio navigation peak limiter") })
+        } finally { sink.close(); ShadowAudioTrack.removeAudioDataListener(listener) }
     }
 
     @Test fun latePacketsAndStartCallbacksCannotRecreateAStoppedOrClosedSink() {
