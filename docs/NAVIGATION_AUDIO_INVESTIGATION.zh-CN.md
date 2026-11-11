@@ -43,10 +43,14 @@ DiPlay 的 #719 还记录了暂停音乐时，导航虽然一直请求通道 14�
 3. 若仅厂商编号异常，优先排查车机通道唤醒/路由增益；不能仅凭应用写入成功认定厂商通道正常。
 4. 对比保护开/关与日志的 200 ms 输出峰值。如果 PCM 峰值已平稳而实车仍突响，继续检查车机播放链路，不再单纯拉长软件淡入。
 
-本轮先做源码测试与 Release Lint，未生成新 APK。此前可下载的 `2026111003` 安装包不包含本轮尖峰保护与整字统计。
+本轮先完成源码测试与 Release Lint，随后已按既定规约交付 `2026111102` automotive Release APK，包含尖峰保护与整字统计。此前 `2026111003` 不包含这些改动。
 
 ## 验证结果
 
 [源码验证任务](https://github.com/whoyang233/xcertplay/actions/runs/42939550014)基于 `f503776ea59171ba73b5ca5899e14cc7522902f6`：485 项 Android 测试通过（shared 366、common 119），无失败、错误或跳过；6 项构建编号测试通过；Release Lint 无错误（common 85、automotive 3 条警告）。本轮新增 12 项执行用例，覆盖 20 ms 后的尖峰、底噪/稀疏噪点、低音量识别、多个采样率和声道、极端音量、恢复、拆包/偏移、首字统计、真实 AudioTrack 写入与开关持久化；既有布局用例还验证开关操作及设置值保留。
 
-[测试报告与设置截图 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/42939550014/artifacts/13820875350)包含 `settings-layout/1080p-audio-routing.png`。签名密钥读取、APK 组装、安装包验证与上传均跳过；没有新的可安装构建。
+[测试报告与设置截图 ZIP](https://github.com/whoyang233/xcertplay/actions/runs/42939550014/artifacts/13820875350)包含 `settings-layout/1080p-audio-routing.png`。该源码验证任务跳过签名密钥读取、APK 组装、安装包验证与上传；随后另行执行下述签名 Release 构建。
+
+## Release 交付
+
+[签名构建](https://github.com/whoyang233/xcertplay/actions/runs/42950128584)基于 `2847d7c20e553a670c461368f21e7ed90f53dc42`；[车载 APK ZIP](https://github.com/whoyang233/xcertplay/actions/runs/42950128584/artifacts/13824104789)。文件名 `xcertplay-1.4.2B-release-2026111102.apk`，内部 versionCode 同为 `2026111102`，37,010,980 字节，release、不可调试，包名与固定签名不变。升级保留现有导航音量与通道；“设置 → 音频 → 导航尖峰保护”默认开启，可关闭对照。485 项 Android 测试及 6 项构建编号测试通过，Release Lint 无错误。SHA-256：`604dee7c9825bf4dfb136eddfd5d35df5e2c63977805656b4af6f1d55ef66a48`。本包未合入随后评估的其他上游功能，实车原因与效果仍需对照验证。

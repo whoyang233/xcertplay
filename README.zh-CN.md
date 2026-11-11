@@ -9,9 +9,9 @@
 
 ## 下载与安装
 
-**[下载 1.4.2B automotive Release 车载包（内置更新，2026111003，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42751342568/artifacts/13733074615)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42751342568) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive Release 车载包（导航尖峰保护，2026111102，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42950128584/artifacts/13824104789)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42950128584) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111003，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
+Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111102，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
 
 | 安装包 | 适用设备 |
 | --- | --- |
@@ -132,7 +132,7 @@ Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复�
 
 导航从首个 PCM 采样帧开始使用已保存音量。当前源码在 20 ms 开口淡入之外新增「导航尖峰保护」（默认开启，可关闭）：直接压低强瞬态峰值，不增加播放缓冲，左右声道使用同一系数，不提高安静语音音量。静默检测改为音量缩放前的 5 ms 能量窗口，容忍底噪和孤立噪点；保留约 250 ms 静默/无数据后的重新保护，普通词间短停顿不重置。音乐、通话和 Siri 保留各自原有处理。日志补充首字前 200 ms 的输出峰值/均方根电平、限幅状态、欠载和编号回退，帮助区分应用 PCM 与车机后续增益。关闭设置放弃编辑，保存并重启 CarPlay 后应用。
 
-[导航突响排查与 DiPlay/官方源码对照](docs/NAVIGATION_AUDIO_INVESTIGATION.zh-CN.md)说明 #719 的比亚迪通道 14 音量失效记录、限幅参数和实车对照方法。**本轮仅验证源码，下载区 `2026111003` APK 尚不包含尖峰保护与整字统计。** 自动化测试不能确认实车突响已经消失。
+[导航突响排查与 DiPlay/官方源码对照](docs/NAVIGATION_AUDIO_INVESTIGATION.zh-CN.md)说明 #719 的比亚迪通道 14 音量失效记录、限幅参数和实车对照方法。**导航尖峰保护与整字统计已随 `2026111102` automotive Release 包交付；升级保留既有导航音量和编号通道。** 自动化测试不能确认实车突响已经消失。
 
 比亚迪通话弹窗开关仍默认关闭。启用并保存后，前台已连接时通过本机 ADB 暂停通话组件悬浮窗权限；后台、断开和心跳超时尝试恢复原始权限。启动时 ADB 尚未就绪会有界重试，不在后台弹授权框；辅助进程不再强制要求固件提供 `setsid`。音频设置页新增实际执行状态和最近一次失败原因，区分“ADB 未批准”“ADB 不可达”“固件拒绝修改”和“恢复未确认”；授权按钮成功仅说明 ADB 可用。部分固件的通话界面不受悬浮窗权限控制，仍需实车核对，不会关闭蓝牙音频或禁用电话组件。
 
@@ -240,6 +240,8 @@ Windows PowerShell：
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名构建输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
+
+[导航尖峰保护 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42950128584)来自源码 `2847d7c20e553a670c461368f21e7ed90f53dc42`：**485 项 Android 测试通过，无失败、错误或跳过；6 项构建编号测试通过；Release Lint 无错误（common 85 / automotive 3 条警告）**。唯一车载 APK 为 37,010,980 字节，版本 `1.4.2B` / `2026111102`，release、不可调试，沿用原包名和固定签名；已检查导航尖峰保护开关、限幅、首字 200 ms 统计及自动更新入包，Web/车辆 JSON 模块仍排除。SHA-256：`604dee7c9825bf4dfb136eddfd5d35df5e2c63977805656b4af6f1d55ef66a48`。未同步本轮评估的 DiPlay 触控、USB 分包等新功能。实车首字突响是否消失仍需验收。
 
 2026-11-11 的[导航尖峰保护源码验证](https://github.com/whoyang233/xcertplay/actions/runs/42939550014)基于 `f503776ea59171ba73b5ca5899e14cc7522902f6`：**485 项 Android 测试通过（shared 366 / common 119），无失败、错误或跳过；另 6 项构建编号测试通过；Release Lint 无错误（common 85 / automotive 3 条警告）**。新增覆盖首字尖峰、噪声底、低音量检测、跨包/立体声限幅、0%–200% 增益、首字整段统计和设置持久化。[报告与设置截图](https://github.com/whoyang233/xcertplay/actions/runs/42939550014/artifacts/13820875350)。签名读取及打包均跳过，**未生成 APK**。本轮实车原因仍需通过相同语音的厂商/媒体通道对照与输出日志确认。
 
