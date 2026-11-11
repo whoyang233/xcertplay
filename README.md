@@ -9,9 +9,9 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download 1.4.2B automotive release APK ZIP (navigation peak protection, 2026111102)](https://github.com/whoyang233/xcertplay/actions/runs/42950128584/artifacts/13824104789)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/42950128584) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download 1.4.2B automotive release APK ZIP (native update downloads, 2026111103)](https://github.com/whoyang233/xcertplay/actions/runs/43024438110/artifacts/13856632818)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/43024438110) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 2026111102 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
+Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 2026111103 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
 
 | APK | Target |
 | --- | --- |
@@ -93,9 +93,11 @@ Startup recovery is enabled by default. On cancellation or exit, it attempts to 
 
 The fixed update directory is `https://apk.frp.whoyang.cn/xcertplay/release/`. Generated filenames follow `xcertplay-1.4.2B-release-2026111002.apk`: the Shanghai build date plus a two-digit daily sequence. CI uses workflow order and existing artifacts/server files, allowing gaps for failed or validation runs, with a daily maximum of 99. The visible base version remains `1.4.2B`; Android versionCode is the full ten-digit build ID so subsequent builds can replace earlier ones.
 
-Opening the app checks the directory in the background and offers available updates. About shows the unformatted build ID, a persistent automatic-check switch and a manual Check for updates action. Disabling automatic checks leaves manual updates available. Downloading/installing requires choosing the update; Android handles installation and its initial permission screen. The app verifies package, base version, build ID, release flag and the pinned existing signer. Network failures are reported separately from an up-to-date result.
+Automatic checking and prompting happen at most once per cold Android process start. App switching, returning, Activity recreation and CarPlay reconnection do not repeat the prompt. A check that crosses a background transition cannot show a delayed prompt on return. About retains the immediately saved automatic-check switch and explicit manual checking. Checks never block CarPlay startup.
 
-Existing installations need this first updater-enabled APK installed once before they can check automatically.
+APK transfers now use Android Download Manager, which owns background progress, resumption and notifications. The persisted task ID is reattached after process restart. After completion, choose Install update in About to verify the package/build/pinned signer and open Android installation. Completion and returning to the app never auto-launch the installer. System Downloads is accessible while a transfer runs; a failed service offers an explicit system-browser fallback. [Usage and compatibility notes (Chinese)](docs/APP_UPDATES.zh-CN.md).
+
+If the old in-app downloader does not work on the head unit, manually install 2026111103 once to enable native downloads for later updates.
 
 The Dufs JSON directory is read directly, with an HTML directory fallback; no latest.json is required. Upload generated APKs to the directory under their original names. Do not merely rename an old APK: its embedded versionCode must match. The directory is publicly read-only; the client does not publish files. Local packaging requires `PERSONAL_BUILD_ID=YYYYMMDDNN` or `-Pxcertplay.buildId=YYYYMMDDNN`; source-only tests/lint do not require allocation.
 
@@ -227,6 +229,8 @@ Signed release builds require the same fixed key:
 Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned build inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
 
 ## Verification and feedback
+
+The [native update download release build](https://github.com/whoyang233/xcertplay/actions/runs/43024438110), source `139998ef7d046ab8a295c32728fc047cac4dc747`, passes **499 Android tests, no failures, errors or skips; 6 build-number tests also pass; release lint has no errors (90 common / 3 automotive warnings)**. Coverage includes Android 9/13 native requests, background completion, persisted task recovery, rejected APKs, unavailable services, startup-only prompts and manual checks. The 37,027,752-byte automotive APK is release, non-debuggable, `1.4.2B` / `2026111103`, with unchanged personal package, signer, permissions and providers. Peak protection and the updater are present; in-app APK network transfers are removed. SHA-256: `25ec52757315a1815d7d026ace79dc76bb053e7158b13a3a1c15b7ac4086eb77`. Head-unit download/installer integration still needs vehicle acceptance.
 
 The [navigation peak protection release build](https://github.com/whoyang233/xcertplay/actions/runs/42950128584), source `2847d7c20e553a670c461368f21e7ed90f53dc42`, passes **485 Android tests, no failures, errors or skips; 6 build-number tests also pass; release lint has no errors (85 common / 3 automotive warnings)**. The sole automotive APK is 37,010,980 bytes, release, non-debuggable, `1.4.2B` / `2026111102`, with the unchanged personal package and pinned signer. Package checks confirm peak protection controls, limiting, 200 ms onset metrics and the updater are included; removed Web/vehicle JSON code stays absent. SHA-256: `604dee7c9825bf4dfb136eddfd5d35df5e2c63977805656b4af6f1d55ef66a48`. Newly reviewed DiPlay touch and USB packet changes are not merged. Vehicle onset behavior still needs acceptance.
 

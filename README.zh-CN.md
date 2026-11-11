@@ -9,9 +9,9 @@
 
 ## 下载与安装
 
-**[下载 1.4.2B automotive Release 车载包（导航尖峰保护，2026111102，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/42950128584/artifacts/13824104789)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/42950128584) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive Release 车载包（系统下载更新，2026111103，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/43024438110/artifacts/13856632818)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/43024438110) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111102，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
+Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111103，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
 
 | 安装包 | 适用设备 |
 | --- | --- |
@@ -106,11 +106,13 @@ Wi-Fi 启动恢复默认开启；取消或退出时，应用会先尝试恢复�
 
 更新目录固定为 `https://apk.frp.whoyang.cn/xcertplay/release/`。文件名为 `xcertplay-1.4.2B-release-2026111002.apk`：`20261110` 为北京时间的构建日期，`02` 为当日递增编号。CI 根据当日工作流顺序、现有构建产物和更新目录中的编号分配，可能保留失败/验证任务造成的编号空档；当日最多 99。应用显示版本保留 `1.4.2B`，Android 内部 versionCode 使用完整十位编号，确保同一基础版本的后续构建可覆盖升级。
 
-每次打开应用会在后台读取目录，发现新版时提示，点击“下载并安装”后才下载安装包并打开 Android 安装界面。“设置 → 关于”显示构建编号，并提供“启动时自动检查更新”开关和“检查更新”按钮；开关立即保存，关闭后手动检查仍可用。检查失败会明确提示，不会误报已是最新版。检查不会等待网络而阻塞 CarPlay 启动。
+应用进程每次冷启动最多自动检查并提示一次；切换应用、返回前台、Activity 重建和 CarPlay 重连均不重复提示，检查期间切出也不会在返回后补弹。自动检查开关立即保存，关闭后仍可在“设置 → 关于”手动检查；手动检查可主动再次提示。打开应用或重连不会阻塞等待更新网络。
+
+更新下载改用 Android 系统下载管理器，应用只读取版本目录。“使用系统下载”会提交后台任务，系统负责进度、续传和完成通知；任务编号会持久保存，进程重启后重新关联。完成后回到“关于”点击“安装更新”，应用校验后再打开系统安装器；不会因为切回应用或下载完成自动弹安装界面。提供“查看系统下载列表”，系统服务失败时可主动选“使用系统浏览器下载”。[操作与兼容说明](docs/APP_UPDATES.zh-CN.md)。
 
 当前服务器使用 Dufs，客户端直接读取目录 JSON，并支持普通目录页面回退，无需额外维护 latest.json。安装前检查个人包名、文件名对应版本/构建编号、release 标记及固定签名；旧基础版本、旧构建、其他应用或不同签名均不安装。Android 首次安装授权仍由系统界面确认。
 
-旧版本需先手动安装一次本次带更新功能的 APK，后续才可自动检查。
+旧下载流程在车机上不可用时，需先手动安装 `2026111103` 包一次，后续更新才使用系统下载。
 
 **发布方式：将 CI 生成的 APK 按原文件名上传到该目录，不要仅重命名旧包。** APK 内部构建编号必须与文件名一致。目录当前为公开只读，客户端不会上传或改写服务端文件。开发者本地打包需设置 `PERSONAL_BUILD_ID=YYYYMMDDNN` 或传入 `-Pxcertplay.buildId=YYYYMMDDNN`；源码测试和 Lint 不要求分配可安装构建编号。
 
@@ -240,6 +242,8 @@ Windows PowerShell：
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名构建输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
+
+[系统下载更新 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/43024438110)来自源码 `139998ef7d046ab8a295c32728fc047cac4dc747`：**499 项 Android 测试通过，无失败、错误或跳过；6 项构建编号测试通过；Release Lint 无错误（common 90 / automotive 3 条警告）**。新增覆盖 Android 9/13 原生下载请求、后台完成、进程重启关联、校验失败、系统服务不可用、首次冷启动提示与手动检查。APK 为 37,027,752 字节，版本 `1.4.2B` / `2026111103`，release、不可调试，原包名、固定签名及权限/Provider 集合不变；导航尖峰保护与自动更新均入包，旧应用内 APK 网络下载已删除。SHA-256：`25ec52757315a1815d7d026ace79dc76bb053e7158b13a3a1c15b7ac4086eb77`。实车下载服务与安装界面仍需验收。
 
 [导航尖峰保护 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/42950128584)来自源码 `2847d7c20e553a670c461368f21e7ed90f53dc42`：**485 项 Android 测试通过，无失败、错误或跳过；6 项构建编号测试通过；Release Lint 无错误（common 85 / automotive 3 条警告）**。唯一车载 APK 为 37,010,980 字节，版本 `1.4.2B` / `2026111102`，release、不可调试，沿用原包名和固定签名；已检查导航尖峰保护开关、限幅、首字 200 ms 统计及自动更新入包，Web/车辆 JSON 模块仍排除。SHA-256：`604dee7c9825bf4dfb136eddfd5d35df5e2c63977805656b4af6f1d55ef66a48`。未同步本轮评估的 DiPlay 触控、USB 分包等新功能。实车首字突响是否消失仍需验收。
 
