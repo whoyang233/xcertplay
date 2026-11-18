@@ -894,7 +894,8 @@ class CarPlayHostActivity : ComponentActivity() {
         appUpdater.onHostResumed()
         appUpdater.check(automatic = true)
         popupHostResumed = true
-        if (hasWindowFocus()) StartupForeground.onResumed(this)
+        // The Activity remains foreground while its own dialog owns window focus.
+        StartupForeground.onResumed(this)
         updateCallPopupGuard()
         displayResizeGate.setResumed(true)
         displayResizeGate.setFocused(hasWindowFocus())
@@ -933,7 +934,6 @@ class CarPlayHostActivity : ComponentActivity() {
             applyFullscreenMode()
             refreshDisplaySizeAfterLayout()
         } else {
-            StartupForeground.onPaused(this)
             cancelPendingDisplayResize()
         }
     }
