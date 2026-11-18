@@ -208,7 +208,7 @@
   "settings.identity.driving_side.right": "Right-hand",
   "settings.window.startup": "Startup",
   "settings.window.auto_start": "Start on boot",
-  "settings.window.auto_start.support": "Opens CarPlay automatically after the device starts",
+  "settings.window.auto_start.support": "Requests CarPlay in front after boot. Save and restart CarPlay to apply.",
   "settings.window.fullscreen": "Fullscreen",
   "settings.window.hide_top": "Hide status bar",
   "settings.window.hide_top.support": "Swipe from the top edge to show it briefly",
@@ -516,5 +516,18 @@
   "settings.update.system_downloads": "Open system Downloads",
   "settings.update.browser_download": "Download with system browser",
   "settings.update.download_reason": "System download error:",
-  "settings.update.native_ui_unavailable": "No system Downloads screen or browser is available. Check system download notifications."
+  "settings.update.native_ui_unavailable": "No system Downloads screen or browser is available. Check system download notifications.",
+  "settings.window.foreground_adb": "Startup foreground compatibility (ADB)",
+  "settings.window.foreground_adb.support": "On by default. If startup stays in the background, retry once through already approved local ADB. No background authorization prompts. Stops on user navigation or after 8 seconds. Save and restart CarPlay to apply.",
+  "settings.window.foreground_status": "Latest foreground startup status",
+  "settings.window.foreground.none": "No startup recorded",
+  "settings.window.foreground.requested": "Requested display; waiting for the foreground window",
+  "settings.window.foreground.foreground": "CarPlay confirmed in the foreground",
+  "settings.window.foreground.not_visible": "Foreground not confirmed; system or launcher restrictions may apply",
+  "settings.window.foreground.user_left": "Stopped because the user switched apps",
+  "settings.window.foreground.adb_requested": "ADB launch requested; foreground not confirmed",
+  "settings.window.foreground.adb_failed": "ADB foreground request failed",
+  "settings.window.foreground.adb_not_approved": "Local ADB is not approved; use the authorization button below",
+  "settings.window.foreground.adb_unsupported": "The local ADB protocol is unsupported",
+  "settings.window.foreground.adb_unavailable": "Local network ADB is unavailable; check the head unit debugging settings"
 }

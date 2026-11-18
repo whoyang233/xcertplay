@@ -11,16 +11,13 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         if (!AirPlayPersistence.loadAutoStartOnBoot(context)) return
 
-        val launch = Intent(context, CarPlayHostActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
-            )
-        }
+        val pending = goAsync()
+        val completed = java.util.concurrent.atomic.AtomicBoolean(false)
+        val finish = { if (completed.compareAndSet(false, true)) pending?.finish(); Unit }
         try {
-            context.startActivity(launch)
+            StartupForeground.afterBoot(context, finish)
         } catch (error: RuntimeException) {
+            finish()
             Log.w(TAG, "Boot auto-start could not launch CarPlayHostActivity", error)
         }
     }

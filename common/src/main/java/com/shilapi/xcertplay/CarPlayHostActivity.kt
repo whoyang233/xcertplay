@@ -245,7 +245,9 @@ class CarPlayHostActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-
+        if (!popupHostResumed && StartupForeground.isLaunchIntent(intent)) {
+            StartupForeground.observeLaunch(this)
+        }
     }
 
     // CH341 USB\VID_1A86&PID_5512&REV_0304 is the deployment-supplied bridge identity.
@@ -464,6 +466,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var audioPacketCaptureEnabled by mutableStateOf(false)
     private var moreGesturesToSettings by mutableStateOf(false)
     private var autoStartOnBoot by mutableStateOf(false)
+    private var startupForegroundAdb by mutableStateOf(true)
     private var manufacturer by mutableStateOf(AirPlayPersistence.DEFAULT_MANUFACTURER)
     private var model by mutableStateOf(AirPlayPersistence.DEFAULT_MODEL)
     private var oemLabel by mutableStateOf(AirPlayPersistence.DEFAULT_OEM_LABEL)
@@ -682,6 +685,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null && StartupForeground.isLaunchIntent(intent)) StartupForeground.observeLaunch(this)
         WifiScanProtection.restoreIfNeeded(applicationContext)
         IconVectors.preload(applicationContext.resources, HOME_SCREEN_ICONS)
         initializeSessionLog()
@@ -757,6 +761,7 @@ class CarPlayHostActivity : ComponentActivity() {
         audioPacketCaptureEnabled = AirPlayPersistence.loadAudioPacketCaptureEnabled(this)
         moreGesturesToSettings = AirPlayPersistence.loadMoreGesturesToSettings(this)
         autoStartOnBoot = AirPlayPersistence.loadAutoStartOnBoot(this)
+        startupForegroundAdb = AirPlayPersistence.loadStartupForegroundAdb(this)
         manufacturer = AirPlayPersistence.loadManufacturer(this)
         model = AirPlayPersistence.loadModel(this)
         oemLabel = AirPlayPersistence.loadOemLabel(this)
@@ -888,6 +893,7 @@ class CarPlayHostActivity : ComponentActivity() {
         appUpdater.onHostResumed()
         appUpdater.check(automatic = true)
         popupHostResumed = true
+        if (hasWindowFocus()) StartupForeground.onResumed(this)
         updateCallPopupGuard()
         displayResizeGate.setResumed(true)
         displayResizeGate.setFocused(hasWindowFocus())
@@ -910,6 +916,7 @@ class CarPlayHostActivity : ComponentActivity() {
         updateUiResumed = false
         appUpdater.onHostPaused()
         popupHostResumed = false
+        StartupForeground.onPaused(this)
         updateCallPopupGuard()
         localTouchSequence.reset()
         displayResizeGate.setResumed(false)
@@ -921,11 +928,18 @@ class CarPlayHostActivity : ComponentActivity() {
         super.onWindowFocusChanged(hasFocus)
         displayResizeGate.setFocused(hasFocus)
         if (hasFocus) {
+            if (popupHostResumed) StartupForeground.onResumed(this)
             applyFullscreenMode()
             refreshDisplaySizeAfterLayout()
         } else {
+            StartupForeground.onPaused(this)
             cancelPendingDisplayResize()
         }
+    }
+
+    override fun onUserLeaveHint() {
+        StartupForeground.onUserLeft()
+        super.onUserLeaveHint()
     }
 
     override fun onStop() {
@@ -958,6 +972,7 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        StartupForeground.onPaused(this)
         popupHostResumed = false
         updateCallPopupGuard()
         synchronized(scanAdbLock) {
@@ -1114,6 +1129,7 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveLocationReportingEnabled(this, locationReportingEnabled)
         AirPlayPersistence.saveVehicleDataConfig(this, vehicleDataConfig)
         AirPlayPersistence.saveAutoStartOnBoot(this, autoStartOnBoot)
+        AirPlayPersistence.saveStartupForegroundAdb(this, startupForegroundAdb)
         AirPlayPersistence.saveAdvancedAudioChannelMapping(this, advancedAudioChannelMapping)
         AirPlayPersistence.saveAudioPlaybackSettings(this, audioPlaybackSettings)
         AirPlayPersistence.saveAudioFocusEnabled(this, audioFocusEnabled)
@@ -3971,6 +3987,20 @@ class CarPlayHostActivity : ComponentActivity() {
                         appendLog("Boot auto-start ${if (it) "enabled" else "disabled"}")
                     },
                 )
+            }
+        }
+        val startupStatus by StartupForeground.currentStatus.collectAsState()
+        SettingsGroup {
+            row {
+                SwitchRow(title = tr("settings.window.foreground_adb"),
+                    support = tr("settings.window.foreground_adb.support"),
+                    checked = startupForegroundAdb,
+                    onCheckedChange = { startupForegroundAdb = it })
+            }
+            row { ListRow(headline = tr("settings.window.foreground_status"),
+                support = tr("settings.window.foreground." + (startupStatus ?: StartupForeground.status(this)))) }
+            if (startupForegroundAdb) {
+                row { com.shilapi.xcertplay.ui.settings.AdbAuthorizationAction(scanAdbBusy, scanAdbStatus, ::authorizeScanAdb) }
             }
         }
         SectionHeader(tr("settings.window.fullscreen"))

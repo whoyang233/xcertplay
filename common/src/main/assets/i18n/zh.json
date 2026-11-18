@@ -209,7 +209,7 @@
   "settings.identity.driving_side.right": "右舵",
   "settings.window.startup": "启动",
   "settings.window.auto_start": "开机自启",
-  "settings.window.auto_start.support": "设备启动后自动打开 CarPlay",
+  "settings.window.auto_start.support": "设备开机后请求将 CarPlay 显示到前台。保存并重启 CarPlay 后生效。",
   "settings.window.fullscreen": "全屏",
   "settings.window.hide_top": "隐藏状态栏",
   "settings.window.hide_top.support": "从顶部边缘下滑可短暂显示",
@@ -517,5 +517,18 @@
   "settings.update.system_downloads": "查看系统下载列表",
   "settings.update.browser_download": "使用系统浏览器下载",
   "settings.update.download_reason": "系统下载错误码：",
-  "settings.update.native_ui_unavailable": "系统未提供可用的下载列表或浏览器，请查看系统下载通知。"
+  "settings.update.native_ui_unavailable": "系统未提供可用的下载列表或浏览器，请查看系统下载通知。",
+  "settings.window.foreground_adb": "启动置前台兼容（ADB）",
+  "settings.window.foreground_adb.support": "默认开启。启动后未显示时，用已授权本机 ADB 再尝试一次；不在后台弹授权。用户切换应用即停止，最多等待 8 秒。保存并重启 CarPlay 后生效。",
+  "settings.window.foreground_status": "最近前台启动状态",
+  "settings.window.foreground.none": "尚无启动记录",
+  "settings.window.foreground.requested": "已请求显示，等待页面进入前台",
+  "settings.window.foreground.foreground": "已确认 CarPlay 页面进入前台",
+  "settings.window.foreground.not_visible": "未确认进入前台，可能受系统或桌面限制",
+  "settings.window.foreground.user_left": "用户已切换应用，停止置前台尝试",
+  "settings.window.foreground.adb_requested": "已提交 ADB 置前台请求，但未确认页面显示",
+  "settings.window.foreground.adb_failed": "ADB 置前台请求失败",
+  "settings.window.foreground.adb_not_approved": "本机 ADB 未授权；可点击下方按钮授权",
+  "settings.window.foreground.adb_unsupported": "本机仅支持其他 ADB 协议，无法自动置前台",
+  "settings.window.foreground.adb_unavailable": "本机网络 ADB 不可达，请检查车机调试设置"
 }
