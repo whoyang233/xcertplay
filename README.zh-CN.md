@@ -9,9 +9,9 @@
 
 ## 下载与安装
 
-**[下载 1.4.2B automotive Release 车载包（系统下载更新，2026111103，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/43024438110/artifacts/13856632818)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/43024438110) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[下载 1.4.2B automotive Release 车载包（启动置前台，2026111805，ZIP）](https://github.com/whoyang233/xcertplay/actions/runs/44338798913/artifacts/14442189642)** · [验证构建](https://github.com/whoyang233/xcertplay/actions/runs/44338798913) · [个人分支构建记录](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111103，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
+Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release** APK 和校验信息。版本为 1.4.2B / 2026111805，`debuggable=false`，沿用固定个人签名，可覆盖此前同签名的个人版 debug 或 release 安装包。
 
 | 安装包 | 适用设备 |
 | --- | --- |
@@ -29,6 +29,8 @@ Actions 产物需要登录 GitHub 后下载，ZIP 内仅含 automotive **release
 个人版可与上游 `com.shilapi.xcertplay` 同时安装，数据、授权和配对记录独立，**无需卸载原版**。首次安装个人版需重新配置、授权和配对；后续个人版保持包名和固定私钥，即可覆盖升级并保留数据。个人分支今后只构建 automotive APK，与上游 automotive 变体对应。连接 CarPlay 时使用其中一个应用，两个应用不能同时独占 Wi-Fi、USB 或 VPN 资源。
 
 ## 连接等待页与配置界面
+
+启动入口现在按桌面图标方式请求将 CarPlay 任务置前台，并复用已有主界面与后台会话。“设置 → 启动与窗口”新增默认开启的“启动置前台兼容（ADB）”及最近启动状态：普通请求未显示时，使用已授权本机 ADB 再请求一次，最多等待 8 秒；用户按 Home、返回或主动切换应用会停止后续尝试。内部延迟请求不会重新开启重试窗口，普通协议重连不触发置前台。开机自启原开关保持既有值，兼容开关不会替用户启用开机自启。[操作、授权与限制](docs/STARTUP_FOREGROUND.zh-CN.md)。
 
 [查看 8 个设置分类的完整滚动截图（含音质子页）](docs/SETTINGS_SCREENSHOTS.zh-CN.md)。
 
@@ -242,6 +244,8 @@ Windows PowerShell：
 无密钥时仅可显式添加 `-Pxcertplay.allowUnsigned=true` 生成未签名构建输入；CI 对应手动 `bootstrap_unsigned` 选项或无密钥 PR 验证。该选项不会生成新的签名密钥，也不会使未签名 APK 变得可安装。
 
 ## 验证状态与问题反馈
+
+[启动置前台 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/44338798913)来自源码 `30e6d3b48224a1bbede9fc3ea670d93cc5d4d19a`：**515 项 Android 测试通过，无失败、错误或跳过；6 项构建编号测试通过；Release Lint 无错误（common 93 / automotive 3 条警告）**。新增覆盖 API 28/33 的任务入口、开关保存、开机触发、已有页面确认、后台启动兜底、用户离开取消、超时清理与内部请求防重入。唯一 automotive APK 为 37,044,752 字节，版本 `1.4.2B` / `2026111805`，release、不可调试，原包名、固定签名、权限/Provider 集合不变。系统下载与导航尖峰保护仍在包中。SHA-256：`616b1bc19e78458a11199e2ff6ecd97f3a574d195d8e97be400ad1d2d6ad265a`。目标车机是否允许置前台仍需实车验证。
 
 [系统下载更新 Release 构建](https://github.com/whoyang233/xcertplay/actions/runs/43024438110)来自源码 `139998ef7d046ab8a295c32728fc047cac4dc747`：**499 项 Android 测试通过，无失败、错误或跳过；6 项构建编号测试通过；Release Lint 无错误（common 90 / automotive 3 条警告）**。新增覆盖 Android 9/13 原生下载请求、后台完成、进程重启关联、校验失败、系统服务不可用、首次冷启动提示与手动检查。APK 为 37,027,752 字节，版本 `1.4.2B` / `2026111103`，release、不可调试，原包名、固定签名及权限/Provider 集合不变；导航尖峰保护与自动更新均入包，旧应用内 APK 网络下载已删除。SHA-256：`25ec52757315a1815d7d026ace79dc76bb053e7158b13a3a1c15b7ac4086eb77`。实车下载服务与安装界面仍需验收。
 

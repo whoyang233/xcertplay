@@ -9,9 +9,9 @@ This personal fork of [shilapi/xcertplay](https://github.com/shilapi/xcertplay) 
 
 ## Download and install
 
-**[Download 1.4.2B automotive release APK ZIP (native update downloads, 2026111103)](https://github.com/whoyang233/xcertplay/actions/runs/43024438110/artifacts/13856632818)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/43024438110) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
+**[Download 1.4.2B automotive release APK ZIP (foreground startup, 2026111805)](https://github.com/whoyang233/xcertplay/actions/runs/44338798913/artifacts/14442189642)** · [Verified build](https://github.com/whoyang233/xcertplay/actions/runs/44338798913) · [Personal branch builds](https://github.com/whoyang233/xcertplay/actions?query=branch%3Apersonal-dev)
 
-Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 2026111103 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
+Actions downloads require GitHub sign-in. The ZIP contains only the automotive **release** APK and verification metadata. Version 1.4.2B / 2026111805 has `debuggable=false` and retains the pinned personal signer, allowing an in-place update from earlier personal debug or release builds.
 
 | APK | Target |
 | --- | --- |
@@ -29,6 +29,8 @@ Requires **Android 9 (API 28)** or newer and a configured MFi authentication sou
 The personal app can be installed alongside upstream `com.shilapi.xcertplay`; **keep the original installed** if desired. Storage, permissions, and pairing records are separate, so configure and pair the personal app on first installation. Subsequent personal builds retain the application ID and signing key for updates that preserve data. This personal branch builds only the automotive APK, following the upstream automotive variant. Use one CarPlay app at a time because they cannot simultaneously own the same Wi-Fi, USB, or VPN resources.
 
 ## Connection overview and settings
+
+Startup now uses the launcher-shaped entry and reuses the current CarPlay task/session. Startup & window adds Startup foreground compatibility (ADB), on by default, and latest launch status. If the native launch stays hidden, already approved local ADB gets one fallback request within an 8-second window. Home, Back or explicit app navigation cancels further attempts; delayed internal requests cannot rearm retries. Protocol reconnects do not foreground the app. The existing Start on boot preference is preserved. [Setup and limits (Chinese)](docs/STARTUP_FOREGROUND.zh-CN.md).
 
 [Complete settings screenshots, including all eight categories and the audio quality subpage](docs/SETTINGS_SCREENSHOTS.zh-CN.md).
 
@@ -229,6 +231,8 @@ Signed release builds require the same fixed key:
 Without the key, only an explicit `-Pxcertplay.allowUnsigned=true` can produce unsigned build inputs. CI exposes this as manual `bootstrap_unsigned` or PR validation without a key. This never generates a new signing key or makes an unsigned APK installable.
 
 ## Verification and feedback
+
+The [foreground startup release build](https://github.com/whoyang233/xcertplay/actions/runs/44338798913), source `30e6d3b48224a1bbede9fc3ea670d93cc5d4d19a`, passes **515 Android tests, no failures, errors or skips; 6 build-number tests also pass; release lint has no errors (93 common / 3 automotive warnings)**. Coverage includes API 28/33 task flags, saved controls, boot gating, foreground confirmation, bounded fallback, cancellation and internal-request deduplication. The 37,044,752-byte automotive APK is release, non-debuggable, `1.4.2B` / `2026111805`, with unchanged package, signer, permissions and providers. Native Downloads and navigation peak protection remain included. SHA-256: `616b1bc19e78458a11199e2ff6ecd97f3a574d195d8e97be400ad1d2d6ad265a`. Head-unit foreground behavior still needs vehicle acceptance.
 
 The [native update download release build](https://github.com/whoyang233/xcertplay/actions/runs/43024438110), source `139998ef7d046ab8a295c32728fc047cac4dc747`, passes **499 Android tests, no failures, errors or skips; 6 build-number tests also pass; release lint has no errors (90 common / 3 automotive warnings)**. Coverage includes Android 9/13 native requests, background completion, persisted task recovery, rejected APKs, unavailable services, startup-only prompts and manual checks. The 37,027,752-byte automotive APK is release, non-debuggable, `1.4.2B` / `2026111103`, with unchanged personal package, signer, permissions and providers. Peak protection and the updater are present; in-app APK network transfers are removed. SHA-256: `25ec52757315a1815d7d026ace79dc76bb053e7158b13a3a1c15b7ac4086eb77`. Head-unit download/installer integration still needs vehicle acceptance.
 
