@@ -711,6 +711,7 @@ class CarPlayHostActivity : ComponentActivity() {
                             else -> cancelSettingsEdits()
                         }
                     } else {
+                        StartupForeground.onUserLeft()
                         isEnabled = false
                         onBackPressedDispatcher.onBackPressed()
                         isEnabled = true
@@ -3998,7 +3999,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     onCheckedChange = { startupForegroundAdb = it })
             }
             row { ListRow(headline = tr("settings.window.foreground_status"),
-                support = tr("settings.window.foreground." + (startupStatus ?: StartupForeground.status(this)))) }
+                support = tr("settings.window.foreground." + (startupStatus ?: StartupForeground.status(this@CarPlayHostActivity)))) }
             if (startupForegroundAdb) {
                 row { com.shilapi.xcertplay.ui.settings.AdbAuthorizationAction(scanAdbBusy, scanAdbStatus, ::authorizeScanAdb) }
             }
