@@ -41,7 +41,9 @@ class StartupForegroundTest {
         assertTrue(command.contains("'com.whoyang233.xcertplay/com.shilapi.xcertplay.CarPlayHostActivity'"))
         assertTrue(command.contains("-f 0x" + Integer.toHexString(intent.flags)))
         assertThrows(IllegalArgumentException::class.java) { StartupForeground.adbCommand("x'; reboot #") }
-        assertTrue(StartupForeground.isLaunchIntent(intent))
+        assertFalse(StartupForeground.isLaunchIntent(intent)) // A late internal launch must not rearm another retry window.
+        assertTrue(command.contains("--ez com.shilapi.xcertplay.STARTUP_FOREGROUND_REQUEST true"))
+        assertTrue(StartupForeground.isLaunchIntent(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)))
         assertTrue(StartupForeground.isLaunchIntent(Intent(UsbManager.ACTION_USB_DEVICE_ATTACHED)))
         assertFalse(StartupForeground.isLaunchIntent(Intent(Intent.ACTION_VIEW)))
     }

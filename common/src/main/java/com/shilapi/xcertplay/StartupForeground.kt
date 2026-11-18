@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Only initial app/boot launches enter this path; CarPlay reconnects never do. */
 internal object StartupForeground {
     private const val TAG = "xcertplay-startup"
+    private const val EXTRA_INTERNAL_LAUNCH = "com.shilapi.xcertplay.STARTUP_FOREGROUND_REQUEST"
     private val handler by lazy { Handler(Looper.getMainLooper()) }
     private var attempt: StartupForegroundAttempt? = null
     private var resumedHost: Int? = null
@@ -24,16 +25,17 @@ internal object StartupForeground {
     fun launchIntent(context: Context): Intent = Intent.makeMainActivity(
         ComponentName(context.packageName, CarPlayHostActivity::class.java.name),
     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        .putExtra(EXTRA_INTERNAL_LAUNCH, true)
 
-    fun isLaunchIntent(intent: Intent): Boolean =
-        (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) ||
-            intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED
+    fun isLaunchIntent(intent: Intent): Boolean = !intent.getBooleanExtra(EXTRA_INTERNAL_LAUNCH, false) &&
+        ((intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) ||
+            intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED)
 
     internal fun adbCommand(packageName: String): String {
         require(packageName.matches(Regex("[A-Za-z][A-Za-z0-9_.]*")))
         val component = packageName + "/" + CarPlayHostActivity::class.java.name
         return "am start --user current -a android.intent.action.MAIN -c android.intent.category.LAUNCHER " +
-            "-f 0x34200000 -n '$component'"
+            "-f 0x34200000 --ez $EXTRA_INTERNAL_LAUNCH true -n '$component'"
     }
 
     fun afterBoot(context: Context, finished: () -> Unit) = begin(context, native = true, finished = finished)
